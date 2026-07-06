@@ -16,6 +16,9 @@ Assemble genomes/metagenomes and produce assembly QC artifacts.
    - HiFi metagenomes: prefer **metaMDBG v1.1** (~2× more circularized high-quality MAGs vs metaFlye on HiFi, better virus/plasmid recovery; *Nature Biotechnology* 2024, DOI: 10.1038/s41587-023-01983-6). Keep metaFlye as a comparator when a per-sample failure mode is suspected.
    - Diverse or very large long-read datasets where speed dominates: **myloasm** (2025) as a faster long-read metagenome assembler when its profile matches the dataset; document the choice in the run log.
 2. Run assembly with resource-aware settings and record exact CLI, version, thread count, and RAM ceiling.
+   - For very large ONT/metagenome FASTQs, use `/bio-reads-qc-mapping` guidance for filtering and avoid redundant full-file raw-read preflights before filtering. Record raw file metadata (`stat` path, size, mtime), optionally run a small sampled check, and write `seqkit stats` after each produced read set.
+   - Use atomic output patterns for long-running filters and assemblies: write to `.tmp`, verify non-empty/readable output, then `mv` into the final path. Resume mode should skip existing final outputs only after sanity checks; when checks fail, use a tool-supported overwrite option or remove the corrupt final output before rerunning.
+   - For Flye/metaFlye failures or interrupted jobs, prefer `--resume` or `--resume-from` in the existing output directory when the prior run is structurally intact. Do not delete a large partial assembly unless logs or missing stage files show it is corrupted.
 3. Run QUAST v5.3+ (use MetaQUAST for metagenomes) and summarize metrics.
 4. For every produced `contigs.fasta`, invoke `/tracking-taxonomy-updates` to run the BBTools-container QuickClade `percontig` domain screen before choosing downstream genome/MAG/viral/eukaryotic workflows.
 5. Use the QuickClade domain routing table to decide the next step:
@@ -39,7 +42,7 @@ Prerequisites:
 - Tools available in the active environment (Pixi/conda/system). See `docs/README.md` for expected tools.
 - Sufficient disk and RAM for chosen assembler.
 Inputs:
-- reads/*.fastq.gz (raw reads).
+- reads/*.fastq.gz or reads/*.fastq (raw or filtered reads; verify actual compression by content when suffixes are suspect).
 - assembler choice (spades | flye | metaflye | metamdbg | myloasm | autocycler).
 
 ## Output
@@ -54,8 +57,11 @@ Inputs:
 
 - [ ] Assembly size range and N50 distribution meet project thresholds.
 - [ ] On failure: retry with alternative parameters; if still failing, record in report and exit non-zero.
-- [ ] Verify reads are present and gzip-readable.
+- [ ] Verify reads are present and readable. If `gzip -t` fails on a `.gz`-named file, inspect magic bytes or file type before labeling it corrupt; it may be plain FASTQ with the wrong suffix.
 - [ ] Check available disk space before assembly.
+- [ ] For large ONT/metagenome inputs, raw file metadata and post-filter `seqkit stats` are recorded without redundant full-file raw preflight scans.
+- [ ] Long-running filter outputs use `.tmp` plus atomic rename, and resume guards distinguish valid completed outputs from partial/corrupt files.
+- [ ] Flye/metaFlye logs are inspected before deciding whether to resume, rerun, or clean a partial output directory.
 - [ ] For Autocycler isolate consensus, record each input assembler/run and confirm the sample is not a mixed community.
 - [ ] QuickClade `percontig` domain screen completed or the reason for skipping it is explicitly recorded.
 - [ ] Domain routing table is reviewed before selecting MAG, viral, bacterial/archaeal, or eukaryotic downstream tools.
@@ -76,3 +82,9 @@ assembler choice (spades | flye).
 
 **Issue**: Low-quality results or failed QC gates
 **Solution**: Review reports, adjust parameters, and re-run the affected step.
+
+**Issue**: Large ONT assembly workflow appears stalled before assembly
+**Solution**: Check whether the script is doing a raw full-file preflight (`gzip -t`, raw `seqkit stats`) instead of productive filtering. For urgent routing/assembly, replace raw full scans with metadata plus sampled checks, then run filtering and post-filter stats.
+
+**Issue**: Flye job timed out or was interrupted
+**Solution**: Inspect `flye.log` and stage files. If the output directory is intact, resubmit with Flye resume options rather than restarting from scratch.

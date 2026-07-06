@@ -12,6 +12,9 @@ Ingest, QC, and map reads with reproducible outputs. Use for raw read processing
 1. Parse sample sheet and validate inputs.
 2. For short reads: run QC and adapter/quality trimming with `bbduk` or `fastp` v1.3.3+.
 3. For long reads: use current basecaller-aware QC first. For ONT, prefer Dorado summaries/trimming during basecalling or demultiplexing when starting from signal/BAM; for FASTQ-only filtering use `chopper` for quality/length/end trimming or `filtlong` v0.2.1 when selecting reads for assembly. Use `Pychopper` for full-length cDNA. Treat `Porechop_ABI` as a targeted legacy/fallback adapter-discovery tool, and record why it is needed.
+   - For very large ONT FASTQ inputs, do not burn the first full read pass on raw `gzip -t` or raw `seqkit stats` preflight unless the user explicitly asks for it. Record raw `stat` metadata and, if needed, a small sampled sanity check; let the first full pass be the actual filtering/orientation step, then run `seqkit stats` on produced outputs.
+   - For ONT cDNA with `Pychopper`, write outputs with plain `.fastq` suffixes unless you explicitly pipe/compress them yourself. `Pychopper` can write plain FASTQ even when the output path ends in `.gz`; avoid `gzip -t` on `Pychopper` outputs unless magic bytes confirm gzip. If legacy outputs have `.fastq.gz` names but plain FASTQ content, rename them to `.fastq` before resuming.
+   - `Pychopper` report plotting can fail after the reads are already processed, for example from a pandas/statistics type-conversion error. On that failure, inspect whether the classified/unclassified/rescued/read-stats outputs exist and are non-empty. If they do, resume downstream from those outputs rather than rerunning the full `Pychopper` pass.
 4. Map reads and produce coverage tables:
    - Short reads, CPU: `bbmap` or `bwa-mem2` v2.2.1+. Short reads, GPU node available: NVIDIA Parabricks `fq2bam` (wraps `bwa-mem2` + GATK markdup; typically 3–4× faster than `bwa-mem2` on 8 cores and up to ~80× over a 96-core CPU pipeline).
    - Long reads, CPU: `minimap2` v2.30+. AVX-512 hardware: `mm2-fast` as a drop-in replacement (~1.8× speedup). GPU node available: `mm2-gb` or `mm2-ax` for CUDA-accelerated long-read alignment.
@@ -51,6 +54,9 @@ Inputs:
 - [ ] On failure: retry with alternative parameters; if still failing, record in report and exit non-zero.
 - [ ] Validate sample sheet schema and FASTQ integrity.
 - [ ] For long-read QC, record whether trimming happened in the basecaller/demultiplexer, `chopper`, `filtlong`, `Pychopper`, or a documented Porechop_ABI fallback.
+- [ ] For huge ONT inputs, avoid redundant full-file raw preflights; document raw file size/mtime and make the first full pass productive.
+- [ ] For `Pychopper` outputs, verify actual file type by content, not suffix. Plain FASTQ with a `.gz` suffix must be renamed or explicitly compressed before downstream tools that expect gzip.
+- [ ] Resume guards should skip expensive completed steps only after confirming the expected output exists, is non-empty, and passes a lightweight content sanity check (`seqkit stats`, FASTQ header sniff, or gzip magic as appropriate).
 
 ## Examples
 
@@ -69,3 +75,6 @@ reference.fasta (optional)
 
 **Issue**: Low-quality results or failed QC gates
 **Solution**: Review reports, adjust parameters, and re-run the affected step.
+
+**Issue**: `Pychopper` failed during report/stat plotting but output FASTQs exist
+**Solution**: Treat this as a recoverable post-processing failure. Confirm the classified FASTQ is non-empty and readable, fix any misleading `.gz` suffix, run `seqkit stats`, and resume downstream steps from the existing `Pychopper` outputs.
