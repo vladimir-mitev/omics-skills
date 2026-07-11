@@ -1,6 +1,6 @@
 ---
 name: bio-stats-ml-reporting
-description: Aggregate results, train ML models, and produce reports with validated references.
+description: Analyze biological results with statistics or machine learning and produce validated reports. Use when aggregating features, testing hypotheses, training models, or reporting performance.
 ---
 
 # Bio Stats ML Reporting
@@ -41,7 +41,7 @@ Aggregate results, train ML models, and produce reports with validated reference
 ## Input Requirements
 
 Prerequisites:
-- Tools available in the active environment (Pixi/conda/system). See `docs/README.md` for expected tools.
+- Tools declared in the project's pinned Pixi environment. See `docs/README.md` for expected tools.
 - Results tables and metadata are available.
 Inputs:
 - results/*.parquet or results/*.tsv

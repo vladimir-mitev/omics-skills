@@ -15,51 +15,39 @@ Use Arrow Flight for fast programmatic query access to Dremio/Lakehouse when you
 
 - Network access to `lakehouse-1.jgi.lbl.gov`
 - Valid lakehouse credentials
-- Python 3 with `venv`
+- `uv`
 
 ## Quick Start (Username/Password)
-
-```bash
-python3 -m venv venv
-. venv/bin/activate
-pip install \
-  https://github.com/dremio-hub/arrow-flight-client-examples/releases/download/dremio-flight-python-v1.1.0/dremio_flight-1.1.0-py3-none-any.whl
-```
-
-Create `config.yaml`:
-
-```yaml
-hostname: lakehouse-1.jgi.lbl.gov
-username: my_user
-password: my_password
-query: SELECT 1
-```
 
 Create `example.py`:
 
 ```python
 import logging
-import yaml
+import os
 from dremio.flight.connection import DremioFlightEndpointConnection
 
 logging.basicConfig(level=logging.INFO)
 
-with open("config.yaml", "r", encoding="utf-8") as fh:
-    cfg = yaml.safe_load(fh)
-
 conn = DremioFlightEndpointConnection({
-    "hostname": cfg["hostname"],
-    "username": cfg["username"],
-    "password": cfg["password"],
+    "hostname": "lakehouse-1.jgi.lbl.gov",
+    "username": os.environ["DREMIO_USERNAME"],
+    "password": os.environ["DREMIO_PASSWORD"],
 })
-df = conn.query(cfg["query"])
+df = conn.query("SELECT 1")
 print(df)
 ```
 
 Run:
 
 ```bash
-python example.py
+read -r -p "Dremio username: " DREMIO_USERNAME
+read -r -s -p "Dremio password: " DREMIO_PASSWORD
+printf '\n'
+export DREMIO_USERNAME DREMIO_PASSWORD
+uv run \
+  --with "dremio-flight @ https://github.com/dremio-hub/arrow-flight-client-examples/releases/download/dremio-flight-python-v1.1.0/dremio_flight-1.1.0-py3-none-any.whl" \
+  example.py
+unset DREMIO_USERNAME DREMIO_PASSWORD
 ```
 
 Expected output shape:
@@ -78,7 +66,7 @@ If your environment uses Personal Access Tokens (`DREMIO_PAT`) for REST, keep in
 ## Operational Notes
 
 - Default Flight port in this package flow is `32010` unless overridden.
-- Keep credentials out of git. Do not commit `config.yaml` with real usernames/passwords/tokens.
+- Keep credentials out of files and git. Read them interactively or load them from the approved secret store.
 - Prefer short-lived or scoped credentials where possible.
 
 ## References

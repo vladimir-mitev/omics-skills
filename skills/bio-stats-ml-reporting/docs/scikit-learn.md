@@ -8,14 +8,15 @@ Release/source: https://github.com/scikit-learn/scikit-learn/releases/tag/1.8.0
 ## Installation
 
 ```bash
-# Via pip
-pip install -U scikit-learn
+# Add to the project environment
+uv add scikit-learn
 
-# Specific version
-pip install scikit-learn==1.8.0
+# Run against the verified version without changing the project
+uv run --with scikit-learn==1.8.0 python -c \
+  "import sklearn; sklearn.show_versions()"
 
 # Check installed version and compiled dependencies
-python -c "import sklearn; sklearn.show_versions()"
+uv run python -c "import sklearn; sklearn.show_versions()"
 ```
 
 ## Key Modules for Stats/ML
@@ -104,6 +105,7 @@ print(classification_report(y_test, y_pred))
 ```python
 from sklearn.model_selection import cross_val_score
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import make_pipeline
 from sklearn.svm import SVC
 
 models = {
@@ -113,7 +115,10 @@ models = {
 }
 
 for name, model in models.items():
-    scores = cross_val_score(model, X_train_scaled, y_train, cv=5, scoring='accuracy')
+    # Fit the scaler independently inside each fold. Scaling X_train before
+    # cross-validation leaks validation-fold distribution information.
+    estimator = make_pipeline(StandardScaler(), model)
+    scores = cross_val_score(estimator, X_train, y_train, cv=5, scoring='accuracy')
     print(f"{name}: {scores.mean():.3f} (+/- {scores.std():.3f})")
 ```
 
@@ -165,7 +170,7 @@ skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
 scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
 cv_results = cross_validate(
-    model, X, y, cv=skf, scoring=scoring, return_train_score=True, n_jobs=-1
+    pipeline, X, y, cv=skf, scoring=scoring, return_train_score=True, n_jobs=-1
 )
 
 for metric in scoring:
@@ -251,17 +256,17 @@ for batch in batches:
 ### 3. Feature Selection to Reduce Dimensionality
 
 ```python
-# Remove low-variance features
-from sklearn.feature_selection import VarianceThreshold
+from sklearn.feature_selection import SelectKBest, VarianceThreshold, mutual_info_classif
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
 
-selector = VarianceThreshold(threshold=0.01)
-X_reduced = selector.fit_transform(X)
-
-# Select top k features
-from sklearn.feature_selection import SelectKBest, mutual_info_classif
-
-selector = SelectKBest(mutual_info_classif, k=50)
-X_selected = selector.fit_transform(X, y)
+# Fit both selectors independently inside each cross-validation fold. Fitting
+# either selector on all of X before evaluation leaks validation information.
+feature_pipeline = Pipeline([
+    ('low_variance', VarianceThreshold(threshold=0.01)),
+    ('feature_selection', SelectKBest(mutual_info_classif, k=50)),
+    ('classifier', LogisticRegression(max_iter=1000, random_state=42)),
+])
 ```
 
 ### 4. Memory-Efficient Sparse Matrices
@@ -287,11 +292,12 @@ train_test_split(X, y, random_state=42)
 ```python
 #!/usr/bin/env python3
 import pandas as pd
-import numpy as np
 from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.pipeline import make_pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
 import joblib
 
 # 1. Load feature table from DuckDB export
@@ -306,28 +312,27 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
 
-# 4. Scale features
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled = scaler.transform(X_test)
-
-# 5. Train baseline models
+# 4. Define complete estimators. Any learned preprocessing belongs inside the
+# estimator so each cross-validation fold fits it only on that fold's training data.
 models = {
+    'Logistic': make_pipeline(
+        StandardScaler(),
+        LogisticRegression(max_iter=1000, random_state=42),
+    ),
     'RandomForest': RandomForestClassifier(n_estimators=100, random_state=42),
-    'GradientBoosting': GradientBoostingClassifier(n_estimators=100, random_state=42)
 }
 
 results = []
 for name, model in models.items():
     # Cross-validation
-    cv_scores = cross_val_score(model, X_train_scaled, y_train, cv=5, scoring='roc_auc')
+    cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='roc_auc')
 
     # Train on full training set
-    model.fit(X_train_scaled, y_train)
+    model.fit(X_train, y_train)
 
     # Test set evaluation
-    y_pred = model.predict(X_test_scaled)
-    y_proba = model.predict_proba(X_test_scaled)[:, 1]
+    y_pred = model.predict(X_test)
+    y_proba = model.predict_proba(X_test)[:, 1]
     test_auc = roc_auc_score(y_test, y_proba)
 
     results.append({

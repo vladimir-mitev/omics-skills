@@ -8,7 +8,8 @@ The table below is a reader-facing map. The source `SKILL.md` files are still ca
 
 | Skill | Use when | Main result |
 |---|---|---|
-| `bio-foundation-housekeeping` | Starting a new bioinformatics project or normalizing an existing one. | A reproducible project scaffold with environments, schemas, manifests, and data cataloging. |
+| `bioinformatics-project` | Starting, reorganizing, or reproducibility-hardening a bioinformatics project. | Project layout, pinned environment, task records, hypothesis register, restartable drivers, provenance, and sharing metadata. |
+| `bio-foundation-housekeeping` | Defining metadata schemas or adding a queryable data catalog. | LinkML/Pydantic models, normalized Parquet tables, validation fixtures, and a DuckDB catalog. |
 | `exploratory-data-analysis` | Inspecting an unfamiliar scientific data file before choosing a workflow. | A Markdown report covering file type, structure, quality issues, and downstream analysis options. |
 | `bio-reads-qc-mapping` | Ingesting raw reads, trimming or filtering them, and mapping reads to references or assemblies. | QC reports, cleaned reads, alignments, and coverage summaries. |
 | `bio-assembly-qc` | Building genome, metagenome, or long-read assemblies. | Assemblies with QC metrics and assembly-level interpretation. |
@@ -18,6 +19,7 @@ The table below is a reader-facing map. The source `SKILL.md` files are still ca
 | `bio-annotation` | Assigning function and taxonomy from sequence homology. | Functional annotations, taxonomy calls, and evidence-ranked hit tables. |
 | `bio-fasta-database-curator` | Preparing sequence databases for BLAST, DIAMOND, MMseqs2, HMMER, pyhmmer, or custom reference searches. | Curated FASTA/FAA files, stable headers, deduplicated records, mapping tables, and database statistics. |
 | `bio-phylogenomics` | Building marker-gene or protein alignments and trees. | Alignments, phylogenetic trees, topology checks, and interpretation. |
+| `bio-interdomain-hgt` | Testing interdomain horizontal gene transfer and donor direction. | Homology, context, contamination, and per-gene phylogenetic evidence for candidate transfers. |
 | `bio-protein-clustering-pangenome` | Clustering proteins into orthogroups or building pangenome matrices. | Orthogroups, copy-number matrices, and core/accessory gene summaries. |
 | `bio-structure-annotation` | Adding structure-based evidence to protein interpretation. | Predicted or searched structures, fold-level annotations, and confidence notes. |
 | `bio-viromics` | Detecting, classifying, and QCing viral contigs. | Viral calls, quality summaries, taxonomy evidence, and candidate discovery tables. |
@@ -37,6 +39,7 @@ The table below is a reader-facing map. The source `SKILL.md` files are still ca
 | `crossref-lookup` | Validating DOIs or matching titles to citation metadata. | Crossref records, DOI matches, and bibliography cleanup evidence. |
 | `scientific-impact-assessment` | Comparing papers, journals, or literature shortlists by influence. | OpenAlex citation counts, optional Altmetric context, and impact summaries. |
 | `get-api-docs` | Checking current API or SDK behavior before coding against a fast-moving interface. | Fresh documentation snippets gathered through the `chub` CLI. |
+| `pdf-to-md` | Converting papers, PDFs, or office documents into analysis-ready Markdown. | Clean Markdown and, for papers, structured article and section-audit artifacts. |
 
 ## Writing, Review, and Evaluation
 

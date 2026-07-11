@@ -1,6 +1,6 @@
 ---
 name: bio-protein-clustering-pangenome
-description: Cluster proteins into orthogroups and derive pangenome matrices.
+description: Cluster proteins into orthogroups and build pangenome matrices. Use when comparing gene-family presence, absence, expansion, contraction, or core and accessory content across genomes.
 ---
 
 # Bio Protein Clustering Pangenome
@@ -10,9 +10,9 @@ Cluster proteins into orthogroups and derive pangenome matrices.
 ## Instructions
 
 1. Cluster proteins. Choose the tool by dataset size and goal:
-   - Default for orthology inference up to a few hundred genomes: **OrthoFinder v3** (improved accuracy and lower RAM at scale, supports MSA-based gene trees; supersedes OrthoFinder v2 and OrthoMCL workflows).
-   - Very large pangenomes where OrthoFinder is too RAM-heavy: **ProteinOrtho v6.1.7+** as the fast, scalable alternative.
-   - Sequence clustering (not strict orthology) and similarity search backbones: **MMseqs2** v15-6f452+. Enable GPU mode (`mmseqs ... --gpu`) on CUDA Turing+ nodes for a ~20× speedup at near-identical sensitivity.
+   - Default for orthology inference up to a few hundred genomes: **OrthoFinder v3.1.5** (supports MSA-based gene trees; supersedes OrthoFinder v2 and OrthoMCL workflows).
+   - Very large pangenomes where OrthoFinder is too RAM-heavy: **ProteinOrtho v6.3.6**.
+   - Sequence clustering (not strict orthology) and similarity-search backbones: **MMseqs2 v18-8cc5c**. GPU search requires MMseqs2 v16 or newer plus a GPU-enabled build on CUDA Turing-or-newer hardware; full-speed kernels require Ampere or newer. Enable `--gpu` only for commands that expose it and record the CPU/GPU build used.
 2. Build presence/absence matrix AND an integer copy-number matrix (orthogroup × genome) covering the query AND the close relatives produced by `/bio-phylogenomics`.
 3. Compute core/accessory/cloud/singleton partitions.
 4. Identify single-copy orthologs for phylogenetic analysis.
@@ -42,10 +42,12 @@ Cluster proteins into orthogroups and derive pangenome matrices.
 ## Input Requirements
 
 Prerequisites:
-- Tools available in the active environment (Pixi/conda/system). See `docs/README.md` for expected tools.
-- Protein FASTA inputs are available.
+- Tools are installed in the project's pinned Pixi environment. Commit `pixi.toml` and `pixi.lock`, and run tools through `pixi run` so the lockfile records exact builds. See `docs/README.md` for expected tools.
+- Protein FASTA inputs are available as one non-empty file per genome or species. OrthoFinder uses each filename as a taxon identifier, so filenames must be unique and stable.
 Inputs:
-- proteins.faa (FASTA protein sequences)
+- `protein_fastas/` with one amino-acid FASTA per genome, for example `protein_fastas/genome_A.faa` and `protein_fastas/genome_B.faa`
+- `genomes.tsv` mapping each stable genome identifier to its FASTA path and query/reference role
+- For MMseqs2 clustering of a concatenated FASTA, `protein_to_genome.tsv` mapping every unique protein ID back to exactly one genome; a merged `proteins.faa` without this mapping cannot produce a valid genome-by-family matrix
 
 ## Output
 
@@ -65,7 +67,8 @@ Inputs:
 - [ ] Cluster size distributions meet project thresholds.
 - [ ] Matrix completeness meets project thresholds.
 - [ ] On failure: retry with alternative parameters; if still failing, record in report and exit non-zero.
-- [ ] Verify proteins.faa is non-empty and amino acid encoded.
+- [ ] Verify every per-genome FASTA is non-empty, amino-acid encoded, and has protein IDs unique across the full dataset.
+- [ ] Verify the genome manifest covers every FASTA exactly once; if proteins were concatenated for MMseqs2, verify every clustered protein maps to exactly one genome.
 - [ ] Comparison baseline is justified from literature, phylogeny, taxonomy, or data availability.
 - [ ] Query-specific, missing, expanded, and conserved orthogroups are reported separately.
 - [ ] Candidate discovery orthogroups have annotation evidence or a recommended follow-up analysis.
@@ -78,7 +81,11 @@ Inputs:
 ### Example 1: Expected input layout
 
 ```text
-proteins.faa (FASTA protein sequences)
+protein_fastas/
+├── genome_A.faa
+├── genome_B.faa
+└── genome_C.faa
+genomes.tsv
 ```
 
 ## Troubleshooting

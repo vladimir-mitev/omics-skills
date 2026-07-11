@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -88,6 +89,15 @@ class InstallSelectedIntegrationTests(unittest.TestCase):
                     "selected symlink installs must copy the temporary subset catalog",
                 )
 
+            claude_agent = home / ".claude" / "agents" / "science-writer.md"
+            codex_agent = home / ".codex" / "agents" / "science-writer.toml"
+            self.assertTrue(claude_agent.exists())
+            self.assertTrue(codex_agent.exists())
+            self.assertFalse((home / ".codex" / "agents" / "science-writer.md").exists())
+            parsed_agent = tomllib.loads(codex_agent.read_text(encoding="utf-8"))
+            self.assertEqual(parsed_agent["name"], "science-writer")
+            self.assertIn("developer_instructions", parsed_agent)
+
             off_subset = self.run_installed_route(home, "assemble a metagenome and recover MAGs")
             self.assertEqual(off_subset["primary_skills"], [])
             self.assertNotIn("bio-assembly-qc", off_subset["ordered_skills"])
@@ -167,6 +177,47 @@ class InstallSelectedIntegrationTests(unittest.TestCase):
             self.assertFalse((home / ".claude" / "skills").is_symlink())
             self.assertFalse((home / ".codex" / "skills").is_symlink())
             self.assertFalse((home / ".agents" / "omics-skills").exists())
+
+    def test_clean_preserves_unrelated_backups(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir)
+            unrelated_files = [
+                home / ".claude" / "agents" / "unrelated.md.bak",
+                home / ".codex" / "agents" / "unrelated.toml.bak",
+            ]
+            unrelated_dir = home / ".agents" / "skills" / "unrelated.bak"
+            for path in unrelated_files:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("keep\n", encoding="utf-8")
+            unrelated_dir.mkdir(parents=True)
+
+            self.run_make(home, "clean")
+
+            for path in unrelated_files:
+                self.assertTrue(path.exists(), f"clean removed unrelated backup {path}")
+            self.assertTrue(unrelated_dir.exists())
+
+    def test_missing_selected_skill_fails_install(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir)
+            env = os.environ.copy()
+            env["HOME"] = str(home)
+            env["NO_COLOR"] = "1"
+            result = subprocess.run(
+                [
+                    "make",
+                    "--no-print-directory",
+                    "install-skills",
+                    "SELECTED_SKILL_DIRS=not-a-real-skill",
+                ],
+                cwd=REPO_ROOT,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("not-a-real-skill not found", result.stdout)
 
 
 if __name__ == "__main__":

@@ -17,9 +17,9 @@ pip install pydantic
 pip install 'pydantic[email]'
 ```
 
-### With Settings / Dotenv Support
+### With Settings Support
 ```bash
-pip install pydantic pydantic-settings
+pixi add pydantic pydantic-settings
 ```
 
 ## Key Features and Usage
@@ -81,8 +81,8 @@ from pydantic import BaseModel, field_validator, model_validator
 
 class Sequence(BaseModel):
     id: str
-    sequence: str
     sequence_type: str
+    sequence: str
 
     @field_validator('sequence')
     @classmethod
@@ -280,12 +280,23 @@ class Sample(BaseModel):
 # Reject unknown fields (faster than allowing them)
 ```
 
-### 3. Lazy Validation
+### 3. Trusted Construction and Revalidation
 ```python
-# Validate only when needed
-sample = Sample.model_construct(**data)  # Skip validation
-sample.model_validate(sample)  # Validate later
+from pydantic import BaseModel, ConfigDict
+
+class RevalidatedSample(BaseModel):
+    model_config = ConfigDict(revalidate_instances='always')
+    id: str
+
+# model_construct() is only for data already validated elsewhere.
+trusted = RevalidatedSample.model_construct(id=123)
+sample = RevalidatedSample.model_validate(trusted)  # raises: id must be a string
 ```
+
+Parse external records directly with `model_validate()`. Without
+`revalidate_instances='always'`, passing an existing model instance to
+`model_validate()` does not guarantee that values created through
+`model_construct()` are checked again.
 
 ### 4. Reuse Validators
 ```python

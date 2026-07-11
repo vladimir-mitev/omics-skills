@@ -74,7 +74,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Functions
-install_agents() {
+install_markdown_agents() {
     local target_dir=$1
     local platform=$2
 
@@ -87,8 +87,8 @@ install_agents() {
         target="$target_dir/$basename"
 
         if [ ! -f "$agent_path" ]; then
-            echo -e "  ${RED}✗${NC} $agent not found"
-            continue
+            echo -e "  ${RED}ERROR${NC} $agent not found"
+            return 1
         fi
 
         if [ -L "$target" ]; then
@@ -96,7 +96,7 @@ install_agents() {
             rm "$target"
         elif [ -f "$target" ]; then
             echo -e "  ${YELLOW}Warning: $basename exists (backing up)${NC}"
-            mv "$target" "$target.bak"
+            mv "$target" "$target.bak.$(date +%s%N)"
         fi
 
         if [ "$INSTALL_METHOD" = "symlink" ]; then
@@ -105,7 +105,39 @@ install_agents() {
             cp "$agent_path" "$target"
         fi
 
-        echo -e "  ${GREEN}✓${NC} $basename"
+        echo -e "  ${GREEN}OK${NC} $basename"
+    done
+}
+
+install_codex_agents() {
+    echo -e "${BLUE}Installing agents to Codex CLI...${NC}"
+    mkdir -p "$CODEX_AGENTS_DIR"
+
+    for agent in "${AGENT_FILES[@]}"; do
+        agent_path="$AGENTS_DIR/$agent"
+        name="${agent%.md}"
+        target="$CODEX_AGENTS_DIR/$name.toml"
+        legacy="$CODEX_AGENTS_DIR/$name.md"
+
+        if [ ! -f "$agent_path" ]; then
+            echo -e "  ${RED}ERROR${NC} $agent not found"
+            return 1
+        fi
+        if [ -L "$target" ]; then
+            rm "$target"
+        elif [ -f "$target" ]; then
+            backup="$target.bak.$(date +%s%N)"
+            mv "$target" "$backup"
+            echo -e "  ${YELLOW}Backed up existing $name.toml to $backup${NC}"
+        fi
+        if [ -L "$legacy" ] || [ -f "$legacy" ]; then
+            backup="$legacy.legacy.bak.$(date +%s%N)"
+            mv "$legacy" "$backup"
+            echo -e "  ${YELLOW}Backed up legacy $name.md to $backup${NC}"
+        fi
+
+        python3 "$REPO_ROOT/scripts/render_codex_agent.py" "$agent_path" "$target"
+        echo -e "  ${GREEN}OK${NC} $name.toml"
     done
 }
 
@@ -135,7 +167,7 @@ install_skills() {
                 cp -r "$skill" "$target"
             fi
 
-            echo -e "  ${GREEN}✓${NC} $basename"
+            echo -e "  ${GREEN}OK${NC} $basename"
         fi
     done
 }
@@ -144,7 +176,7 @@ build_catalog() {
     echo -e "${BLUE}Building skill catalog...${NC}"
     mkdir -p "$CATALOG_DIR"
     python3 "$REPO_ROOT/scripts/skill_index.py" build --repo "$REPO_ROOT" --out "$CATALOG_DIR" >/dev/null
-    echo -e "  ${GREEN}✓${NC} catalog.json"
+    echo -e "  ${GREEN}OK${NC} catalog.json"
 }
 
 install_catalog() {
@@ -169,7 +201,7 @@ install_catalog() {
             cp "$src" "$target"
         fi
 
-        echo -e "  ${GREEN}✓${NC} $item"
+        echo -e "  ${GREEN}OK${NC} $item"
     done
 }
 
@@ -191,7 +223,7 @@ link_claude_skills() {
         ln -sfn "$AGENTS_SKILLS_DIR" "$CLAUDE_SKILLS_DIR"
     fi
 
-    echo -e "  ${GREEN}✓${NC} $CLAUDE_SKILLS_DIR -> $AGENTS_SKILLS_DIR"
+    echo -e "  ${GREEN}OK${NC} $CLAUDE_SKILLS_DIR -> $AGENTS_SKILLS_DIR"
 }
 
 link_codex_skills() {
@@ -212,29 +244,29 @@ link_codex_skills() {
         ln -sfn "$AGENTS_SKILLS_DIR" "$CODEX_SKILLS_DIR"
     fi
 
-    echo -e "  ${GREEN}✓${NC} $CODEX_SKILLS_DIR -> $AGENTS_SKILLS_DIR"
+    echo -e "  ${GREEN}OK${NC} $CODEX_SKILLS_DIR -> $AGENTS_SKILLS_DIR"
 }
 
 check_deps() {
     echo -e "${BLUE}Checking dependencies...${NC}"
 
     if command -v claude >/dev/null 2>&1; then
-        echo -e "  ${GREEN}✓${NC} Claude Code CLI found"
+        echo -e "  ${GREEN}OK${NC} Claude Code CLI found"
     else
-        echo -e "  ${YELLOW}○${NC} Claude Code CLI not found"
+        echo -e "  ${YELLOW}INFO${NC} Claude Code CLI not found"
         echo "    Install from https://claude.com/claude-code"
     fi
 
     if command -v codex >/dev/null 2>&1; then
-        echo -e "  ${GREEN}✓${NC} Codex CLI found"
+        echo -e "  ${GREEN}OK${NC} Codex CLI found"
     else
-        echo -e "  ${YELLOW}○${NC} Codex CLI not found (optional)"
+        echo -e "  ${YELLOW}INFO${NC} Codex CLI not found (optional)"
     fi
 
     if command -v python3 >/dev/null 2>&1; then
-        echo -e "  ${GREEN}✓${NC} Python 3 found"
+        echo -e "  ${GREEN}OK${NC} Python 3 found"
     else
-        echo -e "  ${YELLOW}○${NC} Python 3 not found (required for installation and some skills)"
+        echo -e "  ${YELLOW}INFO${NC} Python 3 not found (required for installation and some skills)"
     fi
 
     echo ""
@@ -248,8 +280,15 @@ show_status() {
     echo -e "${YELLOW}Shared Skills:${NC}"
     echo "  Skills directory: $AGENTS_SKILLS_DIR"
     if [ -d "$AGENTS_SKILLS_DIR" ]; then
-        count=$(find -L "$AGENTS_SKILLS_DIR" -maxdepth 1 -type d -o -type l 2>/dev/null | tail -n +2 | wc -l)
-        echo "  Installed skills: $count/$skills_total"
+        count=0
+        total_count=$(find -L "$AGENTS_SKILLS_DIR" -mindepth 1 -maxdepth 1 \( -type d -o -type l \) 2>/dev/null | wc -l)
+        for skill in "$SKILLS_DIR"/*; do
+            name=$(basename "$skill")
+            if [ -d "$AGENTS_SKILLS_DIR/$name" ] || [ -L "$AGENTS_SKILLS_DIR/$name" ]; then
+                count=$((count + 1))
+            fi
+        done
+        echo "  Omics-skills skills: $count/$skills_total installed ($total_count total in directory)"
     else
         echo -e "  ${RED}Not installed${NC}"
     fi
@@ -289,7 +328,13 @@ show_status() {
     echo -e "${YELLOW}Codex CLI:${NC}"
     echo "  Agents directory: $CODEX_AGENTS_DIR"
     if [ -d "$CODEX_AGENTS_DIR" ]; then
-        count=$(find "$CODEX_AGENTS_DIR" -name "*.md" 2>/dev/null | wc -l)
+        count=0
+        for agent in "${AGENT_FILES[@]}"; do
+            name="${agent%.md}"
+            if [ -f "$CODEX_AGENTS_DIR/$name.toml" ]; then
+                count=$((count + 1))
+            fi
+        done
         echo "  Installed agents: $count/$AGENT_COUNT"
     else
         echo -e "  ${RED}Not installed${NC}"
@@ -307,9 +352,7 @@ show_status() {
 }
 
 # Main installation
-echo -e "${BLUE}╔═══════════════════════════════════╗${NC}"
-echo -e "${BLUE}║   Omics Skills Installer          ║${NC}"
-echo -e "${BLUE}╚═══════════════════════════════════╝${NC}"
+echo -e "${BLUE}Omics Skills Installer${NC}"
 echo ""
 
 check_deps
@@ -331,21 +374,21 @@ install_catalog
 echo ""
 
 if [ "$INSTALL_TARGET" = "both" ] || [ "$INSTALL_TARGET" = "claude" ]; then
-    install_agents "$CLAUDE_AGENTS_DIR" "Claude Code"
+    install_markdown_agents "$CLAUDE_AGENTS_DIR" "Claude Code"
     link_claude_skills
-    echo -e "${GREEN}✓ Claude Code installation complete${NC}"
+    echo -e "${GREEN}OK Claude Code installation complete${NC}"
     echo ""
 fi
 
 if [ "$INSTALL_TARGET" = "both" ] || [ "$INSTALL_TARGET" = "codex" ]; then
-    install_agents "$CODEX_AGENTS_DIR" "Codex CLI"
+    install_codex_agents
     link_codex_skills
-    echo -e "${GREEN}✓ Codex CLI installation complete${NC}"
+    echo -e "${GREEN}OK Codex CLI installation complete${NC}"
     echo "  Skills linked at $CODEX_SKILLS_DIR"
     echo ""
 fi
 
-echo -e "${GREEN}✓ Installation complete!${NC}"
+echo -e "${GREEN}OK Installation complete!${NC}"
 echo ""
 
 show_status
@@ -359,7 +402,8 @@ echo "     claude --agent science-writer"
 echo "     claude --agent dataviz-artist"
 echo ""
 echo "  2. Or use in Codex:"
-echo "     codex --system-prompt ~/.codex/agents/omics-scientist.md"
+echo "     Start codex, then ask it to delegate to the omics-scientist agent"
+echo '     or invoke an installed skill explicitly, for example $bio-annotation.'
 echo ""
 echo "  3. Check a recommended workflow:"
 echo "     python3 ~/.agents/omics-skills/skill_index.py route \"assemble a metagenome and recover MAGs\""

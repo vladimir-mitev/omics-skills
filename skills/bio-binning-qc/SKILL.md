@@ -1,6 +1,6 @@
 ---
 name: bio-binning-qc
-description: Perform metagenomic binning with QuickBin, refinement, and QC with completeness/contamination checks.
+description: Bin and refine metagenomic contigs, then assess MAG quality. Use when recovering genomes with QuickBin and checking completeness, contamination, and bin consistency.
 ---
 
 # Bio Binning QC
@@ -18,9 +18,9 @@ Perform metagenomic binning, refinement, and QC with completeness/contamination 
    - Viral or virus-like -> remove from MAG QC and route candidate contigs/genomes to `/bio-viromics`; use vConTACT3 for phage/prokaryotic-virus evidence and GVClass for giant-virus/Nucleocytoviricota candidates.
    - Mixed or low-confidence -> flag as potential chimeras and inspect per-contig assignments before QC scoring.
 5. Run domain-specific QC:
-   - CheckM2 v1.1.0+ for bacterial and archaeal bins (note: v1.1.0 is a breaking upgrade — new DIAMOND v3 database from Zenodo DOI 10.5281/zenodo.14897628 and new dependency tree; re-install via mamba and refresh the DB).
+   - CheckM2 v1.1.0+ for bacterial and archaeal bins (v1.1.0 is a breaking upgrade: update the pinned Pixi environment and refresh the DIAMOND v3 database from Zenodo DOI 10.5281/zenodo.14897628).
    - EukCC v2.1.3+ for eukaryotic bins.
-   - GUNC v1.0.6+ for contamination detection across all non-viral bins; treat it as a complement to CheckM2 (improves recall of chimeric bins).
+   - GUNC v1.0.6+ for bacterial and archaeal bins only; treat it as a complement to CheckM2 for chimerism detection. Do not apply GUNC to eukaryotic bins.
 
 ## Quick Reference
 
@@ -34,7 +34,7 @@ Perform metagenomic binning, refinement, and QC with completeness/contamination 
 ## Input Requirements
 
 Prerequisites:
-- Tools available in the active environment (Pixi/conda/system). See `docs/README.md` for expected tools.
+- Tools declared in the project's pinned Pixi environment. See `docs/README.md` for expected tools.
 - Reference DB root: set `BIO_DB_ROOT` to the project or site-local database directory.
 - Coverage/depth tables or reads available to compute coverage.
 - Docker or Apptainer/Singularity available for `bryce911/bbtools` QuickBin runs, or a documented local BBTools install.

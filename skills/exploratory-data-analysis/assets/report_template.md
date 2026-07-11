@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-This report provides a comprehensive exploratory data analysis of the file `{FILENAME}`. The analysis includes file type identification, format-specific metadata extraction, data quality assessment, and recommendations for downstream analysis.
+This report records the inspected parts of `{FILENAME}`, any sampling limits, observed data-quality issues, and supported next analyses.
 
 ---
 

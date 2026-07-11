@@ -1,6 +1,6 @@
 ---
 name: manuscript-review-council
-description: Run a multi-agent scientific manuscript review with parallel specialist reviewers, disagreement checks, and an editor meta-review. Use when reviewing a manuscript, preprint, revision, or rebuttal in Codex or Claude Code.
+description: Run a multi-agent manuscript review with specialist reports, disagreement checks, and an editor synthesis. Use when reviewing a scientific paper, preprint, revision, or rebuttal.
 ---
 
 # Manuscript Review Council

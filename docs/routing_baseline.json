@@ -1,7 +1,7 @@
 {
   "summary": {
-    "total": 41,
-    "passed": 41,
+    "total": 50,
+    "passed": 50,
     "failed": 0,
     "pass_rate": 1.0,
     "agent_failures": 0,
@@ -122,6 +122,52 @@
       }
     },
     {
+      "task": "annotate Pfam domains and InterPro families in these proteins",
+      "passed": true,
+      "actual": {
+        "agent": "omics-scientist",
+        "primary_skills": [
+          "bio-annotation"
+        ],
+        "supporting_skills": [
+          "bio-gene-calling",
+          "polars-dovmed",
+          "bio-viromics",
+          "tracking-taxonomy-updates"
+        ],
+        "ordered_skills": [
+          "bio-gene-calling",
+          "polars-dovmed",
+          "bio-annotation"
+        ]
+      }
+    },
+    {
+      "task": "search these protein structures against Foldseek",
+      "passed": true,
+      "actual": {
+        "agent": "omics-scientist",
+        "primary_skills": [
+          "bio-structure-annotation",
+          "polars-dovmed"
+        ],
+        "supporting_skills": [
+          "bio-gene-calling",
+          "bio-annotation",
+          "bio-logic",
+          "bio-protein-clustering-pangenome",
+          "crossref-lookup"
+        ],
+        "ordered_skills": [
+          "bio-gene-calling",
+          "bio-structure-annotation",
+          "bio-annotation",
+          "bio-logic",
+          "polars-dovmed"
+        ]
+      }
+    },
+    {
       "task": "build a phylogenetic tree from marker gene alignments",
       "passed": true,
       "actual": {
@@ -172,20 +218,23 @@
       "actual": {
         "agent": "omics-scientist",
         "primary_skills": [
-          "bio-protein-clustering-pangenome"
+          "bio-protein-clustering-pangenome",
+          "bio-annotation"
         ],
         "supporting_skills": [
           "bio-gene-calling",
           "bio-phylogenomics",
           "polars-dovmed",
-          "bio-annotation",
+          "bio-viromics",
+          "tracking-taxonomy-updates",
           "bio-structure-annotation"
         ],
         "ordered_skills": [
           "bio-gene-calling",
-          "polars-dovmed",
           "bio-phylogenomics",
-          "bio-protein-clustering-pangenome"
+          "polars-dovmed",
+          "bio-protein-clustering-pangenome",
+          "bio-annotation"
         ]
       }
     },
@@ -222,8 +271,11 @@
           "jgi-lakehouse",
           "bio-fasta-database-curator"
         ],
-        "supporting_skills": [],
+        "supporting_skills": [
+          "bio-interdomain-hgt"
+        ],
         "ordered_skills": [
+          "bio-interdomain-hgt",
           "bio-fasta-database-curator",
           "jgi-lakehouse"
         ]
@@ -279,6 +331,36 @@
       "actual": {
         "agent": "omics-scientist",
         "primary_skills": [
+          "bioinformatics-project"
+        ],
+        "supporting_skills": [],
+        "ordered_skills": [
+          "bioinformatics-project"
+        ]
+      }
+    },
+    {
+      "task": "make this sequencing analysis reproducible with a restartable runall driver provenance records a lab notebook and a pinned Pixi environment",
+      "passed": true,
+      "actual": {
+        "agent": "omics-scientist",
+        "primary_skills": [
+          "bioinformatics-project",
+          "notebooks"
+        ],
+        "supporting_skills": [],
+        "ordered_skills": [
+          "bioinformatics-project",
+          "notebooks"
+        ]
+      }
+    },
+    {
+      "task": "define LinkML and Pydantic metadata schemas write normalized Parquet and register the validated tables in a DuckDB catalog",
+      "passed": true,
+      "actual": {
+        "agent": "omics-scientist",
+        "primary_skills": [
           "bio-foundation-housekeeping"
         ],
         "supporting_skills": [],
@@ -295,8 +377,11 @@
         "primary_skills": [
           "bio-fasta-database-curator"
         ],
-        "supporting_skills": [],
+        "supporting_skills": [
+          "bio-interdomain-hgt"
+        ],
         "ordered_skills": [
+          "bio-interdomain-hgt",
           "bio-fasta-database-curator"
         ]
       }
@@ -328,6 +413,7 @@
         ],
         "supporting_skills": [
           "bio-reads-qc-mapping",
+          "bio-interdomain-hgt",
           "bio-protein-clustering-pangenome",
           "polars-dovmed",
           "bio-annotation",
@@ -339,6 +425,7 @@
           "proposal-review"
         ],
         "ordered_skills": [
+          "bio-interdomain-hgt",
           "bio-prefect-dask-nextflow",
           "bio-reads-qc-mapping",
           "bio-assembly-qc",
@@ -358,6 +445,7 @@
           "bio-logic"
         ],
         "supporting_skills": [
+          "bio-interdomain-hgt",
           "bio-protein-clustering-pangenome",
           "polars-dovmed",
           "ai-scientist-evaluator",
@@ -365,6 +453,7 @@
           "proposal-review"
         ],
         "ordered_skills": [
+          "bio-interdomain-hgt",
           "bio-protein-clustering-pangenome",
           "polars-dovmed",
           "bio-logic"
@@ -471,22 +560,19 @@
       "actual": {
         "agent": "science-writer",
         "primary_skills": [
-          "bio-binning-qc",
           "scientific-writing",
-          "bio-workflow-methods-docwriter",
-          "manuscript-review-council"
+          "bio-binning-qc",
+          "bio-workflow-methods-docwriter"
         ],
         "supporting_skills": [
           "tracking-taxonomy-updates",
-          "ai-scientist-evaluator",
           "bio-logic",
-          "polars-dovmed",
           "crossref-lookup",
+          "manuscript-review-council",
           "proposal-review"
         ],
         "ordered_skills": [
           "bio-workflow-methods-docwriter",
-          "manuscript-review-council",
           "scientific-writing",
           "tracking-taxonomy-updates",
           "bio-binning-qc"
@@ -543,6 +629,7 @@
           "ai-scientist-evaluator"
         ],
         "supporting_skills": [
+          "bio-interdomain-hgt",
           "bio-protein-clustering-pangenome",
           "polars-dovmed",
           "manuscript-review-council",
@@ -551,6 +638,7 @@
         ],
         "ordered_skills": [
           "ai-scientist-evaluator",
+          "bio-interdomain-hgt",
           "bio-protein-clustering-pangenome",
           "polars-dovmed",
           "bio-logic"
@@ -580,6 +668,7 @@
         "agent": "science-writer",
         "primary_skills": [
           "csag-extraction",
+          "scientific-writing",
           "manuscript-review-council"
         ],
         "supporting_skills": [
@@ -587,12 +676,14 @@
           "ai-scientist-evaluator",
           "bio-logic",
           "polars-dovmed",
-          "scientific-writing"
+          "crossref-lookup",
+          "proposal-review"
         ],
         "ordered_skills": [
           "manuscript-review-council",
           "pdf-to-md",
-          "csag-extraction"
+          "csag-extraction",
+          "scientific-writing"
         ]
       }
     },
@@ -697,6 +788,69 @@
       }
     },
     {
+      "task": "find recent physics preprints about quantum sensing",
+      "passed": true,
+      "actual": {
+        "agent": "literature-expert",
+        "primary_skills": [
+          "arxiv-search",
+          "biorxiv-search",
+          "polars-dovmed"
+        ],
+        "supporting_skills": [
+          "bio-annotation",
+          "bio-logic",
+          "crossref-lookup"
+        ],
+        "ordered_skills": [
+          "arxiv-search",
+          "biorxiv-search",
+          "bio-annotation",
+          "bio-logic",
+          "polars-dovmed"
+        ]
+      }
+    },
+    {
+      "task": "audit this bibliography for missing DOI metadata",
+      "passed": true,
+      "actual": {
+        "agent": "literature-expert",
+        "primary_skills": [
+          "crossref-lookup"
+        ],
+        "supporting_skills": [
+          "arxiv-search",
+          "biorxiv-search",
+          "polars-dovmed",
+          "scientific-impact-assessment"
+        ],
+        "ordered_skills": [
+          "crossref-lookup"
+        ]
+      }
+    },
+    {
+      "task": "review this completed AI-generated analysis notebook for rigor and reproducibility",
+      "passed": true,
+      "actual": {
+        "agent": "science-writer",
+        "primary_skills": [
+          "ai-scientist-evaluator",
+          "notebooks"
+        ],
+        "supporting_skills": [
+          "bio-logic",
+          "manuscript-review-council",
+          "scientific-writing"
+        ],
+        "ordered_skills": [
+          "ai-scientist-evaluator",
+          "notebooks"
+        ]
+      }
+    },
+    {
       "task": "reason about causation from a noisy observational dataset and plan follow-up experiments",
       "passed": true,
       "actual": {
@@ -705,6 +859,7 @@
           "bio-logic"
         ],
         "supporting_skills": [
+          "bio-interdomain-hgt",
           "bio-protein-clustering-pangenome",
           "polars-dovmed",
           "ai-scientist-evaluator",
@@ -712,6 +867,7 @@
           "proposal-review"
         ],
         "ordered_skills": [
+          "bio-interdomain-hgt",
           "bio-protein-clustering-pangenome",
           "polars-dovmed",
           "bio-logic"
@@ -740,6 +896,26 @@
     },
     {
       "task": "refactor this React component into smaller reusable functions",
+      "passed": true,
+      "actual": {
+        "agent": "science-writer",
+        "primary_skills": [],
+        "supporting_skills": [],
+        "ordered_skills": []
+      }
+    },
+    {
+      "task": "write a README for this command-line repository",
+      "passed": true,
+      "actual": {
+        "agent": "dataviz-artist",
+        "primary_skills": [],
+        "supporting_skills": [],
+        "ordered_skills": []
+      }
+    },
+    {
+      "task": "prepare a financial report from these invoices",
       "passed": true,
       "actual": {
         "agent": "science-writer",

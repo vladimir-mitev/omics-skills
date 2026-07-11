@@ -19,7 +19,7 @@ cd omics-skills
 make install
 ```
 
-The default install uses symlinks. That keeps the installed agents and skills in sync with the repository after `git pull`.
+The default install uses symlinks for skills and Claude agents. Codex agents are rendered as TOML, so rerun the installer after changing an agent prompt.
 
 Install for only one runtime:
 
@@ -66,7 +66,17 @@ claude --agent omics-scientist
 Codex CLI:
 
 ```bash
-codex --system-prompt ~/.codex/agents/omics-scientist.md
+codex
+```
+
+Ask Codex to delegate to `omics-scientist`, or mention an installed skill such as `$bio-annotation`. Codex discovers the generated subagent definitions in `~/.codex/agents/`.
+
+You can also install the native plugin from this checkout:
+
+```bash
+codex plugin marketplace add .
+codex plugin list --available --json
+codex plugin add omics-skills@omics-skills
 ```
 
 You can also run the router directly before choosing an agent:

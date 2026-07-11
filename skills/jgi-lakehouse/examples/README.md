@@ -38,6 +38,10 @@ See also `../scripts/`:
 
 These use `scripts/rest_client.py` which handles job polling automatically.
 
+```bash
+uv run examples/find_16s_rrna_genes.py Rhodobacter --limit 100
+```
+
 ## Prerequisites
 
 ```bash

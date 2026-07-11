@@ -8,14 +8,15 @@ Release/source: https://github.com/dmlc/xgboost/releases/tag/v3.2.0
 ## Installation
 
 ```bash
-# Via pip
-pip install xgboost
+# Add to the project environment
+uv add xgboost
 
-# Specific version
-pip install xgboost==3.2.0
+# Run against the verified version without changing the project
+uv run --with xgboost==3.2.0 python -c \
+  "import xgboost; print(xgboost.__version__)"
 
 # CPU-only minimal wheel
-pip install xgboost-cpu
+uv add xgboost-cpu
 ```
 
 The standard `xgboost` wheel includes GPU algorithms on supported Linux and Windows platforms. Enable CUDA at runtime with `device='cuda'`; use `xgboost-cpu` only when you explicitly want the smaller CPU-only package.
@@ -105,10 +106,15 @@ reg.fit(X_train, y_train)
 y_pred = reg.predict(X_test)
 ```
 
-### 3. Cross-Validation with Early Stopping
+### 3. Early Stopping with a Validation Split
 
 ```python
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import train_test_split
+
+# X_test and y_test remain untouched until final evaluation.
+X_fit, X_val, y_fit, y_val = train_test_split(
+    X_train, y_train, test_size=0.2, random_state=42, stratify=y_train
+)
 
 clf = xgb.XGBClassifier(
     n_estimators=1000,
@@ -118,10 +124,11 @@ clf = xgb.XGBClassifier(
     random_state=42
 )
 
-# Fit with validation set for early stopping
+# Fit with a validation subset of the training data. Do not use the test set
+# for early stopping because that tunes the model on the reported holdout.
 clf.fit(
-    X_train, y_train,
-    eval_set=[(X_test, y_test)],
+    X_fit, y_fit,
+    eval_set=[(X_val, y_val)],
     verbose=False
 )
 
@@ -133,7 +140,8 @@ print(f"Best score: {clf.best_score}")
 
 ```python
 # Create DMatrix (optimized data structure)
-dtrain = xgb.DMatrix(X_train, label=y_train)
+dtrain = xgb.DMatrix(X_fit, label=y_fit)
+dvalid = xgb.DMatrix(X_val, label=y_val)
 dtest = xgb.DMatrix(X_test, label=y_test)
 
 # Set parameters
@@ -147,7 +155,7 @@ params = {
 }
 
 # Train with evaluation
-evallist = [(dtrain, 'train'), (dtest, 'test')]
+evallist = [(dtrain, 'train'), (dvalid, 'validation')]
 num_round = 100
 
 bst = xgb.train(
@@ -168,10 +176,7 @@ y_pred_proba = bst.predict(dtest)
 ```python
 import matplotlib.pyplot as plt
 
-# Train model
-clf.fit(X_train, y_train)
-
-# Get feature importance
+# Read importance from the fitted model in the previous example.
 importance = clf.feature_importances_
 feature_names = X.columns
 
@@ -282,8 +287,8 @@ bst.load_model('results/bio-stats-ml-reporting/models/xgboost.json')
 # Histogram-based algorithm (faster, memory efficient)
 clf = xgb.XGBClassifier(tree_method='hist', n_jobs=-1)
 
-# GPU acceleration (if available)
-clf = xgb.XGBClassifier(tree_method='gpu_hist', gpu_id=0)
+# GPU acceleration in current XGBoost releases
+clf = xgb.XGBClassifier(tree_method='hist', device='cuda')
 ```
 
 ### 2. Tune Learning Rate vs n_estimators
@@ -311,10 +316,14 @@ clf = xgb.XGBClassifier(
 ### 4. Use Early Stopping
 
 ```python
-clf.fit(
-    X_train, y_train,
-    eval_set=[(X_val, y_val)],
+clf = xgb.XGBClassifier(
+    n_estimators=1000,
     early_stopping_rounds=10,
+    random_state=42,
+)
+clf.fit(
+    X_fit, y_fit,
+    eval_set=[(X_val, y_val)],
     verbose=False
 )
 ```
@@ -345,10 +354,9 @@ clf = xgb.XGBClassifier(n_jobs=4)
 ```python
 #!/usr/bin/env python3
 import pandas as pd
-import numpy as np
 import xgboost as xgb
 from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.metrics import roc_auc_score
 import joblib
 
 # 1. Load features
@@ -361,7 +369,27 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
 
-# 3. Train XGBoost classifier
+# 3. Reserve a validation split from the training data. The test set is not
+# passed to fit, early stopping, feature selection, or model selection.
+X_fit, X_val, y_fit, y_val = train_test_split(
+    X_train, y_train, test_size=0.2, random_state=42, stratify=y_train
+)
+
+# 4. Cross-validate a fixed-round estimator on training data only
+cv_clf = xgb.XGBClassifier(
+    n_estimators=500,
+    learning_rate=0.05,
+    max_depth=5,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    random_state=42,
+    n_jobs=-1,
+    tree_method='hist',
+)
+cv_scores = cross_val_score(cv_clf, X_train, y_train, cv=5, scoring='roc_auc')
+print(f"CV AUC: {cv_scores.mean():.3f} (+/- {cv_scores.std():.3f})")
+
+# 5. Train the final XGBoost classifier with early stopping
 clf = xgb.XGBClassifier(
     n_estimators=500,
     learning_rate=0.05,
@@ -378,24 +406,20 @@ clf = xgb.XGBClassifier(
     early_stopping_rounds=20
 )
 
-# 4. Fit with validation set
+# 6. Fit with the validation subset
 clf.fit(
-    X_train, y_train,
-    eval_set=[(X_test, y_test)],
+    X_fit, y_fit,
+    eval_set=[(X_val, y_val)],
     verbose=10
 )
 
-# 5. Cross-validation
-cv_scores = cross_val_score(clf, X_train, y_train, cv=5, scoring='roc_auc')
-print(f"CV AUC: {cv_scores.mean():.3f} (+/- {cv_scores.std():.3f})")
-
-# 6. Test set evaluation
+# 7. Evaluate the untouched test set once
 y_pred = clf.predict(X_test)
 y_proba = clf.predict_proba(X_test)[:, 1]
 test_auc = roc_auc_score(y_test, y_proba)
 print(f"Test AUC: {test_auc:.3f}")
 
-# 7. Feature importance
+# 8. Feature importance
 importance_df = pd.DataFrame({
     'feature': X.columns,
     'importance': clf.feature_importances_
@@ -407,10 +431,10 @@ importance_df.to_csv(
     index=False
 )
 
-# 8. Save model
+# 9. Save model
 joblib.dump(clf, 'results/bio-stats-ml-reporting/models/xgboost_classifier.joblib')
 
-# 9. Log metrics
+# 10. Log metrics
 metrics = {
     'model': 'XGBoost',
     'cv_auc_mean': cv_scores.mean(),

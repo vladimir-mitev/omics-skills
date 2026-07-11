@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["jsonschema>=4,<5", "pyyaml>=6,<7"]
+# ///
 """Validate a run manifest (YAML or JSON) against schemas/run-manifest.schema.json.
 
 Usage:
   python scripts/validate_run_manifest.py run_manifest.yaml
 """
 
+import argparse
 import json
-import sys
 from pathlib import Path
 
 import jsonschema
 import yaml
+
+INCOMPLETE_VALUES = {"", "NOT CAPTURED", "UNKNOWN", "TBD"}
 
 
 def load_obj(path: Path):
@@ -20,15 +26,44 @@ def load_obj(path: Path):
     return json.loads(text)
 
 
-def main():
-    if len(sys.argv) != 2:
-        print("ERROR: Provide a manifest path (YAML or JSON).", file=sys.stderr)
-        sys.exit(2)
+def require_complete(value, path: str, errors: list[str]) -> None:
+    if value is None or (isinstance(value, str) and value.strip().upper() in INCOMPLETE_VALUES):
+        errors.append(f"{path} is incomplete")
 
-    manifest_path = Path(sys.argv[1]).resolve()
+
+def semantic_errors(manifest: dict) -> list[str]:
+    errors: list[str] = []
+    require_complete(manifest.get("run_id"), "run_id", errors)
+    require_complete(manifest.get("workflow_summary"), "workflow_summary", errors)
+    workflow = manifest.get("workflow") or {}
+    require_complete(workflow.get("engine_version"), "workflow.engine_version", errors)
+    pipeline = workflow.get("pipeline") or {}
+    for key in ("name", "version", "commit_sha", "launch_command"):
+        require_complete(pipeline.get(key), f"workflow.pipeline.{key}", errors)
+    for index, step in enumerate(manifest.get("steps") or []):
+        for key in ("tool", "tool_version", "command"):
+            require_complete(step.get(key), f"steps[{index}].{key}", errors)
+        if not step.get("inputs"):
+            errors.append(f"steps[{index}].inputs is empty")
+        if not step.get("outputs"):
+            errors.append(f"steps[{index}].outputs is empty")
+    if not manifest.get("outputs"):
+        errors.append("outputs is empty")
+    return errors
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("manifest", type=Path, help="Run manifest in YAML or JSON format")
+    return parser
+
+
+def main():
+    args = build_parser().parse_args()
+
+    manifest_path = args.manifest.resolve()
     if not manifest_path.exists():
-        print(f"ERROR: Not found: {manifest_path}", file=sys.stderr)
-        sys.exit(2)
+        raise SystemExit(f"ERROR: Not found: {manifest_path}")
 
     schema_path = Path(__file__).resolve().parents[1] / 'schemas' / 'run-manifest.schema.json'
     schema = json.loads(schema_path.read_text())
@@ -42,9 +77,16 @@ def main():
         print(e.message)
         if e.path:
             print(f"\nAt: {'/'.join([str(p) for p in e.path])}")
-        sys.exit(1)
+        raise SystemExit(1)
 
-    print("OK: manifest validates against run-manifest.schema.json")
+    errors = semantic_errors(manifest)
+    if errors:
+        print("MANIFEST INCOMPLETE:")
+        for error in errors:
+            print(f"- {error}")
+        return 1
+
+    print("Manifest validation passed.")
     return 0
 
 

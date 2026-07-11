@@ -4,6 +4,8 @@ import importlib.util
 import json
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -37,6 +39,38 @@ class ScientificImpactAssessmentTests(unittest.TestCase):
         summary = scientific_impact_assessment.summarize_altmetric_payload(None, reason="no_api_key")
         self.assertEqual(summary["status"], "unavailable")
         self.assertEqual(summary["reason"], "no_api_key")
+
+    def test_openalex_id_uses_resolved_doi_for_altmetric(self) -> None:
+        openalex_payload = json.loads(
+            (SKILL_ROOT / "fixtures" / "openalex_work.json").read_text(encoding="utf-8")
+        )
+        args = SimpleNamespace(
+            doi=None,
+            openalex_id="W1234567890",
+            mailto=None,
+            altmetric_api_key="test-key",
+            journal_metrics=str(SKILL_ROOT / "references" / "journal_metrics_2024.tsv"),
+        )
+
+        with (
+            patch.object(
+                scientific_impact_assessment,
+                "fetch_openalex_work",
+                return_value=openalex_payload,
+            ),
+            patch.object(
+                scientific_impact_assessment,
+                "fetch_altmetric_summary",
+                return_value={"status": "available", "score": 1},
+            ) as fetch_altmetric,
+        ):
+            report = scientific_impact_assessment.build_live_report(args)
+
+        fetch_altmetric.assert_called_once_with(
+            doi="10.1038/s41586-024-00000-0",
+            api_key="test-key",
+        )
+        self.assertEqual(report["openalex"]["doi"], "10.1038/s41586-024-00000-0")
 
 
 if __name__ == "__main__":

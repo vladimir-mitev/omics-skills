@@ -79,27 +79,29 @@ uninstall_from_claude() {
         target="$CLAUDE_AGENTS_DIR/$basename"
         if [ -L "$target" ] || [ -f "$target" ]; then
             rm "$target"
-            echo -e "  ${GREEN}✓${NC} Removed agent: $basename"
+            echo -e "  ${GREEN}OK${NC} Removed agent: $basename"
         fi
     done
 
     # Remove backups if requested
     if [ "$KEEP_BACKUPS" = false ]; then
-        find "$CLAUDE_AGENTS_DIR" -name "*.bak" -delete 2>/dev/null || true
-        echo -e "  ${GREEN}✓${NC} Removed backup files"
+        for agent in "${AGENT_FILES[@]}"; do
+            rm -f "$CLAUDE_AGENTS_DIR/$agent".bak* 2>/dev/null || true
+        done
+        echo -e "  ${GREEN}OK${NC} Removed omics-skills agent backups"
     fi
 
     if [ -L "$CLAUDE_SKILLS_DIR" ]; then
         target=$(readlink "$CLAUDE_SKILLS_DIR")
         if [ "$target" = "$AGENTS_SKILLS_DIR" ]; then
             rm "$CLAUDE_SKILLS_DIR"
-            echo -e "  ${GREEN}✓${NC} Removed Claude skills link"
+            echo -e "  ${GREEN}OK${NC} Removed Claude skills link"
         else
-            echo -e "  ${YELLOW}○${NC} Preserved non-omics Claude skills symlink: $target"
+            echo -e "  ${YELLOW}INFO${NC} Preserved non-omics Claude skills symlink: $target"
         fi
     fi
 
-    echo -e "${GREEN}✓ Claude Code uninstalled${NC}"
+    echo -e "${GREEN}OK Claude Code uninstalled${NC}"
 }
 
 uninstall_from_codex() {
@@ -107,31 +109,36 @@ uninstall_from_codex() {
 
     # Remove agents
     for agent in "${AGENT_FILES[@]}"; do
-        basename=$(basename "$agent")
-        target="$CODEX_AGENTS_DIR/$basename"
-        if [ -L "$target" ] || [ -f "$target" ]; then
-            rm "$target"
-            echo -e "  ${GREEN}✓${NC} Removed agent: $basename"
-        fi
+        name="${agent%.md}"
+        for target in "$CODEX_AGENTS_DIR/$name.toml" "$CODEX_AGENTS_DIR/$name.md"; do
+            if [ -L "$target" ] || [ -f "$target" ]; then
+                rm "$target"
+                echo -e "  ${GREEN}OK${NC} Removed agent: $(basename "$target")"
+            fi
+        done
     done
 
     # Remove backups if requested
     if [ "$KEEP_BACKUPS" = false ]; then
-        find "$CODEX_AGENTS_DIR" -name "*.bak" -delete 2>/dev/null || true
-        echo -e "  ${GREEN}✓${NC} Removed backup files"
+        for agent in "${AGENT_FILES[@]}"; do
+            name="${agent%.md}"
+            rm -f "$CODEX_AGENTS_DIR/$name.toml".bak* \
+                "$CODEX_AGENTS_DIR/$name.md".legacy.bak* 2>/dev/null || true
+        done
+        echo -e "  ${GREEN}OK${NC} Removed omics-skills agent backups"
     fi
 
     if [ -L "$CODEX_SKILLS_DIR" ]; then
         target=$(readlink "$CODEX_SKILLS_DIR")
         if [ "$target" = "$AGENTS_SKILLS_DIR" ]; then
             rm "$CODEX_SKILLS_DIR"
-            echo -e "  ${GREEN}✓${NC} Removed Codex skills link"
+            echo -e "  ${GREEN}OK${NC} Removed Codex skills link"
         else
-            echo -e "  ${YELLOW}○${NC} Preserved non-omics Codex skills symlink: $target"
+            echo -e "  ${YELLOW}INFO${NC} Preserved non-omics Codex skills symlink: $target"
         fi
     fi
 
-    echo -e "${GREEN}✓ Codex CLI uninstalled${NC}"
+    echo -e "${GREEN}OK Codex CLI uninstalled${NC}"
 }
 
 uninstall_skills() {
@@ -143,26 +150,27 @@ uninstall_skills() {
             target="$AGENTS_SKILLS_DIR/$basename"
             if [ -L "$target" ] || [ -d "$target" ]; then
                 rm -rf "$target"
-                echo -e "  ${GREEN}✓${NC} Removed skill: $basename"
+                echo -e "  ${GREEN}OK${NC} Removed skill: $basename"
             fi
         fi
     done
 
     if [ "$KEEP_BACKUPS" = false ]; then
-        find "$AGENTS_SKILLS_DIR" -name "*.bak" -exec rm -rf {} + 2>/dev/null || true
-        echo -e "  ${GREEN}✓${NC} Removed backup files"
+        for skill in "$SKILLS_DIR"/*; do
+            basename=$(basename "$skill")
+            rm -rf "$AGENTS_SKILLS_DIR/$basename".bak* 2>/dev/null || true
+        done
+        echo -e "  ${GREEN}OK${NC} Removed omics-skills skill backups"
     fi
 
     if [ -d "$AGENTS_CATALOG_DIR" ]; then
         rm -rf "$AGENTS_CATALOG_DIR"
-        echo -e "  ${GREEN}✓${NC} Removed skill catalog"
+        echo -e "  ${GREEN}OK${NC} Removed skill catalog"
     fi
 }
 
 # Main
-echo -e "${BLUE}╔═══════════════════════════════════╗${NC}"
-echo -e "${BLUE}║   Omics Skills Uninstaller        ║${NC}"
-echo -e "${BLUE}╚═══════════════════════════════════╝${NC}"
+echo -e "${BLUE}Omics Skills Uninstaller${NC}"
 echo ""
 
 # Confirm uninstallation
@@ -199,7 +207,7 @@ if [ "$UNINSTALL_TARGET" = "both" ]; then
     echo ""
 fi
 
-echo -e "${GREEN}✓ Uninstallation complete!${NC}"
+echo -e "${GREEN}OK Uninstallation complete!${NC}"
 
 if [ "$KEEP_BACKUPS" = true ]; then
     echo ""

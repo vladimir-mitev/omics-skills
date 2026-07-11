@@ -1,16 +1,17 @@
 {
   "metadata": {
-    "skill_count": 34,
+    "skill_count": 35,
     "agent_count": 4,
-    "edge_count": 142
+    "edge_count": 143
   },
   "skills": [
     {
       "name": "ai-scientist-evaluator",
       "title": "AI Scientist Evaluator",
-      "description": "Critically review, score, compare, and rank one or more AI scientist outputs for biology, bioinformatics, computational life science, or adjacent research tasks. Trigger when the user asks to evaluate notebooks, code, figures, analyses, manuscripts, software, or final reports produced by AI scientists; compare multiple AI scientists on the same task; judge publication readiness; or audit rigor, reproducibility, novelty, and task completion. Do not use this skill to perform the original research task itself unless the user is explicitly asking for a reviewer-style audit of already produced outputs.",
+      "description": "Review, score, compare, and rank AI-generated biology or bioinformatics research artifacts. Use when auditing AI-scientist notebooks, code, figures, analyses, manuscripts, or reports for rigor, reproducibility, novelty, and task completion.",
       "path": "skills/ai-scientist-evaluator/SKILL.md",
       "platforms": [
+        "claude",
         "codex"
       ],
       "agents": [
@@ -21,6 +22,9 @@
       ],
       "task_patterns": [
         "AI scientist",
+        "AI-generated analysis",
+        "AI-generated analysis notebook",
+        "AI-generated notebook",
         "evaluate agent output",
         "rank AI scientists",
         "score AI output"
@@ -45,7 +49,7 @@
     {
       "name": "arxiv-search",
       "title": "arXiv Search",
-      "description": "Search arXiv preprints through the official arXiv API and turn arXiv IDs into local Markdown summaries. Use when you need CS, math, physics, or quantitative biology preprints, especially recent submissions that may not yet appear in peer-reviewed literature indexes.",
+      "description": "Search arXiv through its official API and save local Markdown summaries. Use when finding recent CS, math, physics, or quantitative-biology preprints or resolving arXiv IDs.",
       "path": "skills/arxiv-search/SKILL.md",
       "platforms": [
         "claude",
@@ -59,9 +63,13 @@
       ],
       "task_patterns": [
         "arxiv",
+        "arxiv ID",
         "arxiv preprint",
+        "computer science preprint",
         "latest AI papers",
-        "latest ML papers"
+        "latest ML papers",
+        "math preprint",
+        "physics preprint"
       ],
       "internal_references": [
         "crossref-lookup",
@@ -80,7 +88,7 @@
     {
       "name": "beautiful-data-viz",
       "title": "Beautiful Data Viz",
-      "description": "Create publication-quality matplotlib/seaborn charts with readable axes, tight layout, curated palettes, and Tufte-style high-data-ink design.",
+      "description": "Create publication-quality static charts with matplotlib or seaborn. Use when scientific figures need readable axes, accessible palettes, tight layouts, and high data-ink design.",
       "path": "skills/beautiful-data-viz/SKILL.md",
       "platforms": [
         "claude",
@@ -106,7 +114,7 @@
     {
       "name": "bio-annotation",
       "title": "Bio Annotation",
-      "description": "Functional annotation and taxonomy inference from sequence homology.",
+      "description": "Annotate genes or proteins and infer taxonomy from sequence homology. Use when assigning functions, domains, or taxonomic labels to genomes, contigs, or protein sets.",
       "path": "skills/bio-annotation/SKILL.md",
       "platforms": [
         "claude",
@@ -122,10 +130,14 @@
       ],
       "task_patterns": [
         "DIAMOND",
+        "InterPro",
         "KEGG",
+        "Pfam",
+        "annotate proteins",
         "annotation",
         "candidate genes",
         "discovery",
+        "eggNOG-mapper",
         "interesting genes",
         "notable genes",
         "novel",
@@ -150,7 +162,7 @@
     {
       "name": "bio-assembly-qc",
       "title": "Bio Assembly QC",
-      "description": "Assemble genomes/metagenomes and produce assembly QC artifacts.",
+      "description": "Assemble genomes or metagenomes and assess assembly quality. Use when turning sequence reads into contigs and reporting completeness, continuity, and contamination evidence.",
       "path": "skills/bio-assembly-qc/SKILL.md",
       "platforms": [
         "claude",
@@ -171,10 +183,14 @@
       "internal_references": [
         "bio-annotation",
         "bio-gene-calling",
+        "bio-reads-qc-mapping",
         "bio-viromics",
         "tracking-taxonomy-updates"
       ],
       "reference_contexts": {
+        "bio-reads-qc-mapping": [
+          "- For very large ONT/metagenome FASTQs, use `/bio-reads-qc-mapping` guidance for filtering and avoid redundant full-file raw-read preflights before filtering. Record raw file metadata (`stat` path, size, mtime), optionally run a small sampled check, and write `seqkit stats` after each produced read set."
+        ],
         "tracking-taxonomy-updates": [
           "4. For every produced `contigs.fasta`, invoke `/tracking-taxonomy-updates` to run the BBTools-container QuickClade `percontig` domain screen before choosing downstream genome/MAG/viral/eukaryotic workflows."
         ],
@@ -192,7 +208,7 @@
     {
       "name": "bio-binning-qc",
       "title": "Bio Binning QC",
-      "description": "Perform metagenomic binning with QuickBin, refinement, and QC with completeness/contamination checks.",
+      "description": "Bin and refine metagenomic contigs, then assess MAG quality. Use when recovering genomes with QuickBin and checking completeness, contamination, and bin consistency.",
       "path": "skills/bio-binning-qc/SKILL.md",
       "platforms": [
         "claude",
@@ -229,7 +245,7 @@
     {
       "name": "bio-fasta-database-curator",
       "title": "FASTA Database Curator",
-      "description": "Curate, validate, and standardize FASTA/FAA sequence databases: standardize headers, merge databases, remove duplicates, convert GenBank to FASTA, and generate statistics. Use when preparing reference databases for HMM searches, MMseqs2, BLAST, and other bioinformatics workflows.",
+      "description": "Curate and validate FASTA or FAA databases. Use when standardizing headers, merging references, deduplicating sequences, converting GenBank files, or preparing BLAST, MMseqs2, and HMM inputs.",
       "path": "skills/bio-fasta-database-curator/SKILL.md",
       "platforms": [
         "claude",
@@ -258,7 +274,7 @@
     {
       "name": "bio-foundation-housekeeping",
       "title": "Bio Foundation Housekeeping",
-      "description": "Initialize a bioinformatics project scaffold with reproducible environments, schemas, and data cataloging. Use for new projects or repo setup.",
+      "description": "Add schema-backed metadata validation, normalized Parquet tables, and a DuckDB catalog to a bioinformatics project. Use when an analysis needs LinkML/Pydantic records or a queryable data catalog.",
       "path": "skills/bio-foundation-housekeeping/SKILL.md",
       "platforms": [
         "claude",
@@ -271,19 +287,26 @@
         "Project Initialization"
       ],
       "task_patterns": [
-        "new project",
-        "project housekeeping",
-        "project setup",
-        "reproducible environment",
-        "scaffold"
+        "DuckDB catalog",
+        "LinkML schema",
+        "Pydantic model",
+        "data catalog",
+        "metadata schema",
+        "normalized Parquet"
       ],
-      "internal_references": [],
-      "reference_contexts": {}
+      "internal_references": [
+        "coastal-metagenomes"
+      ],
+      "reference_contexts": {
+        "coastal-metagenomes": [
+          "project root: ./coastal-metagenomes"
+        ]
+      }
     },
     {
       "name": "bio-gene-calling",
       "title": "Bio Gene Calling",
-      "description": "Call genes and annotate basic features for prokaryotes, viruses, and eukaryotes.",
+      "description": "Call genes and annotate basic sequence features. Use when predicting prokaryotic, viral, or eukaryotic coding sequences before downstream annotation.",
       "path": "skills/bio-gene-calling/SKILL.md",
       "platforms": [
         "claude",
@@ -302,13 +325,20 @@
         "gene prediction",
         "predict genes"
       ],
-      "internal_references": [],
-      "reference_contexts": {}
+      "internal_references": [
+        "bio-reads-qc-mapping"
+      ],
+      "reference_contexts": {
+        "bio-reads-qc-mapping": [
+          "- Orient/filter full-length ONT cDNA reads with the `Pychopper` guidance in `/bio-reads-qc-mapping`, including plain `.fastq` output handling and resume from existing classified reads after report-plotting failures.",
+          "**Solution**: Follow `/bio-reads-qc-mapping` recovery guidance: verify/rename plain FASTQ outputs, run lightweight stats, resume mapping/StringTie/RNA-Bloom, and keep the failure plus resume command in the methods record."
+        ]
+      }
     },
     {
       "name": "bio-interdomain-hgt",
       "title": "Bio Interdomain HGT",
-      "description": "Detect and polarize interdomain horizontal gene transfer (virus <-> eukaryote/bacteria/archaea, and cross-cellular HGT) using reciprocal best hits, transfer-direction inference, a genomic-context contamination guard, and per-gene phylogenetic confirmation. Use when asked about HGT, lateral gene transfer, gene flow between domains, virus-host gene exchange, endogenous viral elements, or host-derived / host-acquired genes.",
+      "description": "Detect and polarize interdomain horizontal gene transfer with homology, context, and phylogenetic checks. Use when studying lateral gene transfer, virus-host gene exchange, endogenous viral elements, or donor direction.",
       "path": "skills/bio-interdomain-hgt/SKILL.md",
       "platforms": [
         "claude",
@@ -372,7 +402,7 @@
     {
       "name": "bio-logic",
       "title": "Bio-Logic: Scientific Reasoning Evaluation",
-      "description": "Evaluate scientific rigor, methods, biases, and evidence quality for claims, papers, and study designs.",
+      "description": "Evaluate scientific claims, methods, biases, and evidence strength. Use when stress-testing a study design, paper, analysis, or causal interpretation.",
       "path": "skills/bio-logic/SKILL.md",
       "platforms": [
         "claude",
@@ -438,7 +468,7 @@
     {
       "name": "bio-phylogenomics",
       "title": "Bio Phylogenomics",
-      "description": "Build marker gene alignments and phylogenetic trees.",
+      "description": "Build and validate marker-gene alignments and phylogenetic trees. Use when inferring evolutionary relationships, choosing models, or checking tree support and contamination.",
       "path": "skills/bio-phylogenomics/SKILL.md",
       "platforms": [
         "claude",
@@ -486,7 +516,7 @@
     {
       "name": "bio-prefect-dask-nextflow",
       "title": "Bio Prefect + Dask + Nextflow",
-      "description": "Design and scaffold bioinformatics pipelines using Prefect+Dask for local/distributed execution or Nextflow for HPC schedulers.",
+      "description": "Design reproducible bioinformatics pipelines with Prefect plus Dask or Nextflow. Use when scaffolding local, distributed, or scheduler-backed workflows.",
       "path": "skills/bio-prefect-dask-nextflow/SKILL.md",
       "platforms": [
         "claude",
@@ -510,7 +540,7 @@
     {
       "name": "bio-protein-clustering-pangenome",
       "title": "Bio Protein Clustering Pangenome",
-      "description": "Cluster proteins into orthogroups and derive pangenome matrices.",
+      "description": "Cluster proteins into orthogroups and build pangenome matrices. Use when comparing gene-family presence, absence, expansion, contraction, or core and accessory content across genomes.",
       "path": "skills/bio-protein-clustering-pangenome/SKILL.md",
       "platforms": [
         "claude",
@@ -547,7 +577,7 @@
     {
       "name": "bio-reads-qc-mapping",
       "title": "Bio Reads QC Mapping",
-      "description": "Ingest, QC, and map reads with reproducible outputs. Use for raw read processing and coverage stats.",
+      "description": "Ingest, quality-control, and map sequencing reads with reproducible outputs. Use when processing raw reads, removing contaminants, or calculating mapping and coverage statistics.",
       "path": "skills/bio-reads-qc-mapping/SKILL.md",
       "platforms": [
         "claude",
@@ -571,7 +601,7 @@
     {
       "name": "bio-stats-ml-reporting",
       "title": "Bio Stats ML Reporting",
-      "description": "Aggregate results, train ML models, and produce reports with validated references.",
+      "description": "Analyze biological results with statistics or machine learning and produce validated reports. Use when aggregating features, testing hypotheses, training models, or reporting performance.",
       "path": "skills/bio-stats-ml-reporting/SKILL.md",
       "platforms": [
         "claude",
@@ -584,8 +614,10 @@
         "Statistical Analysis & Reporting"
       ],
       "task_patterns": [
+        "analysis report",
         "machine learning",
-        "report",
+        "model report",
+        "statistical report",
         "statistics"
       ],
       "internal_references": [],
@@ -594,7 +626,7 @@
     {
       "name": "bio-structure-annotation",
       "title": "Bio Structure Annotation",
-      "description": "Structure prediction and structure-based annotation.",
+      "description": "Predict protein structures and perform structure-based annotation. Use when sequence evidence is insufficient or structural similarity, confidence, domains, or complexes matter.",
       "path": "skills/bio-structure-annotation/SKILL.md",
       "platforms": [
         "claude",
@@ -608,6 +640,10 @@
       ],
       "task_patterns": [
         "AlphaFold",
+        "Boltz",
+        "ColabFold",
+        "Foldseek",
+        "TM-Vec",
         "structure prediction"
       ],
       "internal_references": [
@@ -626,7 +662,7 @@
     {
       "name": "bio-viromics",
       "title": "Bio Viromics",
-      "description": "Detect, classify, and QC viral contigs.",
+      "description": "Detect, quality-control, and classify viral contigs. Use when identifying viruses in assemblies, checking viral completeness and contamination, or assigning viral taxonomy.",
       "path": "skills/bio-viromics/SKILL.md",
       "platforms": [
         "claude",
@@ -662,7 +698,7 @@
     {
       "name": "bio-workflow-methods-docwriter",
       "title": "Bio Workflow Methods Docwriter",
-      "description": "Generate reproducible Methods documentation from workflow run artifacts (Nextflow/Snakemake/CWL), including exact commands, versions, parameters, QC gates, and outputs.",
+      "description": "Generate reproducible Methods from Nextflow, Snakemake, or CWL run artifacts. Use when documenting exact commands, versions, parameters, QC gates, provenance, and outputs.",
       "path": "skills/bio-workflow-methods-docwriter/SKILL.md",
       "platforms": [
         "claude",
@@ -686,9 +722,45 @@
       "reference_contexts": {}
     },
     {
+      "name": "bioinformatics-project",
+      "title": "Bioinformatics Project Organization",
+      "description": "Structure reproducible bioinformatics projects with canonical layouts, restartable drivers, pinned environments, provenance, and lab notebooks. Use when starting or reorganizing a genomics project or making a sequencing analysis rerunnable.",
+      "path": "skills/bioinformatics-project/SKILL.md",
+      "platforms": [
+        "claude",
+        "codex"
+      ],
+      "agents": [
+        "omics-scientist"
+      ],
+      "sections": [
+        "Project Initialization"
+      ],
+      "task_patterns": [
+        "analysis provenance",
+        "data deposition",
+        "lab notebook",
+        "new bioinformatics project",
+        "organize project",
+        "pin environment",
+        "project reproducibility",
+        "reorganize project",
+        "restartable driver",
+        "runall"
+      ],
+      "internal_references": [
+        "data"
+      ],
+      "reference_contexts": {
+        "data": [
+          "5. **Use relative paths** (`../../data/...`) so the project runs after checkout elsewhere."
+        ]
+      }
+    },
+    {
       "name": "biorxiv-search",
       "title": "bioRxiv Search",
-      "description": "Search bioRxiv preprints through the official bioRxiv API and locally filter titles, abstracts, and authors for keyword queries. Use when you need recent biology preprints, bioRxiv-native metadata, date-range scans, DOI lookups, or author shortlists that may not yet appear in peer-reviewed literature indexes.",
+      "description": "Search bioRxiv through its official API and filter title, abstract, and author metadata. Use when finding recent biology preprints, scanning date ranges, resolving DOIs, or building author shortlists.",
       "path": "skills/biorxiv-search/SKILL.md",
       "platforms": [
         "claude",
@@ -723,7 +795,7 @@
     {
       "name": "crossref-lookup",
       "title": "Crossref Lookup",
-      "description": "Query the Crossref REST API for DOI validation, title search, citation metadata, and bibliography audits. Use when you need DOI lookup, title-to-DOI matching, or reference metadata cleanup.",
+      "description": "Query Crossref for DOI validation, title matching, citation metadata, and bibliography audits. Use when resolving references or cleaning citation records.",
       "path": "skills/crossref-lookup/SKILL.md",
       "platforms": [
         "claude",
@@ -736,10 +808,12 @@
         "Citation Metadata"
       ],
       "task_patterns": [
+        "bibliography audit",
         "bibtex",
         "citation metadata",
         "crossref",
         "doi lookup",
+        "missing DOI",
         "reference metadata"
       ],
       "internal_references": [
@@ -766,7 +840,7 @@
     {
       "name": "csag-extraction",
       "title": "CSAG extraction skill",
-      "description": "Extract a CSAG (Conditional Scientific Argumentation Graph) from a manuscript using the canonical argumentation spine (Assertions, EvidenceItems, EvidenceLinks, InferenceSteps) while enforcing CSAG conditionality (no assertion without at least one Context). Also generates paper-grounded Q&A items using bundled QA templates.",
+      "description": "Extract a Conditional Scientific Argumentation Graph and grounded Q&A from a manuscript. Use when representing assertions, contexts, evidence links, and inference steps in machine-readable form.",
       "path": "skills/csag-extraction/SKILL.md",
       "platforms": [
         "claude",
@@ -792,7 +866,7 @@
     {
       "name": "exploratory-data-analysis",
       "title": "Exploratory Data Analysis",
-      "description": "Perform comprehensive exploratory data analysis on scientific data files across 200+ file formats. This skill should be used when analyzing any scientific data file to understand its structure, content, quality, and characteristics. Automatically detects file type and generates detailed markdown reports with format-specific analysis, quality metrics, and downstream analysis recommendations. Covers chemistry, bioinformatics, microscopy, spectroscopy, proteomics, metabolomics, and general scientific data formats.",
+      "description": "Inspect scientific data and generate a Markdown structure-and-quality report. Use when triaging tabular, array, sequence, HDF5, JSON, or raster files before downstream analysis.",
       "path": "skills/exploratory-data-analysis/SKILL.md",
       "platforms": [
         "claude",
@@ -820,7 +894,7 @@
     {
       "name": "get-api-docs",
       "title": "Get API Docs",
-      "description": "Fetch current API and SDK documentation with the chub CLI. Use when writing or reviewing code against fast-changing APIs, especially when the user asks for the latest or current docs.",
+      "description": "Fetch current API and SDK documentation with Context Hub. Use when writing or reviewing code against fast-changing external APIs and exact current interfaces matter.",
       "path": "skills/get-api-docs/SKILL.md",
       "platforms": [
         "claude",
@@ -846,7 +920,7 @@
     {
       "name": "jgi-lakehouse",
       "title": "JGI Lakehouse Skill",
-      "description": "Queries JGI Lakehouse (Dremio) for genomics metadata from GOLD, IMG, Mycocosm, Phytozome. Downloads genome files from JGI filesystem using IMG taxon OIDs and links JGI taxon OIDs to read files through PMO/GOLD identifiers and JAMO. Use when working with JGI data, GOLD projects, IMG annotations, or downloading genomes.",
+      "description": "Query JGI Lakehouse metadata and retrieve JGI genome or read files. Use when linking GOLD, IMG, MycoCosm, Phytozome, PMO, or JAMO identifiers and datasets.",
       "path": "skills/jgi-lakehouse/SKILL.md",
       "platforms": [
         "claude",
@@ -880,13 +954,13 @@
           "cp /clusterfs/jgi/img_merfs-ro/img_web/img_web_data/download/8136918376.tar.gz .",
           "/clusterfs/jgi/img_merfs-ro/img_web_data_merfs/{taxon_oid}/assembled/",
           "/clusterfs/jgi/scratch/dsi/...",
-          "while [[ ! -s /clusterfs/jgi/scratch/dsi/.../file.fastq.gz ]]; do sleep 10; done"
+          "staged_file=/clusterfs/jgi/scratch/dsi/.../file.fastq.gz"
         ],
         "assembled": [
           "/clusterfs/jgi/img_merfs-ro/img_web_data_merfs/{taxon_oid}/assembled/"
         ],
         "file": [
-          "while [[ ! -s /clusterfs/jgi/scratch/dsi/.../file.fastq.gz ]]; do sleep 10; done"
+          "staged_file=/clusterfs/jgi/scratch/dsi/.../file.fastq.gz"
         ],
         "global": [
           "from the JGI filesystem (`/global/dna/dm_archive/...`).",
@@ -897,7 +971,7 @@
     {
       "name": "manuscript-review-council",
       "title": "Manuscript Review Council",
-      "description": "Run a multi-agent scientific manuscript review with parallel specialist reviewers, disagreement checks, and an editor meta-review. Use when reviewing a manuscript, preprint, revision, or rebuttal in Codex or Claude Code.",
+      "description": "Run a multi-agent manuscript review with specialist reports, disagreement checks, and an editor synthesis. Use when reviewing a scientific paper, preprint, revision, or rebuttal.",
       "path": "skills/manuscript-review-council/SKILL.md",
       "platforms": [
         "claude",
@@ -947,7 +1021,7 @@
     {
       "name": "notebooks",
       "title": "Notebooks",
-      "description": "Author, execute, and deliver reproducible analysis notebooks in marimo (default) or Jupyter, with all cells run end-to-end and figures embedded. Also converts between marimo and Jupyter on request.",
+      "description": "Author, execute, validate, and convert reproducible marimo or Jupyter notebooks. Use when delivering an analysis notebook with all cells run and figures embedded.",
       "path": "skills/notebooks/SKILL.md",
       "platforms": [
         "claude",
@@ -975,7 +1049,7 @@
     {
       "name": "pdf-to-md",
       "title": "pdf-to-md",
-      "description": "Convert any PDF (or DOCX/PPTX/XLSX/image) to clean Markdown. For scientific papers, produce the canonical paper-to-md bundle (Markdown plus section_audit.json and article.json) using the remote OCR API when an OCR key is available, or LiteParse v2 locally when it is not. For any non-paper PDF, defer to a fast, local, no-API-key LiteParse v2 conversion. Use when turning a PDF or manuscript into Markdown, extracting article structure, or preparing input for csag-extraction.",
+      "description": "Convert PDFs and office documents to clean Markdown, with structured bundles for scientific papers. Use when extracting article structure, preparing a manuscript for analysis, or creating CSAG input.",
       "path": "skills/pdf-to-md/SKILL.md",
       "platforms": [
         "claude",
@@ -1004,12 +1078,12 @@
       ],
       "reference_contexts": {
         "path": [
+          "/path/to/input.pdf --output-dir /path/to/output-dir \\",
+          "/path/to/input.pdf --output-dir /path/to/output-dir \\",
           "/path/to/input.pdf --output-dir /path/to/output-dir",
           "/path/to/input.pdf --output-dir /path/to/output-dir",
-          "/path/to/input.pdf --output-dir /path/to/output-dir",
-          "/path/to/input.pdf --output-dir /path/to/output-dir",
-          "uv run skills/pdf-to-md/scripts/build_section_audit.py /path/to/output-dir/<stem>.md",
-          "uv run skills/pdf-to-md/scripts/populate_article_json.py /path/to/output-dir/<stem>.md",
+          "uv run \"$PDF_TO_MD_SKILL/scripts/build_section_audit.py\" /path/to/output-dir/<stem>.md",
+          "uv run \"$PDF_TO_MD_SKILL/scripts/populate_article_json.py\" /path/to/output-dir/<stem>.md",
           "/path/to/input.pdf --output-dir /path/to/output-dir/figure_review",
           "/path/to/input.pdf --output-dir /path/to/output-dir/figure_review",
           "/path/to/output-dir/<stem>.article.json \\",
@@ -1018,7 +1092,7 @@
           "/path/to/input.pdf --output-dir /path/to/output-dir"
         ],
         "tmp": [
-          "uv run skills/pdf-to-md/scripts/liteparse_to_md.py report.pdf --output-dir /tmp/out --no-ocr",
+          "uv run \"$PDF_TO_MD_SKILL/scripts/liteparse_to_md.py\" report.pdf --output-dir /tmp/out --no-ocr",
           "# -> /tmp/out/report.md  (+ report.ocr.json, report.job.json)",
           "DIR=/tmp/paper"
         ]
@@ -1027,7 +1101,7 @@
     {
       "name": "plotly-dashboard-skill",
       "title": "Plotly Dashboard Skill",
-      "description": "Build production-ready Plotly Dash dashboards with consistent theming, clear layouts, and performant callbacks.",
+      "description": "Build production-ready Plotly Dash dashboards. Use when scientific data needs an interactive, consistently themed layout with clear and performant callbacks.",
       "path": "skills/plotly-dashboard-skill/SKILL.md",
       "platforms": [
         "claude",
@@ -1052,7 +1126,7 @@
     {
       "name": "polars-dovmed",
       "title": "polars-dovmed",
-      "description": "Search the PMC Open Access literature with polars-dovmed. Author structured JSON queries directly, then use the hosted API when an API key is available or fall back to local dovmed scan over PMC, bioRxiv, or both parquet corpora.",
+      "description": "Search PMC Open Access and bioRxiv corpora with polars-dovmed. Use when structured, reproducible literature queries should run through the hosted API or local parquet indexes.",
       "path": "skills/polars-dovmed/SKILL.md",
       "platforms": [
         "claude",
@@ -1113,7 +1187,7 @@
     {
       "name": "proposal-review",
       "title": "Proposal Review",
-      "description": "Structured, decision-ready review framework for AI/ML, computational biology, and bioscience proposals. Use when evaluating grant, project, or funding proposals.",
+      "description": "Produce structured, decision-ready reviews of AI/ML, computational-biology, or bioscience proposals. Use when evaluating grants, projects, or funding applications.",
       "path": "skills/proposal-review/SKILL.md",
       "platforms": [
         "claude",
@@ -1151,7 +1225,7 @@
     {
       "name": "scientific-impact-assessment",
       "title": "Scientific Impact Assessment",
-      "description": "Assess paper and journal impact using OpenAlex citation counts, optional Altmetric data, and curated journal impact-factor references. Use when comparing papers, journals, or literature shortlists by reach and influence.",
+      "description": "Assess research reach with OpenAlex citations, optional Altmetric data, and journal context. Use when comparing papers, journals, or literature shortlists by influence.",
       "path": "skills/scientific-impact-assessment/SKILL.md",
       "platforms": [
         "claude",
@@ -1188,7 +1262,7 @@
     {
       "name": "scientific-writing",
       "title": "Scientific Writing",
-      "description": "Draft, review, and iteratively revise scientific manuscripts with a provider-agnostic multi-agent workflow for Codex and Claude Code. Use for new manuscripts, section rewrites, rebuttals, response letters, manuscript QA, or sentence-level writing reviews when claims must stay grounded in supplied artifacts.",
+      "description": "Draft, review, and revise scientific manuscripts with grounded multi-agent checks. Use when writing sections, rebuttals, response letters, manuscript QA, or sentence-level reviews.",
       "path": "skills/scientific-writing/SKILL.md",
       "platforms": [
         "claude",
@@ -1203,10 +1277,10 @@
       "task_patterns": [
         "Abstract",
         "Methods",
+        "draft manuscript",
         "manuscript",
         "response letter",
-        "rewrite",
-        "write"
+        "rewrite scientific prose"
       ],
       "internal_references": [
         "bio-logic",
@@ -1235,7 +1309,7 @@
     {
       "name": "tracking-taxonomy-updates",
       "title": "Tracking Taxonomy Updates",
-      "description": "Track and reconcile taxonomy updates across NCBI, GTDB, ICTV, and community eukaryote frameworks with versioned provenance.",
+      "description": "Track taxonomy changes and triage sequence assignments across NCBI, GTDB, ICTV, and eukaryotic frameworks. Use when comparing releases, resolving renamed taxa, or routing genomes, bins, and contigs by domain.",
       "path": "skills/tracking-taxonomy-updates/SKILL.md",
       "platforms": [
         "claude",
@@ -1408,7 +1482,11 @@
           "skill_name": "arxiv-search",
           "phrases": [
             "arxiv",
+            "arxiv ID",
             "arxiv preprint",
+            "physics preprint",
+            "computer science preprint",
+            "math preprint",
             "latest ML papers",
             "latest AI papers"
           ]
@@ -1430,6 +1508,8 @@
             "doi lookup",
             "citation metadata",
             "reference metadata",
+            "bibliography audit",
+            "missing DOI",
             "bibtex"
           ]
         },
@@ -1539,6 +1619,7 @@
         ],
         "Project Initialization": [
           "bio-foundation-housekeeping",
+          "bioinformatics-project",
           "exploratory-data-analysis"
         ],
         "Read Processing & Mapping": [
@@ -1671,13 +1752,8 @@
         },
         {
           "source": "bio-interdomain-hgt",
-          "target": "bio-phylogenomics",
-          "evidence": "\u2502       \u2514\u2500> /bio-phylogenomics (per-gene tree; nest in expected clade) \u2192 /bio-logic"
-        },
-        {
-          "source": "bio-phylogenomics",
           "target": "bio-logic",
-          "evidence": "\u2502       \u2514\u2500> /bio-phylogenomics (per-gene tree; nest in expected clade) \u2192 /bio-logic"
+          "evidence": "\u2502       \u2514\u2500> per-gene tree with bio-phylogenomics; nest in expected clade \u2192 /bio-logic"
         }
       ],
       "task_patterns": [
@@ -1775,13 +1851,29 @@
           ]
         },
         {
+          "skill_name": "bioinformatics-project",
+          "phrases": [
+            "new bioinformatics project",
+            "organize project",
+            "reorganize project",
+            "project reproducibility",
+            "restartable driver",
+            "runall",
+            "lab notebook",
+            "analysis provenance",
+            "pin environment",
+            "data deposition"
+          ]
+        },
+        {
           "skill_name": "bio-foundation-housekeeping",
           "phrases": [
-            "scaffold",
-            "new project",
-            "project setup",
-            "reproducible environment",
-            "project housekeeping"
+            "LinkML schema",
+            "Pydantic model",
+            "metadata schema",
+            "normalized Parquet",
+            "DuckDB catalog",
+            "data catalog"
           ]
         },
         {
@@ -1812,7 +1904,11 @@
           "skill_name": "bio-annotation",
           "phrases": [
             "annotation",
+            "annotate proteins",
             "DIAMOND",
+            "eggNOG-mapper",
+            "Pfam",
+            "InterPro",
             "KEGG",
             "taxonomy"
           ]
@@ -1856,7 +1952,11 @@
           "skill_name": "bio-structure-annotation",
           "phrases": [
             "structure prediction",
-            "AlphaFold"
+            "AlphaFold",
+            "Boltz",
+            "Foldseek",
+            "TM-Vec",
+            "ColabFold"
           ]
         },
         {
@@ -1898,7 +1998,9 @@
           "skill_name": "bio-stats-ml-reporting",
           "phrases": [
             "statistics",
-            "report",
+            "statistical report",
+            "analysis report",
+            "model report",
             "machine learning"
           ]
         },
@@ -2012,6 +2114,9 @@
           "skill_name": "ai-scientist-evaluator",
           "phrases": [
             "AI scientist",
+            "AI-generated notebook",
+            "AI-generated analysis",
+            "AI-generated analysis notebook",
             "evaluate agent output",
             "score AI output",
             "rank AI scientists"
@@ -2020,8 +2125,8 @@
         {
           "skill_name": "scientific-writing",
           "phrases": [
-            "write",
-            "rewrite",
+            "draft manuscript",
+            "rewrite scientific prose",
             "manuscript",
             "Abstract",
             "Methods",
@@ -2251,6 +2356,20 @@
     },
     {
       "source": "bio-assembly-qc",
+      "target": "bio-reads-qc-mapping",
+      "type": "compose_with",
+      "source_type": "skill",
+      "target_type": "skill",
+      "confidence": 0.75,
+      "provenance": [
+        "skill_body_reference"
+      ],
+      "evidence": [
+        "- For very large ONT/metagenome FASTQs, use `/bio-reads-qc-mapping` guidance for filtering and avoid redundant full-file raw-read preflights before filtering. Record raw file metadata (`stat` path, size, mtime), optionally run a small sampled check, and write `seqkit stats` after each produced read set."
+      ]
+    },
+    {
+      "source": "bio-assembly-qc",
       "target": "bio-viromics",
       "type": "compose_with",
       "source_type": "skill",
@@ -2360,6 +2479,21 @@
       ],
       "evidence": [
         "\u2502       \u251c\u2500> Step 0: confirm/build comprehensive multi-domain arbiter (/bio-fasta-database-curator)"
+      ]
+    },
+    {
+      "source": "bio-gene-calling",
+      "target": "bio-reads-qc-mapping",
+      "type": "compose_with",
+      "source_type": "skill",
+      "target_type": "skill",
+      "confidence": 0.75,
+      "provenance": [
+        "skill_body_reference"
+      ],
+      "evidence": [
+        "- Orient/filter full-length ONT cDNA reads with the `Pychopper` guidance in `/bio-reads-qc-mapping`, including plain `.fastq` output handling and resume from existing classified reads after report-plotting failures.",
+        "**Solution**: Follow `/bio-reads-qc-mapping` recovery guidance: verify/rename plain FASTQ outputs, run lightweight stats, resume mapping/StringTie/RNA-Bloom, and keep the failure plus resume command in the methods record."
       ]
     },
     {
@@ -2562,7 +2696,7 @@
     },
     {
       "source": "bio-interdomain-hgt",
-      "target": "bio-phylogenomics",
+      "target": "bio-logic",
       "type": "workflow_next",
       "source_type": "skill",
       "target_type": "skill",
@@ -2571,7 +2705,7 @@
         "workflow_decision_tree"
       ],
       "evidence": [
-        "\u2502       \u2514\u2500> /bio-phylogenomics (per-gene tree; nest in expected clade) \u2192 /bio-logic"
+        "\u2502       \u2514\u2500> per-gene tree with bio-phylogenomics; nest in expected clade \u2192 /bio-logic"
       ]
     },
     {
@@ -2632,7 +2766,7 @@
     },
     {
       "source": "bio-logic",
-      "target": "bio-phylogenomics",
+      "target": "bio-interdomain-hgt",
       "type": "depend_on",
       "source_type": "skill",
       "target_type": "skill",
@@ -2641,7 +2775,7 @@
         "workflow_decision_tree"
       ],
       "evidence": [
-        "\u2502       \u2514\u2500> /bio-phylogenomics (per-gene tree; nest in expected clade) \u2192 /bio-logic"
+        "\u2502       \u2514\u2500> per-gene tree with bio-phylogenomics; nest in expected clade \u2192 /bio-logic"
       ]
     },
     {
@@ -2744,20 +2878,6 @@
     },
     {
       "source": "bio-phylogenomics",
-      "target": "bio-interdomain-hgt",
-      "type": "depend_on",
-      "source_type": "skill",
-      "target_type": "skill",
-      "confidence": 0.95,
-      "provenance": [
-        "workflow_decision_tree"
-      ],
-      "evidence": [
-        "\u2502       \u2514\u2500> /bio-phylogenomics (per-gene tree; nest in expected clade) \u2192 /bio-logic"
-      ]
-    },
-    {
-      "source": "bio-phylogenomics",
       "target": "polars-dovmed",
       "type": "depend_on",
       "source_type": "skill",
@@ -2768,20 +2888,6 @@
       ],
       "evidence": [
         "\u2502       \u251c\u2500> /bio-phylogenomics (appropriate relatives/markers)"
-      ]
-    },
-    {
-      "source": "bio-phylogenomics",
-      "target": "bio-logic",
-      "type": "workflow_next",
-      "source_type": "skill",
-      "target_type": "skill",
-      "confidence": 0.95,
-      "provenance": [
-        "workflow_decision_tree"
-      ],
-      "evidence": [
-        "\u2502       \u2514\u2500> /bio-phylogenomics (per-gene tree; nest in expected clade) \u2192 /bio-logic"
       ]
     },
     {
@@ -3573,6 +3679,20 @@
     {
       "source": "omics-scientist",
       "target": "bio-workflow-methods-docwriter",
+      "type": "uses",
+      "source_type": "agent",
+      "target_type": "skill",
+      "confidence": 1.0,
+      "provenance": [
+        "mandatory_skill_usage"
+      ],
+      "evidence": [
+        "agents/omics-scientist.md"
+      ]
+    },
+    {
+      "source": "omics-scientist",
+      "target": "bioinformatics-project",
       "type": "uses",
       "source_type": "agent",
       "target_type": "skill",

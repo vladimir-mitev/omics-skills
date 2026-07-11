@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["requests>=2.32,<3"]
+# ///
 """
 Example: Explore a database in JGI Lakehouse
 Shows how to list schemas, tables, and sample data
@@ -11,9 +15,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
 from rest_client import (
-    execute_sql,
     query,
-    list_catalogs,
     show_schemas
 )
 
@@ -31,16 +33,16 @@ def explore_database(database_name: str = "GOLD"):
     try:
         schemas = show_schemas()
         for schema in schemas:
-            marker = "✓" if schema == database_name else " "
+            marker = "*" if schema == database_name else " "
             print(f"  {marker} {schema}")
         print()
 
         if database_name not in schemas:
-            print(f"⚠️  {database_name} not found in available schemas")
+            print(f"{database_name} not found in available schemas")
             return
 
     except Exception as e:
-        print(f"❌ Error listing schemas: {e}\n")
+        print(f"Error listing schemas: {e}\n")
         return
 
     # 2. List tables in database
@@ -54,11 +56,11 @@ def explore_database(database_name: str = "GOLD"):
             print(f"    - {table}")
         print()
     except Exception as e:
-        print(f"❌ Error listing tables: {e}\n")
+        print(f"Error listing tables: {e}\n")
         return
 
     # 3. Explore first few tables
-    print(f"3. Table Details (first 3 tables):")
+    print("3. Table Details (first 3 tables):")
     print("-" * 80)
     for table in table_names[:3]:
         print(f"\nTable: {database_name}.{table}")
@@ -75,32 +77,32 @@ def explore_database(database_name: str = "GOLD"):
             if len(schema) > 10:
                 print(f"    ... and {len(schema) - 10} more columns")
         except Exception as e:
-            print(f"  ❌ Error getting schema: {e}")
+            print(f"  Error getting schema: {e}")
 
         # Get row count
         try:
             count_result = query(f"SELECT COUNT(*) as cnt FROM {database_name}.{table}")
             count = count_result[0].get("cnt") if count_result else "?"
             print(f"  Row count: {count:,}" if isinstance(count, int) else f"  Row count: {count}")
-        except:
+        except Exception:
             print("  Row count: (unable to determine)")
 
         # Get sample
         try:
             sample = query(f"SELECT * FROM {database_name}.{table} LIMIT 2")
             if sample:
-                print(f"  Sample data:")
+                print("  Sample data:")
                 for i, row in enumerate(sample, 1):
                     print(f"    Row {i}: {len(row)} fields")
                     # Show first 3 fields
                     for k, v in list(row.items())[:3]:
                         val = str(v)[:50]
                         print(f"      {k}: {val}")
-        except:
+        except Exception:
             print("  Sample: (unable to retrieve)")
 
     print(f"\n{'='*80}")
-    print(f"✅ Exploration complete!")
+    print("Exploration complete")
     print(f"{'='*80}")
     print(f"\nAll {database_name} tables:")
     for table in table_names:
@@ -117,7 +119,7 @@ if __name__ == "__main__":
 
     # Check token
     if not os.getenv("DREMIO_PAT"):
-        print("❌ DREMIO_PAT not set")
+        print("DREMIO_PAT not set")
         print("Run: export DREMIO_PAT=$(cat ~/.secrets/dremio_pat)")
         sys.exit(1)
 

@@ -286,8 +286,9 @@ VeryFastTree -fastest -fastexp 1 -threads 64 < huge.faa > rough_tree.nw
 - GTR generally preferred over simpler models for nucleotides
 
 ### Bootstrap Values
-- Values >70% suggest reasonable support
-- Values >90% indicate strong support
+- VeryFastTree writes support as fractions from 0 to 1; normalize other producers before comparison
+- Values >0.70 suggest reasonable support
+- Values >0.90 indicate strong support
 - Lower support expected for rapid diversifications
 
 ## Integration with Downstream Tools

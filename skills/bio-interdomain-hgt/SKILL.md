@@ -1,6 +1,6 @@
 ---
 name: bio-interdomain-hgt
-description: Detect and polarize interdomain horizontal gene transfer (virus <-> eukaryote/bacteria/archaea, and cross-cellular HGT) using reciprocal best hits, transfer-direction inference, a genomic-context contamination guard, and per-gene phylogenetic confirmation. Use when asked about HGT, lateral gene transfer, gene flow between domains, virus-host gene exchange, endogenous viral elements, or host-derived / host-acquired genes.
+description: Detect and polarize interdomain horizontal gene transfer with homology, context, and phylogenetic checks. Use when studying lateral gene transfer, virus-host gene exchange, endogenous viral elements, or donor direction.
 ---
 
 # Bio Interdomain HGT

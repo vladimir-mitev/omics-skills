@@ -51,10 +51,21 @@
   expected_agent: omics-scientist
   expected_primary_skills: [bio-annotation]
 
+- task: "annotate Pfam domains and InterPro families in these proteins"
+  platform: codex
+  expected_agent: omics-scientist
+  expected_primary_skills: [bio-annotation]
+
+- task: "search these protein structures against Foldseek"
+  platform: codex
+  expected_agent: omics-scientist
+  expected_primary_skills: [bio-structure-annotation]
+
 - task: "build a phylogenetic tree from marker gene alignments"
   platform: codex
   expected_agent: omics-scientist
   expected_primary_skills: [bio-phylogenomics]
+  forbidden_skills: [bio-interdomain-hgt]
   max_supporting_skills: 6
 
 - task: "detect viral contigs in a metagenomic assembly and classify them"
@@ -93,7 +104,20 @@
 - task: "scaffold a new bioinformatics project with reproducible environments"
   platform: codex
   expected_agent: omics-scientist
+  expected_primary_skills: [bioinformatics-project]
+  max_supporting_skills: 0
+
+- task: "make this sequencing analysis reproducible with a restartable runall driver provenance records a lab notebook and a pinned Pixi environment"
+  platform: claude
+  expected_agent: omics-scientist
+  expected_primary_skills: [bioinformatics-project]
+  max_supporting_skills: 0
+
+- task: "define LinkML and Pydantic metadata schemas write normalized Parquet and register the validated tables in a DuckDB catalog"
+  platform: codex
+  expected_agent: omics-scientist
   expected_primary_skills: [bio-foundation-housekeeping]
+  max_supporting_skills: 0
 
 - task: "curate a FASTA database for MMseqs2 by standardizing headers and removing duplicate sequences"
   platform: codex
@@ -222,6 +246,21 @@
   expected_agent: literature-expert
   expected_primary_skills: [arxiv-search]
 
+- task: "find recent physics preprints about quantum sensing"
+  platform: generic
+  expected_agent: literature-expert
+  expected_primary_skills: [arxiv-search]
+
+- task: "audit this bibliography for missing DOI metadata"
+  platform: codex
+  expected_agent: literature-expert
+  expected_primary_skills: [crossref-lookup]
+
+- task: "review this completed AI-generated analysis notebook for rigor and reproducibility"
+  platform: codex
+  expected_agent: science-writer
+  expected_primary_skills: [ai-scientist-evaluator]
+
 - task: "reason about causation from a noisy observational dataset and plan follow-up experiments"
   platform: codex
   expected_agent: omics-scientist
@@ -242,6 +281,14 @@
   expect_no_primary: true
 
 - task: "refactor this React component into smaller reusable functions"
+  platform: codex
+  expect_no_primary: true
+
+- task: "write a README for this command-line repository"
+  platform: codex
+  expect_no_primary: true
+
+- task: "prepare a financial report from these invoices"
   platform: codex
   expect_no_primary: true
 

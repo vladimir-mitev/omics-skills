@@ -83,7 +83,8 @@ python << EOF
 from ete4 import Tree
 t = Tree('large.nw')
 for node in t.traverse():
-    if not node.is_leaf and node.support < 70:
+    # VeryFastTree writes local support as a probability on a 0-1 scale.
+    if not node.is_leaf and node.support < 0.70:
         node.delete()
 t.write(outfile='large.filtered.nw')
 EOF
@@ -140,6 +141,7 @@ iqtree3 -s alignment.phy                      # Auto model selection
 iqtree3 -s alignment.phy -m GTR+I+G           # Specific model
 iqtree3 -s alignment.phy -m MFP -bb 1000      # Model selection + UFBoot
 iqtree3 -s alignment.phy -fast -nt AUTO       # Exploratory fallback when VeryFastTree cannot be used
+# Repeat an interrupted run's exact command without -redo to resume its checkpoint.
 ```
 
 ### VeryFastTree Essential Commands
@@ -165,7 +167,8 @@ t.set_outgroup(midpoint)
 
 # Filter by support
 for node in t.traverse():
-    if not node.is_leaf and node.support < 70:
+    # Threshold for VeryFastTree local support, which uses a 0-1 scale.
+    if not node.is_leaf and node.support < 0.70:
         node.delete()
 
 # Save

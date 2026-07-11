@@ -1,6 +1,6 @@
 ---
 name: bio-workflow-methods-docwriter
-description: Generate reproducible Methods documentation from workflow run artifacts (Nextflow/Snakemake/CWL), including exact commands, versions, parameters, QC gates, and outputs.
+description: Generate reproducible Methods from Nextflow, Snakemake, or CWL run artifacts. Use when documenting exact commands, versions, parameters, QC gates, provenance, and outputs.
 ---
 
 # Bio Workflow Methods Docwriter
@@ -15,13 +15,20 @@ Create publication-ready Methods and run documentation from real workflow artifa
 4. Draft `METHODS.md` with a concise workflow summary at the top.
 5. Verify QC gates and reproducibility details are captured.
 
+Resolve the installed skill with:
+
+```bash
+METHODS_SKILL="${METHODS_SKILL:-$HOME/.agents/skills/bio-workflow-methods-docwriter}"
+```
+
 ## Quick Reference
 
 | Task | Action |
 |------|--------|
 | Evidence checklist | See `reference/evidence-checklist.md` |
 | Manifest schema | `schemas/run-manifest.schema.json` |
-| Validate manifest | `python scripts/validate_run_manifest.py run_manifest.yaml` |
+| Extract a Nextflow draft | `uv run "$METHODS_SKILL/scripts/extract_nextflow_run.py" --help` |
+| Validate manifest | `uv run "$METHODS_SKILL/scripts/validate_run_manifest.py" run_manifest.yaml` |
 | Examples | See `examples/` |
 
 ## Input Requirements
@@ -39,6 +46,8 @@ Create publication-ready Methods and run documentation from real workflow artifa
 
 - [ ] No invented commands, versions, or parameters
 - [ ] Every step has inputs, outputs, and versions captured
+- [ ] Commands were sourced from task scripts, not environment-bearing wrappers, and contain no credentials
+- [ ] No `NOT CAPTURED`, `UNKNOWN`, or `TBD` placeholder remains in a required field
 - [ ] Workflow summary appears at top of `METHODS.md`
 
 ## Examples
@@ -46,10 +55,11 @@ Create publication-ready Methods and run documentation from real workflow artifa
 ### Example 1: Validate a manifest
 
 ```bash
-python scripts/validate_run_manifest.py run_manifest.yaml
+METHODS_SKILL="${METHODS_SKILL:-$HOME/.agents/skills/bio-workflow-methods-docwriter}"
+uv run "$METHODS_SKILL/scripts/validate_run_manifest.py" run_manifest.yaml
 ```
 
 ## Troubleshooting
 
 **Issue**: Missing tool versions in logs
-**Solution**: Mark as `NOT CAPTURED` and add a note on how to capture next time.
+**Solution**: Use `NOT CAPTURED` only while assembling a draft. The final validator rejects it; recover the version from provenance or report the missing evidence in `limitations` without claiming a reproducible manifest.

@@ -1,6 +1,6 @@
 ---
 name: bio-prefect-dask-nextflow
-description: Design and scaffold bioinformatics pipelines using Prefect+Dask for local/distributed execution or Nextflow for HPC schedulers.
+description: Design reproducible bioinformatics pipelines with Prefect plus Dask or Nextflow. Use when scaffolding local, distributed, or scheduler-backed workflows.
 ---
 
 # Bio Prefect + Dask + Nextflow

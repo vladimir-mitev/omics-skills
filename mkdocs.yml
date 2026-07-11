@@ -47,6 +47,7 @@ nav:
   - Installation Guide: INSTALL.md
   - Agents: agents.md
   - Skills: skills.md
+  - Skill Quality: skill-quality.md
   - Routing: routing.md
   - Development:
       - Development: development.md

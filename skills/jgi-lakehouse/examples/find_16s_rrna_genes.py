@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["requests>=2.32,<3"]
+# ///
 """
 Example: Find 16S rRNA genes for a bacterial family in JGI Lakehouse
 
@@ -15,21 +19,42 @@ IMPORTANT NOTES:
 
 Usage:
     export DREMIO_PAT=$(cat ~/.secrets/dremio_pat)
-    python find_16s_rrna_genes.py [family_name_pattern]
+    uv run find_16s_rrna_genes.py [family_name_pattern]
 
 Example:
-    python find_16s_rrna_genes.py Rhodobacter
-    python find_16s_rrna_genes.py Bacill
-    python find_16s_rrna_genes.py Pseudomonas
+    uv run find_16s_rrna_genes.py Rhodobacter
+    uv run find_16s_rrna_genes.py Bacill
+    uv run find_16s_rrna_genes.py Pseudomonas
 """
 
+import argparse
 import os
+import re
 import sys
 
 # Add parent scripts directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
-from rest_client import query, query_all
+from rest_client import query
+
+
+SAFE_TAXON_TERM = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ._-]{0,99}\Z")
+
+
+def validate_taxon_term(value: str) -> str:
+    """Allow taxonomic search terms, but no SQL syntax or wildcard characters."""
+    if not SAFE_TAXON_TERM.fullmatch(value):
+        raise ValueError(
+            "taxon terms must be 1-100 letters, digits, spaces, dots, underscores, or hyphens"
+        )
+    return value
+
+
+def validate_limit(limit: int) -> int:
+    limit = int(limit)
+    if limit < 1 or limit > 5000:
+        raise ValueError("limit must be between 1 and 5000")
+    return limit
 
 
 def find_16s_by_family_pattern(name_patterns: list[str], limit: int = 100) -> list[dict]:
@@ -43,7 +68,10 @@ def find_16s_by_family_pattern(name_patterns: list[str], limit: int = 100) -> li
     Returns:
         List of gene records with taxon info
     """
-    # Build WHERE clause for name patterns
+    name_patterns = [validate_taxon_term(pattern) for pattern in name_patterns]
+    limit = validate_limit(limit)
+
+    # Values are restricted to SAFE_TAXON_TERM before they enter SQL text.
     pattern_clauses = " OR ".join([
         f"t.taxon_display_name LIKE '%{p}%'" for p in name_patterns
     ])
@@ -87,6 +115,8 @@ def find_16s_by_family_field(family_name: str, limit: int = 100) -> list[dict]:
     Returns:
         List of gene records
     """
+    family_name = validate_taxon_term(family_name)
+    limit = validate_limit(limit)
     sql = f'''
     SELECT
         g.gene_oid,
@@ -139,7 +169,18 @@ def summarize_results(genes: list[dict]) -> dict:
     }
 
 
-def main():
+def main(argv: list[str] | None = None):
+    parser = argparse.ArgumentParser(description="Find IMG 16S rRNA genes by taxon name pattern")
+    parser.add_argument("pattern", nargs="?", type=validate_taxon_term)
+    parser.add_argument("--limit", type=int, default=200)
+    args = parser.parse_args(argv)
+    try:
+        limit = validate_limit(args.limit)
+    except ValueError as error:
+        parser.error(str(error))
+    if not os.environ.get("DREMIO_PAT"):
+        parser.error("DREMIO_PAT is not set")
+
     # Default patterns for Rhodobacteraceae family
     default_patterns = [
         'Rhodobacter',
@@ -153,9 +194,9 @@ def main():
     ]
 
     # Use command line arg or defaults
-    if len(sys.argv) > 1:
-        patterns = [sys.argv[1]]
-        print(f"Searching for 16S rRNA genes matching: {sys.argv[1]}")
+    if args.pattern:
+        patterns = [args.pattern]
+        print(f"Searching for 16S rRNA genes matching: {args.pattern}")
     else:
         patterns = default_patterns
         print("Searching for 16S rRNA genes from Rhodobacteraceae family")
@@ -168,10 +209,10 @@ def main():
     print("Method 1: Name pattern matching (RECOMMENDED)")
     print("=" * 60)
 
-    genes = find_16s_by_family_pattern(patterns, limit=200)
+    genes = find_16s_by_family_pattern(patterns, limit=limit)
 
     if not genes:
-        print("No genes found!")
+        print("No genes found")
         return
 
     summary = summarize_results(genes)
@@ -216,9 +257,4 @@ The Lakehouse contains metadata only. To get sequences:
 
 
 if __name__ == "__main__":
-    if not os.environ.get("DREMIO_PAT"):
-        print("ERROR: DREMIO_PAT environment variable not set")
-        print("Run: export DREMIO_PAT=$(cat ~/.secrets/dremio_pat)")
-        sys.exit(1)
-
     main()

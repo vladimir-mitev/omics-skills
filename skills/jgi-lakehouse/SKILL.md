@@ -1,6 +1,6 @@
 ---
 name: jgi-lakehouse
-description: Queries JGI Lakehouse (Dremio) for genomics metadata from GOLD, IMG, Mycocosm, Phytozome. Downloads genome files from JGI filesystem using IMG taxon OIDs and links JGI taxon OIDs to read files through PMO/GOLD identifiers and JAMO. Use when working with JGI data, GOLD projects, IMG annotations, or downloading genomes.
+description: Query JGI Lakehouse metadata and retrieve JGI genome or read files. Use when linking GOLD, IMG, MycoCosm, Phytozome, PMO, or JAMO identifiers and datasets.
 ---
 
 # JGI Lakehouse Skill
@@ -37,7 +37,7 @@ WHERE is_public = 'Yes' LIMIT 5;
 
 1. Decide whether the task needs metadata, files, or read recovery.
 2. Use Lakehouse SQL for metadata/annotations and the JGI filesystem or JAMO for sequence files.
-3. Inspect schemas with a small `LIMIT`; remove `LIMIT` for comprehensive results.
+3. Inspect schemas with a small `LIMIT`; remove `LIMIT` for complete results.
 4. Record source, table, fields, filters, and access route in every result summary.
 
 ## Quick Reference
@@ -54,8 +54,9 @@ WHERE is_public = 'Yes' LIMIT 5;
 
 - JGI/GOLD/IMG identifier, taxonomy, project filter, term, or file target.
 - `DREMIO_PAT` for SQL; filesystem/JAMO access for files or reads.
-- Whether the result is exploratory, comprehensive, or a download.
-- Optional runtime settings: `DREMIO_VERIFY_TLS` (default `1`; set `false` only for internal endpoints with unavailable CA validation), `DREMIO_REQUEST_TIMEOUT` (default `60` seconds), `IMG_DOWNLOAD_DIR`, and `IMG_DATA_DIR`.
+- Whether the result is exploratory, complete, or a download.
+- Optional runtime settings: `DREMIO_REQUEST_TIMEOUT` (per request, default `60` seconds), `DREMIO_JOB_TIMEOUT` (whole query, default `300` seconds), `IMG_DOWNLOAD_DIR`, and `IMG_DATA_DIR`.
+- Set `REQUESTS_CA_BUNDLE` for the Python clients or `DREMIO_CA_BUNDLE` for the token helper when the internal endpoint requires a local CA certificate.
 
 ## Output
 
@@ -68,7 +69,7 @@ WHERE is_public = 'Yes' LIMIT 5;
 
 - [ ] Query source and access route match the task.
 - [ ] Schema was inspected before writing joins against unfamiliar tables.
-- [ ] Comprehensive answers do not use development `LIMIT` clauses.
+- [ ] Complete answers do not use development `LIMIT` clauses.
 - [ ] Joins use correct keys, especially `oid` + `gene_oid` for NUMG.
 - [ ] Result summaries state all filters and whether they are exact matches, regexes, ranges, or aggregations.
 
@@ -82,7 +83,7 @@ See `examples/04-download-img-genomes.md` and `examples/05-query-numg-metagenome
 
 **Issue**: Final answer is based on 50 or 100 rows. **Solution**: Remove exploratory limits or use aggregation.
 
-**Issue**: Dremio HTTPS fails with certificate verification errors on the internal endpoint. **Solution**: Prefer configuring the local CA bundle; for an explicit internal-network fallback, set `DREMIO_VERIFY_TLS=false` and record that opt-out in the run notes.
+**Issue**: Dremio HTTPS fails with certificate verification errors on the internal endpoint. **Solution**: Configure the JGI CA bundle. Do not disable certificate verification.
 
 ## Data Access: Lakehouse vs Filesystem
 
@@ -177,7 +178,7 @@ See also: [examples/05-query-numg-metagenome-proteins.md](examples/05-query-numg
 # Genome packages are at:
 /clusterfs/jgi/img_merfs-ro/img_web/img_web_data/download/{taxon_oid}.tar.gz
 
-# Example: Copy and extract
+# Put these commands in a small-job sbatch allocation; do not run them on a login node.
 cp /clusterfs/jgi/img_merfs-ro/img_web/img_web_data/download/8136918376.tar.gz .
 tar -xzf 8136918376.tar.gz
 ```
@@ -292,10 +293,12 @@ Important:
 - if the file is already `RESTORED`, you can use the staged path immediately
 - if the file is `PURGED`, `jamo fetch` only starts the restore; you must wait until the staged path exists and has non-zero size before using it
 
-Simple wait pattern:
+Bounded wait pattern:
 
 ```bash
-while [[ ! -s /clusterfs/jgi/scratch/dsi/.../file.fastq.gz ]]; do sleep 10; done
+staged_file=/clusterfs/jgi/scratch/dsi/.../file.fastq.gz
+timeout 30m bash -c \
+  'until [[ -s "$1" ]]; do sleep 10; done' _ "$staged_file"
 ```
 
 ### Practical rule
@@ -348,7 +351,7 @@ Notes:
 
 ## Query Best Practices
 
-⚠️ **CRITICAL:** When building queries, distinguish between **exploration** and **comprehensive analysis**:
+When building queries, distinguish between **exploration** and **complete analysis**:
 
 ### Exploration Queries
 Use `LIMIT` for quick validation during development:
@@ -357,10 +360,10 @@ Use `LIMIT` for quick validation during development:
 SELECT gold_id, project_name
 FROM "gold-db-2 postgresql".gold.project
 WHERE is_public = 'Yes'
-LIMIT 10;  -- ✓ OK for testing
+LIMIT 10;  -- Appropriate for testing
 ```
 
-### Comprehensive Queries
+### Complete Queries
 **Remove `LIMIT` and other result-limiting clauses** when answering actual questions:
 ```sql
 -- For getting actual dataset counts/results
@@ -368,13 +371,13 @@ SELECT COUNT(DISTINCT taxon_oid)
 FROM "img-db-2 postgresql".img_core_v400.taxon
 WHERE genome_type = 'metagenome'
   AND is_public = 'Yes';
--- ✓ No LIMIT - gets true total
+-- No LIMIT: returns the full count
 ```
 
 **Common pitfalls:**
-- ❌ `LIMIT 100` on initial exploration → assumes only 100 results exist
-- ❌ `LIMIT 50` on a "find all" query → misses 99% of data
-- ❌ Using `FETCH FIRST N ROWS` → same issue as LIMIT
+- `LIMIT 100` on initial exploration can be mistaken for the complete result.
+- `LIMIT 50` on a "find all" query omits all rows after the first 50.
+- `FETCH FIRST N ROWS` has the same limitation as `LIMIT`.
 
 **Best practice:**
 1. Use `LIMIT` with COUNT(*) or small `LIMIT` during development
@@ -426,7 +429,7 @@ WHERE taxonOid IS NOT NULL
 
 | Wrong | Correct |
 |-------|---------|
-| **Using `LIMIT` in comprehensive queries** | **Remove `LIMIT` when answering actual questions; use COUNT() for aggregation** |
+| **Using `LIMIT` in complete queries** | **Remove `LIMIT` when answering actual questions; use COUNT() for aggregation** |
 | Join `ncbi_assembly` on `project_id` | `ncbi_assembly` has no `project_id`; use `bioproject` or `biosample` |
 | `project.ecosystem` | Join `study` via `master_study_id` |
 | `SHOW SCHEMAS IN "source"` | Works, but some syntax errors in older Dremio |
@@ -439,8 +442,6 @@ WHERE taxonOid IS NOT NULL
 | `IMG.gene_feature` fails expansion | Fallback to `"img-db-2 postgresql".img_core_v400.*` tables |
 | `show_schemas()` misses sources | Use higher limit (e.g. `show_schemas(limit=2000)`) |
 
----
-
 ## Authentication
 
 ```bash
@@ -449,11 +450,9 @@ export DREMIO_PAT=$(cat ~/.secrets/dremio_pat)
 
 Token setup: See [docs/authentication.md](docs/authentication.md)
 
----
-
 ## API Access
 
-**REST API Base:** `http://lakehouse-1.jgi.lbl.gov:9047/api/v3`
+**REST API Base:** `https://lakehouse-1.jgi.lbl.gov:9047/api/v3`
 
 ```python
 # Use scripts/rest_client.py
@@ -466,15 +465,13 @@ results = query("SELECT * FROM ... LIMIT 10")
 For higher-performance programmatic access, use Arrow Flight with Python.
 
 ```bash
-python3 -m venv venv
-. venv/bin/activate
-pip install \
-  https://github.com/dremio-hub/arrow-flight-client-examples/releases/download/dremio-flight-python-v1.1.0/dremio_flight-1.1.0-py3-none-any.whl
+uv run \
+  --with "dremio-flight @ https://github.com/dremio-hub/arrow-flight-client-examples/releases/download/dremio-flight-python-v1.1.0/dremio_flight-1.1.0-py3-none-any.whl" \
+  --with pyyaml \
+  example.py
 ```
 
 Full guide: [docs/arrow-flight-python.md](docs/arrow-flight-python.md)
-
----
 
 ## Documentation
 

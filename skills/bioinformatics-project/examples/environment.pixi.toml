@@ -1,0 +1,35 @@
+# Example pinned pixi manifest for a small bioinformatics tool stack.
+# Save as pixi.toml at the project root, then resolve and lock with:
+#
+#   pixi install          # resolves deps and WRITES pixi.lock (commit pixi.lock!)
+#   pixi run assemble     # run a defined task in the locked env
+#   pixi shell            # drop into the environment
+#
+# pixi.lock is the reproducibility artifact: it pins exact builds for every
+# platform. Always commit BOTH pixi.toml and pixi.lock to Git. Recreate the
+# identical environment elsewhere with `pixi install` against the committed lock.
+
+[project]
+name = "arctic-metagenome-2026"
+version = "0.1.0"
+description = "Read QC, co-assembly, mapping, and MAG binning for the arctic metagenome study"
+channels = ["conda-forge", "bioconda"]   # conda-forge FIRST, then bioconda
+platforms = ["linux-64", "osx-arm64"]
+
+[dependencies]
+# Pin exact versions so a rerun uses the identical software stack (Sandve 2013).
+fastqc   = "0.12.1"
+fastp    = "0.23.4"
+spades   = "3.15.5"   # provides metaspades.py
+bwa      = "0.7.18"
+samtools = "1.21"
+metabat2 = "2.15"     # provides metabat2 + jgi_summarize_bam_contig_depths
+seqkit   = "2.8.2"
+multiqc  = "1.25"
+
+[tasks]
+# Convenience tasks; the real pipeline lives in each experiment's runall script.
+qc       = "fastqc --version && fastp --version"
+assemble = "metaspades.py --version"
+bin      = "metabat2 2>&1 | head -n3"
+report   = "multiqc --version"

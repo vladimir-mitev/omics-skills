@@ -1,26 +1,60 @@
 #!/usr/bin/env python3
-"""
-Exploratory Data Analysis Analyzer
-Analyzes scientific data files and generates comprehensive markdown reports
-"""
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#   "biopython>=1.83",
+#   "h5py>=3.10",
+#   "numpy>=1.26",
+#   "pandas>=2.0",
+#   "pillow>=10.0",
+# ]
+# ///
+"""Inspect supported scientific files and write a bounded Markdown report."""
 
-import os
+import argparse
+import gzip
 import sys
-from pathlib import Path
 from datetime import datetime
 import json
+from pathlib import Path
+
+
+CSV_SAMPLE_LIMIT = 10_000
+
+COMPOUND_EXTENSION_MAP = {
+    'ome.tif': ('microscopy_imaging', 'OME-TIFF'),
+    'ome.tiff': ('microscopy_imaging', 'OME-TIFF'),
+    'ome.zarr': ('microscopy_imaging', 'OME-Zarr'),
+    'nii.gz': ('microscopy_imaging', 'Compressed NIfTI'),
+    'fastq.gz': ('bioinformatics_genomics', 'Compressed FASTQ Format'),
+    'fq.gz': ('bioinformatics_genomics', 'Compressed FASTQ Format'),
+    'fasta.gz': ('bioinformatics_genomics', 'Compressed FASTA Format'),
+    'fa.gz': ('bioinformatics_genomics', 'Compressed FASTA Format'),
+    'fna.gz': ('bioinformatics_genomics', 'Compressed FASTA Format'),
+    'vcf.gz': ('bioinformatics_genomics', 'Compressed Variant Call Format'),
+    'gff.gz': ('bioinformatics_genomics', 'Compressed General Feature Format'),
+    'gff3.gz': ('bioinformatics_genomics', 'Compressed General Feature Format'),
+    'bed.gz': ('bioinformatics_genomics', 'Compressed Browser Extensible Data'),
+    'pep.xml': ('proteomics_metabolomics', 'Trans-Proteomic Pipeline Peptide XML'),
+    'prot.xml': ('proteomics_metabolomics', 'Protein Inference Results'),
+}
 
 
 def detect_file_type(filepath):
     """
-    Detect the file type based on extension and content.
+    Detect the file type from its simple or bounded compound suffix.
 
     Returns:
         tuple: (extension, file_category, reference_file)
     """
     file_path = Path(filepath)
-    extension = file_path.suffix.lower()
     name = file_path.name.lower()
+
+    for extension, (category, description) in COMPOUND_EXTENSION_MAP.items():
+        if name.endswith(f'.{extension}'):
+            return extension, category, description
+
+    extension = file_path.suffix.lower()
 
     # Map extensions to categories and reference files
     extension_map = {
@@ -89,6 +123,9 @@ def detect_file_type(filepath):
         'dcm': ('microscopy_imaging', 'DICOM'),
         'nii': ('microscopy_imaging', 'NIfTI'),
         'nrrd': ('microscopy_imaging', 'Nearly Raw Raster Data'),
+        'png': ('microscopy_imaging', 'Portable Network Graphics'),
+        'jpg': ('microscopy_imaging', 'JPEG Image'),
+        'jpeg': ('microscopy_imaging', 'JPEG Image'),
 
         # Spectroscopy/Analytical
         'fid': ('spectroscopy_analytical', 'NMR Free Induction Decay'),
@@ -138,13 +175,14 @@ def get_file_basic_info(filepath):
     file_path = Path(filepath)
     stat = file_path.stat()
 
+    extension, _, _ = detect_file_type(filepath)
     return {
         'filename': file_path.name,
         'path': str(file_path.absolute()),
         'size_bytes': stat.st_size,
         'size_human': format_bytes(stat.st_size),
         'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
-        'extension': file_path.suffix.lower(),
+        'extension': f'.{extension}' if extension else '',
     }
 
 
@@ -194,10 +232,21 @@ def load_reference_info(category, extension):
         with open(ref_file, 'r') as f:
             content = f.read()
 
-        # Extract section for this file type
-        # Look for the extension heading
+        # Compound suffixes share the reference entry for their base format.
         import re
-        pattern = rf'### \.{extension}[^#]*?(?=###|\Z)'
+        base_extension = extension.removesuffix('.gz')
+        reference_extension = {
+            'fa': 'fasta',
+            'fna': 'fasta',
+            'fq': 'fastq',
+            'h5': 'hdf5',
+            'jpeg': 'jpg',
+            'tiff': 'tif',
+            'ome.tiff': 'ome.tif',
+            'prot.xml': 'protxml',
+            'pep.xml': 'pepxml',
+        }.get(base_extension, base_extension)
+        pattern = rf'### \.{re.escape(reference_extension)}[^#]*?(?=###|\Z)'
         match = re.search(pattern, content, re.IGNORECASE | re.DOTALL)
 
         if match:
@@ -241,9 +290,14 @@ def analyze_file(filepath):
             analysis['data_analysis'] = analyze_bioinformatics(filepath, extension)
         elif category == 'microscopy_imaging':
             analysis['data_analysis'] = analyze_imaging(filepath, extension)
-        # Add more specific analyzers as needed
     except Exception as e:
         analysis['data_analysis']['error'] = str(e)
+
+    if not analysis['data_analysis']:
+        analysis['data_analysis'] = {
+            'analysis_scope': 'reference_only',
+            'note': 'The bundled analyzer recognizes this suffix but has no content parser for it.',
+        }
 
     return analysis
 
@@ -281,10 +335,19 @@ def analyze_general_scientific(filepath, extension):
         elif extension in ['csv', 'tsv']:
             import pandas as pd
             sep = '\t' if extension == 'tsv' else ','
-            df = pd.read_csv(filepath, sep=sep, nrows=10000)  # Sample first 10k rows
+            loaded = pd.read_csv(filepath, sep=sep, nrows=CSV_SAMPLE_LIMIT + 1)
+            sample_truncated = len(loaded) > CSV_SAMPLE_LIMIT
+            df = loaded.iloc[:CSV_SAMPLE_LIMIT].copy()
 
             results = {
-                'shape': df.shape,
+                'analysis_scope': 'sample',
+                'sampling': {
+                    'method': 'first_rows',
+                    'row_limit': CSV_SAMPLE_LIMIT,
+                    'rows_sampled': len(df),
+                    'more_rows_present': sample_truncated,
+                },
+                'sample_shape': df.shape,
                 'columns': list(df.columns),
                 'dtypes': {col: str(dtype) for col, dtype in df.dtypes.items()},
                 'missing_values': df.isnull().sum().to_dict(),
@@ -335,11 +398,14 @@ def analyze_general_scientific(filepath, extension):
 def analyze_bioinformatics(filepath, extension):
     """Analyze bioinformatics/genomics formats."""
     results = {}
+    logical_extension = extension.removesuffix('.gz')
+    open_text = gzip.open if extension.endswith('.gz') else open
 
     try:
-        if extension in ['fasta', 'fa', 'fna']:
+        if logical_extension in ['fasta', 'fa', 'fna']:
             from Bio import SeqIO
-            sequences = list(SeqIO.parse(filepath, 'fasta'))
+            with open_text(filepath, 'rt') as source:
+                sequences = list(SeqIO.parse(source, 'fasta'))
             lengths = [len(seq) for seq in sequences]
 
             results = {
@@ -351,13 +417,14 @@ def analyze_bioinformatics(filepath, extension):
                 'sequence_ids': [seq.id for seq in sequences[:10]]  # First 10
             }
 
-        elif extension in ['fastq', 'fq']:
+        elif logical_extension in ['fastq', 'fq']:
             from Bio import SeqIO
             sequences = []
-            for i, seq in enumerate(SeqIO.parse(filepath, 'fastq')):
-                sequences.append(seq)
-                if i >= 9999:  # Sample first 10k
-                    break
+            with open_text(filepath, 'rt') as source:
+                for i, seq in enumerate(SeqIO.parse(source, 'fastq')):
+                    sequences.append(seq)
+                    if i >= 9999:  # Sample first 10k
+                        break
 
             lengths = [len(seq) for seq in sequences]
             qualities = [sum(seq.letter_annotations['phred_quality']) / len(seq) for seq in sequences]
@@ -371,7 +438,7 @@ def analyze_bioinformatics(filepath, extension):
             }
 
     except ImportError as e:
-        results['error'] = f"Required library not installed (try: pip install biopython): {e}"
+        results['error'] = f"Required library not installed: {e}"
     except Exception as e:
         results['error'] = f"Analysis error: {e}"
 
@@ -383,7 +450,7 @@ def analyze_imaging(filepath, extension):
     results = {}
 
     try:
-        if extension in ['tif', 'tiff', 'png', 'jpg', 'jpeg']:
+        if extension in ['tif', 'tiff', 'ome.tif', 'ome.tiff', 'png', 'jpg', 'jpeg']:
             from PIL import Image
             import numpy as np
 
@@ -401,7 +468,7 @@ def analyze_imaging(filepath, extension):
             }
 
             # Check for multi-page TIFF
-            if extension in ['tif', 'tiff']:
+            if extension in ['tif', 'tiff', 'ome.tif', 'ome.tiff']:
                 try:
                     frame_count = 0
                     while True:
@@ -411,7 +478,7 @@ def analyze_imaging(filepath, extension):
                     results['page_count'] = frame_count
 
     except ImportError as e:
-        results['error'] = f"Required library not installed (try: pip install pillow): {e}"
+        results['error'] = f"Required library not installed: {e}"
     except Exception as e:
         results['error'] = f"Analysis error: {e}"
 
@@ -420,7 +487,7 @@ def analyze_imaging(filepath, extension):
 
 def generate_markdown_report(analysis, output_path=None):
     """
-    Generate a comprehensive markdown report from analysis results.
+    Generate a bounded markdown report from analysis results.
 
     Args:
         analysis: Analysis results dictionary
@@ -463,7 +530,7 @@ def generate_markdown_report(analysis, output_path=None):
         data = analysis['data_analysis']
 
         if 'error' in data:
-            lines.append(f"⚠️ **Analysis Error:** {data['error']}\n")
+            lines.append(f"**Analysis error:** {data['error']}\n")
         else:
             # Format the data analysis based on what's present
             lines.append("### Summary Statistics\n")
@@ -514,34 +581,41 @@ def generate_markdown_report(analysis, output_path=None):
     return report
 
 
-def main():
-    """Main CLI interface."""
-    if len(sys.argv) < 2:
-        print("Usage: python eda_analyzer.py <filepath> [output.md]")
-        print("  filepath: Path to the data file to analyze")
-        print("  output.md: Optional output path for markdown report")
-        sys.exit(1)
+def build_parser():
+    parser = argparse.ArgumentParser(
+        description='Inspect a supported scientific data file and write a Markdown report.'
+    )
+    parser.add_argument('filepath', type=Path, help='Scientific data file to inspect')
+    parser.add_argument('output', nargs='?', type=Path, help='Markdown output path')
+    return parser
 
-    filepath = sys.argv[1]
-    output_path = sys.argv[2] if len(sys.argv) > 2 else None
 
-    if not os.path.exists(filepath):
-        print(f"Error: File not found: {filepath}")
-        sys.exit(1)
+def main(argv=None):
+    """Run the command-line interface."""
+    args = build_parser().parse_args(argv)
+    filepath = args.filepath
+    output_path = args.output
+
+    if not filepath.is_file():
+        print(f"Error: File not found: {filepath}", file=sys.stderr)
+        return 1
 
     # If no output path specified, use the input filename
     if output_path is None:
-        input_path = Path(filepath)
-        output_path = input_path.parent / f"{input_path.stem}_eda_report.md"
+        extension, _, _ = detect_file_type(filepath)
+        suffix = f'.{extension}' if extension else ''
+        report_stem = filepath.name[:-len(suffix)] if suffix else filepath.name
+        output_path = filepath.parent / f"{report_stem}_eda_report.md"
 
     print(f"Analyzing: {filepath}")
     analysis = analyze_file(filepath)
 
-    print(f"\nGenerating report...")
+    print("\nGenerating report...")
     generate_markdown_report(analysis, output_path)
 
-    print(f"\n✓ Analysis complete!")
+    print("\nAnalysis complete.")
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())

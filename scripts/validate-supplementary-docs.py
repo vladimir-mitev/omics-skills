@@ -12,6 +12,10 @@ DOCS_RE = re.compile(r"^(?:\*\*)?Official docs/manual(?:\*\*)?:(?:\*\*)?\s+.+", 
 SOURCE_RE = re.compile(r"^(?:\*\*)?Release/source(?:\*\*)?:(?:\*\*)?\s+.+", re.MULTILINE)
 
 ROOT = Path(__file__).resolve().parent.parent
+REQUIRED_SUPPLEMENTARY_DOCS = (
+    "skills/tracking-taxonomy-updates/reference/sources.md",
+    "skills/tracking-taxonomy-updates/reference/tools.md",
+)
 
 
 def supplementary_doc_files(root: Path) -> list[Path]:
@@ -31,7 +35,7 @@ def supplementary_doc_files(root: Path) -> list[Path]:
             if path.exists():
                 files.append(path)
         if skill_dir.name == "tracking-taxonomy-updates":
-            for rel in ("env/README.md", "reference/sources.md", "reference/tools.md"):
+            for rel in ("reference/sources.md", "reference/tools.md"):
                 path = skill_dir / rel
                 if path.exists():
                     files.append(path)
@@ -78,6 +82,12 @@ def validate_doc(path: Path) -> list[str]:
 
 def validate_all(root: Path = ROOT) -> list[str]:
     errors: list[str] = []
+    taxonomy_skill = root / "skills" / "tracking-taxonomy-updates"
+    if taxonomy_skill.is_dir():
+        for relative in REQUIRED_SUPPLEMENTARY_DOCS:
+            path = root / relative
+            if not path.is_file():
+                errors.append(f"{relative}: required supplementary document is missing")
     for path in supplementary_doc_files(root):
         for err in validate_doc(path):
             errors.append(f"{path.relative_to(root)}: {err}")

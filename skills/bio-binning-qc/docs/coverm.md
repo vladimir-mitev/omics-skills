@@ -14,19 +14,9 @@ Release/source: https://github.com/wwood/CoverM/releases/tag/v0.7.0
 
 ## Installation
 
-**Bioconda (recommended):**
+**With Pixi:**
 ```bash
-conda install -c conda-forge -c bioconda coverm
-```
-
-**From source:**
-```bash
-cargo install coverm
-```
-
-**With pixi:**
-```bash
-pixi install -a coverm
+pixi add coverm
 ```
 
 ## Key Command-Line Flags

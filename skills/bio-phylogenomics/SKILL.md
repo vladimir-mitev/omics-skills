@@ -1,6 +1,6 @@
 ---
 name: bio-phylogenomics
-description: Build marker gene alignments and phylogenetic trees.
+description: Build and validate marker-gene alignments and phylogenetic trees. Use when inferring evolutionary relationships, choosing models, or checking tree support and contamination.
 ---
 
 # Bio Phylogenomics
@@ -40,7 +40,7 @@ Build marker gene alignments and phylogenetic trees.
 ## Input Requirements
 
 Prerequisites:
-- Tools available in the active environment (Pixi/conda/system). See `docs/README.md` for expected tools.
+- Tools declared in the project's pinned Pixi environment. See `docs/README.md` for expected tools.
 - Marker gene set or alignments available.
 Inputs:
 - markers.faa (marker genes) or alignments.fasta

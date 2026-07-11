@@ -10,11 +10,7 @@ Query and explore the JGI Lakehouse (Dremio + Apache Iceberg) using safe SQL pat
 # Generate token from LBNL server (one-time)
 ssh <lbnl-server>
 cd ~/.agents/skills/jgi-lakehouse/scripts
-./get_dremio_token.sh username password
-
-# Store token (on your workstation)
-echo "your-token" > ~/.secrets/dremio_pat
-chmod 600 ~/.secrets/dremio_pat
+./get_dremio_token.sh
 
 # Auto-load token
 echo 'export DREMIO_PAT=$(cat ~/.secrets/dremio_pat 2>/dev/null)' >> ~/.bashrc
@@ -27,20 +23,23 @@ See `docs/authentication.md` for details.
 
 ```bash
 # List all schemas
-python3 examples/explore_database.py
+uv run examples/explore_database.py
 
 # Explore GOLD database
-python3 examples/explore_database.py GOLD
+uv run examples/explore_database.py GOLD
 
-# Or use bash script (from LBNL network)
+# Inside a small-job scheduler allocation on the LBNL network
 bash scripts/explore_gold_database.sh > catalog.txt
 ```
 
 ### 3. Query Data
 
-```python
+```bash
+uv run --with requests python - <<'PY'
 import sys
-sys.path.append('~/.agents/skills/jgi-lakehouse/scripts')
+from pathlib import Path
+
+sys.path.insert(0, str(Path.home() / ".agents/skills/jgi-lakehouse/scripts"))
 
 from rest_client import query
 
@@ -52,18 +51,20 @@ results = query(
     "SELECT * FROM genomics LIMIT 10",
     context=["Phytozome"]
 )
+print(f"rows: {len(results)}")
+PY
 ```
 
 ### 4. Optional: Arrow Flight (Python)
 
 ```bash
-python3 -m venv venv
-. venv/bin/activate
-pip install \
-  https://github.com/dremio-hub/arrow-flight-client-examples/releases/download/dremio-flight-python-v1.1.0/dremio_flight-1.1.0-py3-none-any.whl
+uv run \
+  --with "dremio-flight @ https://github.com/dremio-hub/arrow-flight-client-examples/releases/download/dremio-flight-python-v1.1.0/dremio_flight-1.1.0-py3-none-any.whl" \
+  --with pyyaml \
+  example.py
 ```
 
-See `docs/arrow-flight-python.md` for full setup, config, and test query.
+See `docs/arrow-flight-python.md` for the connection example and test query.
 
 ### 5. Link an IMG assembly to reads
 
@@ -140,7 +141,6 @@ Important restore note:
 │   └── explore_database.py        # Interactive database explorer
 │
 ├── docs/
-│   ├── setup_guide.md             # Setup instructions
 │   ├── authentication.md          # Token setup
 │   ├── arrow-flight-python.md     # Arrow Flight Python access
 │   └── explore_gold.md            # GOLD exploration guide
@@ -153,11 +153,11 @@ Important restore note:
 ## Network Requirements
 
 **Public HTTPS Endpoint** (`https://lakehouse.jgi.lbl.gov`)
-- ❌ Blocked by Cloudflare Access (requires browser auth)
+- Protected by Cloudflare Access and requires browser authentication
 
-**Internal HTTP Endpoint** (`http://lakehouse-1.jgi.lbl.gov:9047`)
-- ✅ Direct API access with token
-- ⚠️ Only accessible from LBNL network
+**Internal HTTPS Endpoint** (`https://lakehouse-1.jgi.lbl.gov:9047`)
+- Direct API access with a token
+- Accessible from the LBNL network; certificate verification stays enabled
 
 ## Available Databases
 
@@ -220,7 +220,8 @@ schema = query("DESCRIBE GOLD.PROJECT")
 ## Troubleshooting
 
 **"No route to host"**
-→ Port 9047 blocked. Use SSH tunnel or run from LBNL network.
+: Port 9047 is blocked. Run from the LBNL network or use an approved tunnel that
+  preserves HTTPS hostname verification.
 
 **"HTTP 302 redirect"**
 → Cloudflare Access blocking. Use internal endpoint.

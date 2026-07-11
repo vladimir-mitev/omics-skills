@@ -13,7 +13,7 @@ The repository is deliberately simple. Agents are Markdown system prompts. Skill
 | Writing and review | Manuscript drafting, response letters, proposal review, methods documentation, and rigorous review of AI scientist outputs. |
 | Visualization | Reproducible notebooks, matplotlib/seaborn figures, and Plotly Dash dashboards. |
 
-The current package contains four agents and 36 skills. The source files remain the source of truth; this documentation explains how to find and use them.
+The current package contains four agents and 35 skills. The generated catalog is the countable source of truth; this documentation explains how to find and use them.
 
 ## Start Here
 
@@ -24,6 +24,7 @@ The current package contains four agents and 36 skills. The source files remain 
 | Browse every skill | [Skills](skills.md) |
 | Understand the router | [Routing](routing.md) |
 | Add or maintain skills | [Development](development.md) |
+| Review current skill quality and priorities | [Skill Quality](skill-quality.md) |
 | Contribute a change | [Contributing](CONTRIBUTING.md) |
 | Review distribution notes | [Distribution](DISTRIBUTION.md) |
 | Publish the documentation site | [GitHub Pages](github-pages.md) |

@@ -19,10 +19,7 @@ Minimap2 is a versatile pairwise aligner for genomic and spliced nucleotide sequ
 ## Installation
 
 ```bash
-# Via conda/mamba
-conda install -c bioconda minimap2
-
-# Via pixi (recommended for this workflow)
+# Add to the project Pixi environment
 pixi add minimap2
 
 # From source
@@ -60,7 +57,7 @@ minimap2 [options] <target.fa|target.mmi> [query.fa] [...]
 ### Alignment Parameters
 - `-k <int>` - Kmer size (default varies by preset)
 - `-w <int>` - Minimizer window size (default varies by preset)
-- `-I <size>` - Load at most this much sequence from target (e.g., 8G)
+- `-I <num>` - Maximum number of target bases per index batch (default: 8G bases); this is not a byte-valued RAM limit
 - `-f <float>` - Filter out top fraction of repetitive minimizers
 - `-g <int>` - Stop chain enlarge if gap > INT (default: inf)
 
@@ -73,7 +70,7 @@ minimap2 [options] <target.fa|target.mmi> [query.fa] [...]
 
 ### Mapping Sensitivity
 - `-N <int>` - Retain at most INT secondary alignments (default: 5)
-- `-p <float>` - Minimum secondary-to-primary score ratio (default: 0.8)
+- `-p <float>` - Minimum score ratio for retaining a secondary alignment relative to its primary alignment (default: 0.8); it does not filter alignment identity
 - `-r <int>` - Bandwidth for chaining and alignment (default: 500)
 - `-n <int>` - Minimum number of minimizers on chain (default: 3)
 - `-m <int>` - Minimum chain score (default: 40)
@@ -177,9 +174,9 @@ minimap2 -ax asm5 reference.fa assembly.fa > alignment.sam
 ## Performance Tips
 
 ### Memory Management
-- Use `-I` to control memory usage by limiting target sequence loaded
-- Example: `-I 8G` loads max 8GB of reference at a time
-- Pre-build index with `-d` to reduce memory footprint for repeated runs
+- `-I 8G` indexes at most 8 billion target bases per batch, not 8 GB of RAM.
+- Lowering `-I` can reduce peak indexing memory by creating a multi-part index. Minimap2 warns that mapping quality is incorrect when it maps against a multi-part index because it cannot compare hits across all target batches.
+- Pre-build an index with `-d` to avoid rebuilding it on repeated runs; measure resident memory on the target dataset rather than treating the index file size or `-I` value as a RAM estimate.
 
 ### Threading
 - Minimap2 scales well with multiple threads
@@ -190,7 +187,7 @@ minimap2 -ax asm5 reference.fa assembly.fa > alignment.sam
 ### Speed Optimization
 - Use appropriate presets (`-x`) for your data type
 - Pre-build index for large references used repeatedly
-- Use `-I` flag to process reference in chunks for very large genomes
+- Use `-I` to split a large target into index batches only when the multi-part-index mapping-quality limitation is acceptable
 - Skip secondary alignments with `-N 0` if not needed
 
 ### Disk I/O
@@ -200,7 +197,7 @@ minimap2 -ax asm5 reference.fa assembly.fa > alignment.sam
 
 ### Index Optimization
 - Build index once for repeated mapping jobs
-- For genomes >4GB, minimap2 automatically splits index
+- Targets longer than the `-I` base limit are split into multiple index batches
 - Use `--split-prefix` to control split index file naming
 
 ## Parameter Recommendations
@@ -230,10 +227,13 @@ minimap2 -ax sr -t 16 reference.fa read1.fq read2.fq
 minimap2 -ax splice -uf -k14 -t 16 reference.fa reads.fq
 ```
 
-### High Identity Filtering (>95%)
+### Approximate Alignment Identity Filtering (>=95% in PAF)
 ```bash
-minimap2 -ax map-ont -t 16 --secondary=no -p 0.95 reference.fa reads.fq
+minimap2 -x map-ont -t 16 --secondary=no reference.fa reads.fq | \
+  awk 'BEGIN { OFS="\t" } $11 > 0 && ($10 / $11) >= 0.95'
 ```
+
+PAF column 10 is the number of matching bases and column 11 is the alignment block length. This ratio is a convenient PAF-level approximation, not a substitute for a variant-aware identity calculation. The `-p` option controls secondary-alignment score filtering and must not be used as an identity threshold.
 
 ### Assembly Alignment (5% divergence)
 ```bash

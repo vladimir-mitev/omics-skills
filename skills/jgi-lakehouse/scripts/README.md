@@ -1,204 +1,115 @@
-# Lakehouse Scripts
+# Lakehouse helper scripts
 
-Core scripts for JGI Lakehouse access and data exploration.
+Run these helpers from an LBNL-connected host or through an approved tunnel. All
+REST calls use `https://lakehouse-1.jgi.lbl.gov:9047`; certificate verification
+remains enabled.
 
-## Available Scripts
+## Authentication
 
-### `get_dremio_token.sh`
-Generate authentication token from username/password.
+`get_dremio_token.sh` reads the username and password from an interactive prompt.
+It never accepts credentials as command-line arguments or prints the token. The
+default output is `~/.secrets/dremio_pat`.
 
-**Usage:**
 ```bash
-# Interactive (prompts for password)
 ./get_dremio_token.sh
 
-# Non-interactive
-./get_dremio_token.sh username password
-
-# Store in environment
-export DREMIO_PAT=$(./get_dremio_token.sh username password)
+# Choose a different token file when needed.
+./get_dremio_token.sh --output ~/.secrets/jgi/dremio_pat
 ```
 
-**Requirements:**
-- Must run from LBNL network (port 9047 access)
-- Token lifetime: 30 hours
+The helper creates the token file atomically with mode `0600`. Set
+`DREMIO_CA_BUNDLE` to the JGI CA file if the internal endpoint is not covered by
+the system trust store.
 
-### `rest_client.py`
-Python REST API client for Dremio.
-
-**Usage:**
-```python
-from rest_client import query, show_schemas, list_catalogs
-
-# List schemas
-schemas = show_schemas(limit=2000)
-
-# Execute SQL
-results = query("SELECT * FROM GOLD.PROJECT LIMIT 10")
-
-# With context
-results = query(
-    "SELECT * FROM genomics LIMIT 10",
-    context=["Phytozome"]
-)
-```
-
-**Requirements:**
-- DREMIO_PAT environment variable
-- LBNL network access (or SSH tunnel)
-
-**Important behavior:**
-- `rest_client` resolves `DREMIO_PAT` at call time. Set/export token before query calls.
-- `show_schemas()` should use a high limit (for example `2000`) to avoid truncation.
-- HTTPS certificate verification is enabled by default. Prefer configuring a local CA bundle; set `DREMIO_VERIFY_TLS=false` only as an explicit internal-network fallback.
-- `DREMIO_REQUEST_TIMEOUT` controls per-request timeout in seconds; default is `60`.
-
-### Arrow Flight Python Example (Optional)
-For a performant Arrow Flight workflow, see:
-
-- `../docs/arrow-flight-python.md`
-
-This includes:
-- venv setup
-- wheel install command
-- `config.yaml` + `example.py`
-- `SELECT 1` connectivity check
-
-### `explore_gold_database.sh`
-Comprehensive GOLD database exploration script.
-
-**Usage:**
-```bash
-export DREMIO_PAT=$(cat ~/.secrets/dremio_pat)
-bash explore_gold_database.sh > gold_catalog.txt
-```
-
-**Output:**
-- All available schemas
-- All GOLD tables
-- Column schemas and types
-- Row counts
-- Sample data
-
-### `download_img_genomes.py`
-Download genomes with IMG taxon OIDs from JGI filesystem.
-
-**Usage:**
-```bash
-export DREMIO_PAT=$(cat ~/.secrets/dremio_pat)
-python download_img_genomes.py --domain Bacteria --count 5 --output-dir ./genomes
-```
-
-**Features:**
-- Queries Lakehouse for genomes matching criteria
-- Checks file availability on JGI filesystem
-- Downloads/extracts genome packages
-- Returns metadata with taxon OIDs
-
-**Requirements:**
-- DREMIO_PAT environment variable
-- JGI cluster account with filesystem access
-- Access to `/clusterfs/jgi/img_merfs-ro/`
-
-**Configuration:**
-- `DREMIO_VERIFY_TLS`: defaults to `1`; set `false` only when an internal endpoint cannot validate against the available CA bundle.
-- `DREMIO_REQUEST_TIMEOUT`: request timeout in seconds; defaults to `60`.
-- `IMG_DOWNLOAD_DIR`: genome package root; defaults to `/clusterfs/jgi/img_merfs-ro/img_web/img_web_data/download`.
-- `IMG_DATA_DIR`: extracted IMG data root; defaults to `/clusterfs/jgi/img_merfs-ro/img_web_data_merfs`.
-
-## Authentication Setup
-
-### 1. Generate Token (from LBNL server)
+Load an existing token before using the clients:
 
 ```bash
-ssh <lbnl-server>
-cd ~/.agents/skills/jgi-lakehouse/scripts
-./get_dremio_token.sh username password
+export DREMIO_PAT=$(<~/.secrets/dremio_pat)
 ```
 
-### 2. Store Token Securely
+## REST client
+
+`rest_client.py` declares `requests` in PEP 723 metadata, so `uv` creates the
+required environment:
 
 ```bash
-# On your workstation
-echo "your-token" > ~/.secrets/dremio_pat
-chmod 600 ~/.secrets/dremio_pat
+uv run scripts/rest_client.py
 ```
 
-### 3. Auto-Load Token
+For a custom query from the skill directory:
 
 ```bash
-echo 'export DREMIO_PAT=$(cat ~/.secrets/dremio_pat 2>/dev/null)' >> ~/.bashrc
-source ~/.bashrc
+uv run --with requests python - <<'PY'
+import sys
+
+sys.path.insert(0, "scripts")
+from rest_client import query
+
+rows = query("SELECT * FROM GOLD.PROJECT LIMIT 10")
+print(f"rows: {len(rows)}")
+PY
 ```
 
-## Network Access
+The client reads `DREMIO_PAT` when each request starts. Its relevant settings are:
 
-**Internal HTTP** (REST API)
-```
-http://lakehouse-1.jgi.lbl.gov:9047/api/v3
-✅ Works with token
-⚠️ LBNL network only
-```
+| Variable | Meaning | Default |
+|---|---|---|
+| `DREMIO_HOST` | Dremio host | `lakehouse-1.jgi.lbl.gov` |
+| `DREMIO_PORT` | HTTPS port | `9047` |
+| `DREMIO_REQUEST_TIMEOUT` | Timeout for one HTTP request | `60` seconds |
+| `REQUESTS_CA_BUNDLE` | CA bundle used by Requests | System trust store |
 
-**Public HTTPS**
-```
-https://lakehouse.jgi.lbl.gov/api/v3
-❌ Blocked by Cloudflare Access
-```
+`query()` and `query_all()` also enforce an overall polling timeout, which defaults
+to 300 seconds and can be changed with their `timeout` argument.
 
-## Using REST API
+## GOLD explorer
 
-```python
-import os
-import requests
+`explore_gold_database.sh` loads the token from the environment or the default
+token file and runs the PEP 723-enabled Python explorer.
 
-BASE_URL = "http://lakehouse-1.jgi.lbl.gov:9047/api/v3"
-TOKEN = os.getenv("DREMIO_PAT")
-
-headers = {
-    "Authorization": f"Bearer {TOKEN}",
-    "Content-Type": "application/json"
-}
-
-# Submit SQL
-response = requests.post(
-    f"{BASE_URL}/sql",
-    headers=headers,
-    json={"sql": "SHOW SCHEMAS"},
-    timeout=60,
-)
-job_id = response.json()["id"]
-
-# Get results
-response = requests.get(
-    f"{BASE_URL}/job/{job_id}/results",
-    headers=headers,
-    params={"limit": 100}
-)
-results = response.json()["rows"]
+```bash
+bash scripts/explore_gold_database.sh > gold_catalog.txt
 ```
 
-## Token Management
+Submit catalog scans through the site's small-job scheduler allocation. Do not run
+them on a login node.
 
-**Storage:** `~/.secrets/dremio_pat`
-**Lifetime:** 30 hours
-**Refresh:** Re-run `get_dremio_token.sh`
+## IMG genome downloader
 
-**Security:**
-- Never commit tokens to git
-- Use 600 permissions on token file
-- Gitignore ~/.secrets/ directory
+`download_img_genomes.py` queries metadata, locates IMG packages on the JGI
+filesystem, checks archive members, and copies selected files.
+
+```bash
+uv run scripts/download_img_genomes.py \
+  --domain Bacteria \
+  --count 5 \
+  --output-dir ./genomes
+```
+
+Run multi-genome copy and extraction work in a scheduler allocation. The helper
+uses these settings in addition to the REST variables above:
+
+| Variable | Meaning | Default |
+|---|---|---|
+| `DREMIO_JOB_TIMEOUT` | Whole metadata-query polling deadline | `300` seconds |
+| `IMG_DOWNLOAD_DIR` | IMG package root | `/clusterfs/jgi/img_merfs-ro/img_web/img_web_data/download` |
+| `IMG_DATA_DIR` | Per-taxon IMG data root | `/clusterfs/jgi/img_merfs-ro/img_web_data_merfs` |
+
+The directory fallback reports failure unless it copies at least one expected
+file. A completed process therefore does not imply that an output package exists;
+check the returned metadata and output files.
 
 ## Troubleshooting
 
-**"No route to host"**
-→ Port 9047 blocked. Run from LBNL network or use SSH tunnel.
+`No route to host`
+: Run from the LBNL network or use an approved SSH tunnel.
 
-**"HTTP 302"**
-→ Cloudflare Access blocking. Use internal endpoint.
+`401` or `Unauthorized`
+: Generate a new token and reload `DREMIO_PAT`.
 
-**"SSLCertVerificationError"**
-→ Configure the appropriate CA bundle if possible. For an explicit internal-network fallback, set `DREMIO_VERIFY_TLS=false`.
+`SSLCertVerificationError`
+: Set `REQUESTS_CA_BUNDLE` for Python helpers or `DREMIO_CA_BUNDLE` for the token
+  helper to the JGI CA file. Do not disable certificate verification.
 
-**"ModuleNotFoundError: requests"**
-→ `pip install requests` or use pixi environment.
+`ModuleNotFoundError: requests`
+: Start the helper with `uv run`; the Python scripts declare their dependencies.

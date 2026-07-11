@@ -1,6 +1,6 @@
 ---
 name: scientific-writing
-description: Draft, review, and iteratively revise scientific manuscripts with a provider-agnostic multi-agent workflow for Codex and Claude Code. Use for new manuscripts, section rewrites, rebuttals, response letters, manuscript QA, or sentence-level writing reviews when claims must stay grounded in supplied artifacts.
+description: Draft, review, and revise scientific manuscripts with grounded multi-agent checks. Use when writing sections, rebuttals, response letters, manuscript QA, or sentence-level reviews.
 ---
 
 # Scientific Writing

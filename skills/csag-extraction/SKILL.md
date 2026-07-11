@@ -1,10 +1,9 @@
 ---
 name: csag-extraction
 description: >-
-  Extract a CSAG (Conditional Scientific Argumentation Graph) from a manuscript using the canonical
-  argumentation spine (Assertions, EvidenceItems, EvidenceLinks, InferenceSteps) while enforcing
-  CSAG conditionality (no assertion without at least one Context). Also generates paper-grounded
-  Q&A items using bundled QA templates.
+  Extract a Conditional Scientific Argumentation Graph and grounded Q&A from a
+  manuscript. Use when representing assertions, contexts, evidence links, and
+  inference steps in machine-readable form.
 license: CC0-1.0
 metadata:
   version: "0.6.0"

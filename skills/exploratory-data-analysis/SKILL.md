@@ -1,22 +1,21 @@
 ---
 name: exploratory-data-analysis
-description: Perform comprehensive exploratory data analysis on scientific data files across 200+ file formats. This skill should be used when analyzing any scientific data file to understand its structure, content, quality, and characteristics. Automatically detects file type and generates detailed markdown reports with format-specific analysis, quality metrics, and downstream analysis recommendations. Covers chemistry, bioinformatics, microscopy, spectroscopy, proteomics, metabolomics, and general scientific data formats.
+description: Inspect scientific data and generate a Markdown structure-and-quality report. Use when triaging tabular, array, sequence, HDF5, JSON, or raster files before downstream analysis.
 ---
 
 # Exploratory Data Analysis
 
 ## Overview
 
-Perform comprehensive exploratory data analysis (EDA) on scientific data files across multiple domains. This skill provides automated file type detection, format-specific analysis, data quality assessment, and generates detailed markdown reports suitable for documentation and downstream analysis planning.
+Inspect scientific files before downstream analysis. The bundled script recognizes more than 100 simple and compound suffixes and writes a bounded Markdown report. It performs content-level analysis only for the common formats listed below; other recognized formats receive file metadata and a reference-catalog entry.
 
-**Key Capabilities:**
-- Automatic detection and analysis of 200+ scientific file formats
-- Comprehensive format-specific metadata extraction
-- Data quality and integrity assessment
-- Statistical summaries and distributions
-- Visualization recommendations
-- Downstream analysis suggestions
-- Markdown report generation
+The six reference files contain 239 format entries. Some entries describe the same suffix in different domain contexts, so this is not a count of unique formats or implemented parsers.
+
+**Bundled content parsers:**
+- NumPy arrays (`.npy`, `.npz`), CSV/TSV samples, JSON, and HDF5
+- FASTA and FASTQ, including common gzip-compressed suffixes
+- TIFF/OME-TIFF, PNG, and JPEG raster images
+- Reference-only metadata for every other recognized suffix
 
 ## When to Use This Skill
 
@@ -24,7 +23,7 @@ Use this skill when:
 - User provides a path to a scientific data file for analysis
 - User asks to "explore", "analyze", or "summarize" a data file
 - User wants to understand the structure and content of scientific data
-- User needs a comprehensive report of a dataset before analysis
+- User needs a structure-and-quality report before analysis
 - User wants to assess data quality or completeness
 - User asks what type of analysis is appropriate for a file
 
@@ -40,44 +39,44 @@ Use this skill when:
 
 ## Supported File Categories
 
-The skill has comprehensive coverage of scientific file formats organized into six major categories:
+The reference catalog is organized into six categories. These entries guide custom analysis; they do not imply that `eda_analyzer.py` parses every listed format.
 
-### 1. Chemistry and Molecular Formats (60+ extensions)
+### 1. Chemistry and Molecular Formats (43 reference entries)
 Structure files, computational chemistry outputs, molecular dynamics trajectories, and chemical databases.
 
 **File types include:** `.pdb`, `.cif`, `.mol`, `.mol2`, `.sdf`, `.xyz`, `.smi`, `.gro`, `.log`, `.fchk`, `.cube`, `.dcd`, `.xtc`, `.trr`, `.prmtop`, `.psf`, and more.
 
 **Reference file:** `references/chemistry_molecular_formats.md`
 
-### 2. Bioinformatics and Genomics Formats (50+ extensions)
+### 2. Bioinformatics and Genomics Formats (44 reference entries)
 Sequence data, alignments, annotations, variants, and expression data.
 
 **File types include:** `.fasta`, `.fastq`, `.sam`, `.bam`, `.vcf`, `.bed`, `.gff`, `.gtf`, `.bigwig`, `.h5ad`, `.loom`, `.counts`, `.mtx`, and more.
 
 **Reference file:** `references/bioinformatics_genomics_formats.md`
 
-### 3. Microscopy and Imaging Formats (45+ extensions)
+### 3. Microscopy and Imaging Formats (41 reference entries)
 Microscopy images, medical imaging, whole slide imaging, and electron microscopy.
 
 **File types include:** `.tif`, `.nd2`, `.lif`, `.czi`, `.ims`, `.dcm`, `.nii`, `.mrc`, `.dm3`, `.vsi`, `.svs`, `.ome.tiff`, and more.
 
 **Reference file:** `references/microscopy_imaging_formats.md`
 
-### 4. Spectroscopy and Analytical Chemistry Formats (35+ extensions)
+### 4. Spectroscopy and Analytical Chemistry Formats (43 reference entries)
 NMR, mass spectrometry, IR/Raman, UV-Vis, X-ray, chromatography, and other analytical techniques.
 
 **File types include:** `.fid`, `.mzML`, `.mzXML`, `.raw`, `.mgf`, `.spc`, `.jdx`, `.xy`, `.cif` (crystallography), `.wdf`, and more.
 
 **Reference file:** `references/spectroscopy_analytical_formats.md`
 
-### 5. Proteomics and Metabolomics Formats (30+ extensions)
+### 5. Proteomics and Metabolomics Formats (36 reference entries)
 Mass spec proteomics, metabolomics, lipidomics, and multi-omics data.
 
 **File types include:** `.mzML`, `.pepXML`, `.protXML`, `.mzid`, `.mzTab`, `.sky`, `.mgf`, `.msp`, `.h5ad`, and more.
 
 **Reference file:** `references/proteomics_metabolomics_formats.md`
 
-### 6. General Scientific Data Formats (30+ extensions)
+### 6. General Scientific Data Formats (32 reference entries)
 Arrays, tables, hierarchical data, compressed archives, and common scientific formats.
 
 **File types include:** `.npy`, `.npz`, `.csv`, `.xlsx`, `.json`, `.hdf5`, `.zarr`, `.parquet`, `.mat`, `.fits`, `.nc`, `.xml`, and more.
@@ -116,20 +115,21 @@ Search the reference file for the specific extension (e.g., search for "### .fas
 
 ### Step 3: Perform Data Analysis
 
-Use the `scripts/eda_analyzer.py` script OR implement custom analysis:
+Use the bundled script for its supported parsers, or implement a domain-specific analysis after reading the relevant reference entry.
 
-**Option A: Use the analyzer script**
-```python
-# The script automatically:
-# 1. Detects file type
-# 2. Loads reference information
-# 3. Performs format-specific analysis
-# 4. Generates markdown report
-
-python scripts/eda_analyzer.py <filepath> [output.md]
+**Option A: Run the analyzer from the checkout**
+```bash
+uv run skills/exploratory-data-analysis/scripts/eda_analyzer.py <filepath> [output.md]
 ```
 
-**Option B: Custom analysis in the conversation**
+**Option B: Run the installed analyzer**
+```bash
+uv run ~/.agents/skills/exploratory-data-analysis/scripts/eda_analyzer.py <filepath> [output.md]
+```
+
+PEP 723 metadata in the script creates an isolated environment with the libraries used by its content parsers.
+
+**Option C: Custom analysis in the conversation**
 Based on the format information from the reference file, perform appropriate analysis:
 
 For tabular data (CSV, TSV, Excel):
@@ -158,9 +158,9 @@ For arrays (NPY, HDF5):
 - Calculate statistical summaries
 - Check for missing/invalid values
 
-### Step 4: Generate Comprehensive Report
+### Step 4: Generate the Report
 
-Create a markdown report with the following sections:
+The bundled script reports file metadata, the matching reference entry, sampled or full content statistics, parser errors, and format-level follow-up options. Label every sample explicitly. For a custom analysis, use the following sections:
 
 #### Required Sections:
 1. **Title and Metadata**
@@ -205,7 +205,7 @@ Save the markdown report with a descriptive filename:
 
 ## Detailed Format References
 
-Each reference file contains comprehensive information for dozens of file types. To find information about a specific format:
+Each reference file contains short entries for dozens of file types. To find information about a specific format:
 
 1. Identify the category from the extension
 2. Read the appropriate reference file
@@ -287,7 +287,7 @@ Reference files are large (10,000+ words each). To efficiently use them:
 
 ### Report Generation
 
-1. **Be comprehensive:** Include all relevant information for downstream analysis
+1. **Cover the evidence:** Include the observations needed to choose the next analysis
 2. **Be specific:** Provide concrete recommendations based on the file type
 3. **Be actionable:** Suggest specific next steps and tools
 4. **Include code examples:** Show how to load and work with the data
@@ -370,16 +370,13 @@ with ND2Reader('cells.nd2') as images:
 
 ### Missing Libraries
 
-Many scientific formats require specialized libraries:
+Custom analysis of formats outside the bundled parsers may require specialized libraries:
 
 **Problem:** Import error when trying to read a file
 
-**Solution:** Provide clear installation instructions
-```python
-try:
-    from Bio import SeqIO
-except ImportError:
-    print("Install Biopython: uv pip install biopython")
+**Solution:** Add the parser to the project environment with `uv`, or run a one-off command with `uv run --with`.
+```bash
+uv run --with biopython python analysis.py
 ```
 
 Common requirements by category:
@@ -412,11 +409,12 @@ For very large files:
 The `scripts/eda_analyzer.py` can be used directly:
 
 ```bash
-# Basic usage
-python scripts/eda_analyzer.py data.csv
+# From this repository
+uv run skills/exploratory-data-analysis/scripts/eda_analyzer.py data.csv
 
-# Specify output file
-python scripts/eda_analyzer.py data.csv output_report.md
+# From an installed skill, with an explicit output file
+uv run ~/.agents/skills/exploratory-data-analysis/scripts/eda_analyzer.py \
+  data.csv output_report.md
 
 # The script will:
 # 1. Auto-detect file type
@@ -425,7 +423,7 @@ python scripts/eda_analyzer.py data.csv output_report.md
 # 4. Generate markdown report
 ```
 
-The script supports automatic analysis for many common formats, but custom analysis in the conversation provides more flexibility and domain-specific insights.
+The script performs content analysis for NumPy, CSV/TSV, JSON, HDF5, FASTA/FASTQ, and common raster images. It emits a `reference_only` scope for recognized formats without a bundled parser.
 
 ## Advanced Usage
 
@@ -458,15 +456,15 @@ Based on data characteristics, recommend:
 ## Resources
 
 ### scripts/
-- `eda_analyzer.py`: Comprehensive analysis script that can be run directly or imported
+- `eda_analyzer.py`: Bounded analyzer for the supported common formats
 
 ### references/
-- `chemistry_molecular_formats.md`: 60+ chemistry/molecular file formats
-- `bioinformatics_genomics_formats.md`: 50+ bioinformatics formats
-- `microscopy_imaging_formats.md`: 45+ imaging formats
-- `spectroscopy_analytical_formats.md`: 35+ spectroscopy formats
-- `proteomics_metabolomics_formats.md`: 30+ omics formats
-- `general_scientific_formats.md`: 30+ general formats
+- `chemistry_molecular_formats.md`: 43 chemistry/molecular reference entries
+- `bioinformatics_genomics_formats.md`: 44 bioinformatics reference entries
+- `microscopy_imaging_formats.md`: 41 imaging reference entries
+- `spectroscopy_analytical_formats.md`: 43 spectroscopy reference entries
+- `proteomics_metabolomics_formats.md`: 36 omics reference entries
+- `general_scientific_formats.md`: 32 general-data reference entries
 
 ### assets/
-- `report_template.md`: Comprehensive markdown template for EDA reports
+- `report_template.md`: Markdown template for EDA reports

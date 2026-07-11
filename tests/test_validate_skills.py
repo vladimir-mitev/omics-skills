@@ -33,7 +33,7 @@ def _write_skill(root: Path, name: str, *, frontmatter_name: str | None = None, 
     fm_name = name if frontmatter_name is None else frontmatter_name
     body = "\n".join(f"{s}\n\ncontent\n" for s in validate_skills.REQUIRED_SECTIONS) if sections else "# Title\n"
     (skill_dir / "SKILL.md").write_text(
-        f"---\nname: {fm_name}\ndescription: test skill\n---\n# {name}\n\n{body}",
+        f"---\nname: {fm_name}\ndescription: Test behavior. Use when testing a skill.\n---\n# {name}\n\n{body}",
         encoding="utf-8",
     )
     return skill_dir
@@ -72,6 +72,31 @@ class ValidateSkillTests(unittest.TestCase):
             md.write_text(md.read_text() + "\n".join(["filler"] * (validate_skills.MAX_LINES + 5)), encoding="utf-8")
             errors = validate_skills.validate_skill(skill_dir)
             self.assertTrue(any("over" in e and "lines" in e for e in errors))
+
+    def test_description_requires_use_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            skill_dir = _write_skill(Path(tmp), "vague-skill")
+            md = skill_dir / "SKILL.md"
+            md.write_text(
+                md.read_text().replace(
+                    "Test behavior. Use when testing a skill.",
+                    "Test behavior.",
+                ),
+                encoding="utf-8",
+            )
+            errors = validate_skills.validate_skill(skill_dir)
+            self.assertTrue(any("must say when" in error for error in errors))
+
+    def test_broken_local_markdown_link_is_flagged(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            skill_dir = _write_skill(Path(tmp), "linked-skill")
+            md = skill_dir / "SKILL.md"
+            md.write_text(
+                md.read_text() + "\n[Missing guide](docs/missing.md)\n",
+                encoding="utf-8",
+            )
+            errors = validate_skills.validate_skill(skill_dir)
+            self.assertTrue(any("broken local Markdown link" in error for error in errors))
 
     def test_validate_all_aggregates_across_dirs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -140,6 +165,14 @@ class ValidateSupplementaryDocsTests(unittest.TestCase):
 
             errors = validate_supplementary_docs.validate_all(root)
             self.assertTrue(any("bio-fasta-database-curator/tools.md" in e for e in errors))
+
+    def test_required_taxonomy_documents_cannot_disappear_silently(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "skills" / "tracking-taxonomy-updates").mkdir(parents=True)
+            errors = validate_supplementary_docs.validate_all(root)
+            self.assertTrue(any("reference/sources.md" in error for error in errors))
+            self.assertTrue(any("reference/tools.md" in error for error in errors))
 
 
 if __name__ == "__main__":

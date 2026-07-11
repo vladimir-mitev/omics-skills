@@ -6,7 +6,7 @@ Guidance for AI coding agents (Claude Code, Cursor, Copilot) working in this rep
 
 ## Repository overview
 
-4 agents and 36 skills covering bioinformatics, literature discovery, scientific writing, and data visualization. Runs under Claude Code and the Codex CLI.
+4 agents and 35 skills covering bioinformatics, literature discovery, scientific writing, and data visualization. Runs under Claude Code and the Codex CLI.
 
 Layout:
 - `agents/` — 4 agent definitions (markdown)
@@ -440,7 +440,7 @@ scripts/install.sh  # Alternative to Makefile
 ### What Gets Installed
 
 - **Agents** → `~/.claude/agents/` and `~/.codex/agents/` (4 files)
-- **Skills** → `~/.agents/skills/` (35 directories)
+- **Skills** → `~/.agents/skills/` (34 directories)
 - **Claude skills link** → `~/.claude/skills` → `~/.agents/skills`
 - **Codex skills link** → `~/.codex/skills` → `~/.agents/skills`
 - **Symlinks** by default (auto-updates with `git pull`)

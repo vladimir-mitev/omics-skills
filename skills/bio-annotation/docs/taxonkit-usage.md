@@ -265,12 +265,15 @@ diamond blastp --query proteins.faa --db clusterednr.dmnd \
 
 # Extract and resolve taxonomy
 cut -f3 results.tsv | \
-  sed '1d' | \
   taxonkit lineage -n -r | \
   taxonkit reformat2 \
     -f "{domain|acellular root|superkingdom};{phylum};{class};{order};{family};{genus};{species}" | \
   paste results.tsv - > results_with_taxonomy.tsv
 ```
+
+DIAMOND tabular output has no header unless one is added explicitly. Do not drop
+the first line before TaxonKit, or the first hit and its taxonomy row will be
+lost.
 
 ### Create taxonomic summary report
 ```bash

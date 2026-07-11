@@ -22,7 +22,7 @@ Release notes are published on the [GitHub Releases page](https://github.com/fms
 
 Four agent personas — `omics-scientist`, `literature-expert`, `science-writer`, `dataviz-artist` — compose a set of small, single-purpose skills (`SKILL.md` files) for tasks ranging from read QC through assembly, gene calling, annotation, phylogenomics, comparative genomics, structure prediction, viromics, interdomain HGT, statistics, manuscript drafting, and figure generation.
 
-Agents are markdown system prompts; skills are markdown files with a defined input/output contract. A deterministic router (`scripts/skill_index.py`) picks an agent and an ordered set of skills for a given task and can be enabled as a hook so it runs on every user prompt.
+The canonical agent sources are Markdown prompts. Installation keeps those files for Claude Code and renders native TOML agent definitions for Codex. Skills are Markdown directories with defined input/output contracts. A deterministic router (`scripts/skill_index.py`) picks an agent and an ordered set of skills for a task.
 
 ## How Analyses Are Run
 
@@ -80,6 +80,17 @@ claude plugin install omics-skills@omics-skills
 
 After Anthropic approves the community marketplace submission, users can install it from the public Claude plugin catalog.
 
+### Codex Plugin Marketplace
+
+The repository also includes a native Codex plugin manifest and repo marketplace:
+
+```bash
+codex plugin marketplace add fmschulz/omics-skills
+codex plugin add omics-skills@omics-skills
+```
+
+For a local checkout, replace `fmschulz/omics-skills` with `.`. Run `codex plugin list --available --json` to inspect the resolved plugin before installing it.
+
 ### Makefile
 
 ```bash
@@ -88,7 +99,7 @@ cd omics-skills
 make install
 ```
 
-`make install` builds the routing catalog and symlinks agents and skills into `~/.claude/` and `~/.codex/`. Use `make install-claude` or `make install-codex` for a single runtime, `make install INSTALL_METHOD=copy` for copies instead of symlinks, and `make status` to report what is installed. See [docs/INSTALL.md](docs/INSTALL.md) for troubleshooting.
+`make install` builds the routing catalog, installs skills under `~/.agents/skills`, symlinks the Claude agent sources, and renders Codex agents as TOML. Use `make install-claude` or `make install-codex` for one runtime, `make install INSTALL_METHOD=copy` for copied skills, and `make status` to inspect the result. Re-run the installer after changing an agent prompt because generated Codex TOML files cannot track Markdown changes through a symlink. See [docs/INSTALL.md](docs/INSTALL.md) for troubleshooting.
 
 The routing hook attaches the router to every user prompt:
 
@@ -104,8 +115,10 @@ Set `OMICS_SKILLS_AUTOROUTE=0` to suppress the hint for a session without uninst
 
 ```bash
 claude --agent omics-scientist
-codex --system-prompt ~/.codex/agents/omics-scientist.md
+codex
 ```
+
+In Codex, ask the primary agent to delegate to `omics-scientist`, or invoke a skill explicitly with `$bio-annotation`. The installed TOML definitions under `~/.codex/agents/` are available to Codex as custom subagents.
 
 Query the router directly:
 
@@ -114,13 +127,13 @@ python3 scripts/skill_index.py route \
   "assemble a metagenome and recover MAGs"
 ```
 
-Skills are also invocable individually as `/<skill-name>`. Agent files list the skills each agent exposes and how they compose.
+Skills are also invocable individually as `/<skill-name>` in Claude Code or `$<skill-name>` in Codex. Agent files list the skills each agent exposes and how they compose.
 
 ## Agents
 
 | Agent | Focus | Skills |
 |---|---|---:|
-| `omics-scientist` | Sequencing reads, assembly, binning, annotation, phylogenomics, interdomain HGT, MAG recovery, JGI access | 22 |
+| `omics-scientist` | Project reproducibility, sequencing reads, assembly, binning, annotation, phylogenomics, interdomain HGT, MAG recovery, JGI access | 23 |
 | `literature-expert` | PMC full text, arXiv and bioRxiv preprints, DOI metadata, citation impact, API docs | 12 |
 | `science-writer` | Manuscript drafting, multi-reviewer critique, proposal review, AI-output evaluation | 11 |
 | `dataviz-artist` | marimo and Jupyter notebooks (executed end-to-end), scientific data inspection, matplotlib/seaborn figures, Plotly Dash dashboards | 7 |
@@ -160,7 +173,7 @@ Makefile                    install, catalog, hook, benchmark, uninstall targets
 ## Development
 
 ```bash
-python3 -m unittest discover tests              # unit tests
+uv run --no-project --with requests python -m unittest discover -s tests -v
 make benchmark                                  # routing regression vs baseline
 python3 scripts/skill_index.py build            # rebuild catalog artifacts
 ```
@@ -179,7 +192,7 @@ See [AGENTS.md](AGENTS.md) for structural conventions, [docs/SKILL_GRAPH.md](doc
 | Platform | Notes |
 |---|---|
 | Claude Code | Agents in `~/.claude/agents/`; skills in `~/.claude/skills/`. |
-| Codex CLI | Agents in `~/.codex/agents/`; skills in `~/.codex/skills/`; hook uses `~/.codex/hooks.json` with `[features] codex_hooks = true` in `~/.codex/config.toml`. |
+| Codex CLI | TOML subagents in `~/.codex/agents/`; canonical skills in `~/.agents/skills/` with a legacy `~/.codex/skills` link; native plugin metadata in `.codex-plugin/`. |
 | Claude API | Agent markdown files load directly as system prompts; skill files are readable as reference. |
 
 ## License

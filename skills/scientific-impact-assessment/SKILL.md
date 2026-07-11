@@ -1,6 +1,6 @@
 ---
 name: scientific-impact-assessment
-description: Assess paper and journal impact using OpenAlex citation counts, optional Altmetric data, and curated journal impact-factor references. Use when comparing papers, journals, or literature shortlists by reach and influence.
+description: Assess research reach with OpenAlex citations, optional Altmetric data, and journal context. Use when comparing papers, journals, or literature shortlists by influence.
 ---
 
 # Scientific Impact Assessment
@@ -31,10 +31,10 @@ Use this skill to measure the reach of a paper with citation, attention, and jou
 
 | Task | Action |
 |------|--------|
-| Measure by DOI | `skills/scientific-impact-assessment/scripts/measure-impact --doi 10.1038/s41586-024-00000-0` |
+| Measure by DOI | `skills/scientific-impact-assessment/scripts/measure-impact --doi 10.1038/nature12373` |
 | Measure by OpenAlex ID | `skills/scientific-impact-assessment/scripts/measure-impact --openalex-id W2741809807` |
 | Add OpenAlex polite-pool email | `--mailto you@example.org` |
-| Enable Altmetric enrichment | `--altmetric-api-key "$ALTMETRIC_API_KEY"` |
+| Enable Altmetric enrichment | Source `ALTMETRIC_API_KEY` from a private environment file before running |
 | Text summary output | `--format text` |
 | Save JSON report | `--output impact-report.json` |
 | Journal metrics table | `references/journal_metrics_2024.tsv` |
@@ -48,7 +48,7 @@ Use this skill to measure the reach of a paper with citation, attention, and jou
   - `--openalex-id <id>`
 - Optional:
   - `--mailto <email>` for OpenAlex polite-pool identification
-  - `--altmetric-api-key <key>` or `ALTMETRIC_API_KEY`
+  - `ALTMETRIC_API_KEY` loaded from a private environment file
   - `--output <path>`
   - `--format json|text`
 
@@ -80,17 +80,17 @@ Use this skill to measure the reach of a paper with citation, attention, and jou
 
 ```bash
 skills/scientific-impact-assessment/scripts/measure-impact \
-  --doi 10.1038/s41586-024-00000-0 \
+  --doi 10.1038/nature12373 \
   --format text
 ```
 
 ### Example 2: OpenAlex ID plus Altmetric
 
 ```bash
+source ~/.secrets/altmetric.env
 skills/scientific-impact-assessment/scripts/measure-impact \
   --openalex-id W2741809807 \
   --mailto you@example.org \
-  --altmetric-api-key "$ALTMETRIC_API_KEY" \
   --output impact-report.json
 ```
 

@@ -33,7 +33,10 @@ You MUST use the appropriate skills for bioinformatics tasks. Do NOT write custo
 ### Project Initialization
 
 **Start new omics projects with:**
-- `/bio-foundation-housekeeping` - Project scaffold, environments, schemas, data cataloging
+- `/bioinformatics-project` - Project layout, pinned environment, task records, hypothesis register, restartable drivers, provenance, and sharing metadata
+
+**Add structured metadata and a queryable catalog with:**
+- `/bio-foundation-housekeeping` - LinkML/Pydantic validation, normalized Parquet tables, and a DuckDB catalog after the project structure exists
 
 **Use for first-pass inspection of unknown scientific files:**
 - `/exploratory-data-analysis` - Detect file type, inspect structure and quality, and recommend downstream analysis paths
@@ -196,6 +199,9 @@ START
   │       └─> /bio-logic (rank interesting findings)
   │
   ├─ New Project?
+  │   └─> /bioinformatics-project
+  │
+  ├─ Need Metadata Schemas or a DuckDB Catalog?
   │   └─> /bio-foundation-housekeeping
   │
   ├─ Unknown Scientific Data File?
@@ -245,7 +251,7 @@ START
   │       ├─> Step 0: confirm/build comprehensive multi-domain arbiter (/bio-fasta-database-curator)
   │       ├─> forward search (blastp, or blastx if comparison is genome-only)
   │       ├─> reciprocal classification + direction + context guard (frame-aware blastx on euk DNA)
-  │       └─> /bio-phylogenomics (per-gene tree; nest in expected clade) → /bio-logic
+  │       └─> per-gene tree with bio-phylogenomics; nest in expected clade → /bio-logic
   │
   ├─ Need JGI Data?
   │   └─> /jgi-lakehouse
@@ -270,19 +276,20 @@ START
 - **"bin", "bins", "binning", "MAGs", "QuickBin", "CheckM"** → `/bio-binning-qc`
 - **"QuickClade", "domain triage", "domain-level taxonomy", "per-contig taxonomy", "percontig", "route assemblies", "route MAGs", "GTDB-Tk", "EukCC", "vConTACT3", "GVClass"** → `/tracking-taxonomy-updates` → domain-appropriate analysis skill
 - **"gene calling", "predict genes", "gene prediction", "ORF", "Prodigal"** → `/bio-gene-calling`
-- **"scaffold", "new project", "project setup", "reproducible environment", "project housekeeping"** → `/bio-foundation-housekeeping`
+- **"new bioinformatics project", "organize project", "reorganize project", "project reproducibility", "restartable driver", "runall", "lab notebook", "analysis provenance", "pin environment", "data deposition"** → `/bioinformatics-project`
+- **"LinkML schema", "Pydantic model", "metadata schema", "normalized Parquet", "DuckDB catalog", "data catalog"** → `/bio-foundation-housekeeping`
 - **"unknown file", "inspect file", "explore data file", "EDA", "data structure", "file format"** → `/exploratory-data-analysis`
 - **"FASTA database", "FAA database", "curate FASTA", "standardize headers", "deduplicate sequences", "prepare BLAST database", "prepare MMseqs database", "HMM database"** → `/bio-fasta-database-curator`
-- **"annotation", "DIAMOND", "KEGG", "taxonomy"** → `/bio-annotation`
+- **"annotation", "annotate proteins", "DIAMOND", "eggNOG-mapper", "Pfam", "InterPro", "KEGG", "taxonomy"** → `/bio-annotation`
 - **"interesting genes", "notable genes", "discovery", "novel", "unusual", "candidate genes"** → `/bio-annotation` → `/bio-logic`
 - **"phylogeny", "tree", "alignment"** → `/bio-phylogenomics`
 - **"closest relatives", "nearest relatives", "compare relatives", "related genomes"** → `/bio-phylogenomics` → `/bio-protein-clustering-pangenome`
 - **"pangenome", "orthologs"** → `/bio-protein-clustering-pangenome`
-- **"structure prediction", "AlphaFold"** → `/bio-structure-annotation`
+- **"structure prediction", "AlphaFold", "Boltz", "Foldseek", "TM-Vec", "ColabFold"** → `/bio-structure-annotation`
 - **"viral", "phage", "VirSorter"** → `/bio-viromics`
 - **"giant virus", "NCLDV", "Mimivirus", "large DNA virus", "viral genome"** → `/bio-viromics` → `/polars-dovmed` → group-appropriate analysis skills
 - **"HGT", "horizontal gene transfer", "lateral gene transfer", "LGT", "gene flow", "interdomain transfer", "virus-host gene exchange", "host-derived gene", "host-acquired gene", "endogenous viral element", "gene donor", "gene recipient"** → `/bio-interdomain-hgt`
-- **"statistics", "report", "machine learning"** → `/bio-stats-ml-reporting`
+- **"statistics", "statistical report", "analysis report", "model report", "machine learning"** → `/bio-stats-ml-reporting`
 - **"methods", "document workflow", "pipeline methods"** → `/bio-workflow-methods-docwriter`
 - **"Nextflow", "Prefect", "Dask", "pipeline design"** → `/bio-prefect-dask-nextflow`
 - **"JGI", "GOLD", "IMG", "Phytozome", "lakehouse"** → `/jgi-lakehouse`

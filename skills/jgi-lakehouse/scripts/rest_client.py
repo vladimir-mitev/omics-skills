@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["requests>=2.32,<3"]
+# ///
 """
 Dremio REST API Client for JGI Lakehouse
-Uses internal HTTP endpoint (requires LBNL network access)
+Uses the verified internal HTTPS endpoint (requires LBNL network access)
 """
 
 import os
@@ -17,17 +21,11 @@ DREMIO_BASE_URL = f"https://{DREMIO_HOST}:{DREMIO_PORT}/api/v3"
 # Default timeout for job polling (seconds)
 DEFAULT_JOB_TIMEOUT = 300
 DEFAULT_REQUEST_TIMEOUT = float(os.getenv("DREMIO_REQUEST_TIMEOUT", "60"))
-TLS_DISABLED_VALUES = {"0", "false", "no", "off"}
-
-
-def verify_tls() -> bool:
-    """Return whether Dremio HTTPS requests should verify TLS certificates."""
-    return os.getenv("DREMIO_VERIFY_TLS", "1").strip().lower() not in TLS_DISABLED_VALUES
 
 
 def request_options() -> Dict[str, Any]:
-    """Shared requests kwargs for TLS verification and request timeout."""
-    return {"verify": verify_tls(), "timeout": DEFAULT_REQUEST_TIMEOUT}
+    """Shared request timeout; Requests keeps certificate verification enabled."""
+    return {"timeout": DEFAULT_REQUEST_TIMEOUT}
 
 
 def _get_token() -> str:
@@ -74,18 +72,22 @@ def execute_sql(sql: str, context: Optional[List[str]] = None) -> Dict[str, Any]
     return response.json()
 
 
-def get_job_status(job_id: str) -> Dict[str, Any]:
+def get_job_status(job_id: str, request_timeout: Optional[float] = None) -> Dict[str, Any]:
     """
     Get job status
 
     Args:
         job_id: Job ID from execute_sql
+        request_timeout: Optional cap for this status request
 
     Returns:
         dict with jobState and other metadata
     """
     url = f"{DREMIO_BASE_URL}/job/{job_id}"
-    response = requests.get(url, headers=_get_headers(), **request_options())
+    options = request_options()
+    if request_timeout is not None:
+        options["timeout"] = min(options["timeout"], max(0.001, request_timeout))
+    response = requests.get(url, headers=_get_headers(), **options)
     response.raise_for_status()
     return response.json()
 
@@ -106,14 +108,19 @@ def wait_for_job(job_id: str, timeout: int = DEFAULT_JOB_TIMEOUT, poll_interval:
         TimeoutError: If job doesn't complete within timeout
         RuntimeError: If job fails or is canceled
     """
-    start_time = time.time()
+    if timeout <= 0:
+        raise ValueError("timeout must be greater than zero")
+    if poll_interval <= 0:
+        raise ValueError("poll_interval must be greater than zero")
+
+    deadline = time.monotonic() + timeout
 
     while True:
-        elapsed = time.time() - start_time
-        if elapsed > timeout:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
             raise TimeoutError(f"Job {job_id} did not complete within {timeout}s")
 
-        status = get_job_status(job_id)
+        status = get_job_status(job_id, request_timeout=remaining)
         job_state = status.get("jobState")
 
         if job_state == "COMPLETED":
@@ -122,7 +129,7 @@ def wait_for_job(job_id: str, timeout: int = DEFAULT_JOB_TIMEOUT, poll_interval:
             error_msg = status.get("errorMessage", "Unknown error")
             raise RuntimeError(f"Job {job_state}: {error_msg}")
 
-        time.sleep(poll_interval)
+        time.sleep(min(poll_interval, max(0, deadline - time.monotonic())))
 
 
 def get_job_results(job_id: str, offset: int = 0, limit: int = 100) -> Dict[str, Any]:
@@ -288,17 +295,17 @@ if __name__ == "__main__":
     try:
         print("Testing: SHOW SCHEMAS")
         schemas = show_schemas()
-        print(f"✓ Found {len(schemas)} schemas:")
+        print(f"Found {len(schemas)} schemas:")
         for schema in schemas[:10]:
             print(f"  - {schema}")
         if len(schemas) > 10:
             print(f"  ... and {len(schemas) - 10} more")
 
         print()
-        print("✓ SUCCESS - REST API access is working!")
+        print("REST API access is working")
 
     except Exception as e:
-        print(f"✗ FAILED: {e}")
+        print(f"FAILED: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

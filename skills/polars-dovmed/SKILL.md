@@ -1,6 +1,6 @@
 ---
 name: polars-dovmed
-description: Search the PMC Open Access literature with polars-dovmed. Author structured JSON queries directly, then use the hosted API when an API key is available or fall back to local dovmed scan over PMC, bioRxiv, or both parquet corpora.
+description: Search PMC Open Access and bioRxiv corpora with polars-dovmed. Use when structured, reproducible literature queries should run through the hosted API or local parquet indexes.
 user-invocable: true
 ---
 
@@ -35,7 +35,7 @@ Public access note:
 ## Instructions
 
 1. Route the task and decide execution mode.
-   - Use hosted API when `POLARS_DOVMED_API_KEY` is configured or provided.
+   - Use the hosted API when `POLARS_DOVMED_API_KEY` is configured in the environment. Never pass the key in argv.
    - Use local `dovmed scan` when hosted access is unavailable and local parquet paths exist.
    - Do not imply that this repo ships hosted access or local corpora.
 2. Create a dedicated run directory.

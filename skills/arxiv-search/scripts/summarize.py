@@ -9,7 +9,13 @@ import json
 from pathlib import Path
 import re
 
-from search import fetch_results_by_ids
+from search import (
+    DEFAULT_MIN_INTERVAL_SECONDS,
+    DEFAULT_RETRIES,
+    DEFAULT_RETRY_BACKOFF_SECONDS,
+    default_cache_dir,
+    fetch_results_by_ids,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -36,6 +42,35 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=20,
         help="Network timeout in seconds (default: 20)",
+    )
+    parser.add_argument(
+        "--cache-dir",
+        type=Path,
+        default=None,
+        help="Directory for arXiv API response cache and pacing state",
+    )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Disable response-cache reads and writes; pacing still applies",
+    )
+    parser.add_argument(
+        "--min-interval",
+        type=float,
+        default=DEFAULT_MIN_INTERVAL_SECONDS,
+        help="Minimum seconds between arXiv API calls across invocations (default: 3.1)",
+    )
+    parser.add_argument(
+        "--retries",
+        type=int,
+        default=DEFAULT_RETRIES,
+        help="Number of retries for HTTP 429 responses (default: 2)",
+    )
+    parser.add_argument(
+        "--retry-backoff",
+        type=float,
+        default=DEFAULT_RETRY_BACKOFF_SECONDS,
+        help="Base seconds to wait after HTTP 429 when Retry-After is absent (default: 60)",
     )
     return parser
 
@@ -118,7 +153,22 @@ def main() -> int:
 
     try:
         ids = split_ids(args.ids)
-        request_url, parsed = fetch_results_by_ids(ids, args.timeout)
+        cache_dir = args.cache_dir or default_cache_dir()
+        if args.min_interval < 0:
+            raise ValueError("--min-interval must be >= 0")
+        if args.retries < 0:
+            raise ValueError("--retries must be >= 0")
+        if args.retry_backoff < 0:
+            raise ValueError("--retry-backoff must be >= 0")
+        request_url, parsed = fetch_results_by_ids(
+            ids,
+            args.timeout,
+            cache_dir=cache_dir,
+            no_cache=args.no_cache,
+            min_interval=args.min_interval,
+            retries=args.retries,
+            retry_backoff=args.retry_backoff,
+        )
         papers = parsed["results"]
         output_dir = Path(args.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)

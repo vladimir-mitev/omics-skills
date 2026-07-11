@@ -1,12 +1,9 @@
 ---
 name: pdf-to-md
 description: >-
-  Convert any PDF (or DOCX/PPTX/XLSX/image) to clean Markdown. For scientific
-  papers, produce the canonical paper-to-md bundle (Markdown plus section_audit.json
-  and article.json) using the remote OCR API when an OCR key is available, or
-  LiteParse v2 locally when it is not. For any non-paper PDF, defer to a fast,
-  local, no-API-key LiteParse v2 conversion. Use when turning a PDF or manuscript
-  into Markdown, extracting article structure, or preparing input for csag-extraction.
+  Convert PDFs and office documents to clean Markdown, with structured bundles
+  for scientific papers. Use when extracting article structure, preparing a
+  manuscript for analysis, or creating CSAG input.
 license: CC0-1.0
 metadata:
   version: "1.0.0"
@@ -14,12 +11,12 @@ metadata:
 
 # pdf-to-md
 
-Turn a PDF into Markdown. The right path depends on **what the document is** and
-**whether an OCR API key is available**:
+Turn a PDF into Markdown. The right path depends on the document type and whether
+external document submission has been approved:
 
 - **Scientific paper** → produce the canonical `paper-to-md` bundle (Markdown +
   `section_audit.json` + `article.json`) so it can feed `csag-extraction`.
-  Convert with the **OCR API** when a key is set, else **LiteParse v2** locally.
+  Use **LiteParse v2** locally unless the user explicitly approves the remote OCR API.
 - **Any other PDF** (reports, slides, letters, forms) → just convert to Markdown
   with **LiteParse v2** for a fast, local, no-key result. Stop there.
 
@@ -41,15 +38,31 @@ The OCR API engine needs far less shaping.
 
 ### Step 0 — Classify the document and pick a path
 
-| Document | OCR key set? | Path |
-|----------|--------------|------|
-| Scientific paper / manuscript | yes (`OCR_API_KEY` or `NELLI_API_KEY`) | Mode A, engine = OCR API |
-| Scientific paper / manuscript | no | Mode A, engine = LiteParse v2 |
-| Anything else (fast Markdown) | n/a | Mode B (LiteParse v2 only) |
+| Document | Remote upload approved? | Path |
+|----------|-------------------------|------|
+| Scientific paper / manuscript | yes, and an OCR key is configured | Mode A, OCR API with `--allow-remote` |
+| Scientific paper / manuscript | no | Mode A, LiteParse v2 locally |
+| Anything else | no remote upload needed | Mode B, LiteParse v2 locally |
 
-Check for a key with `printenv OCR_API_KEY NELLI_API_KEY`. If the paper is
-scanned or layout-heavy and no key is set, LiteParse v2 still works (it OCRs
-locally), but layout fidelity is lower than the OCR API.
+Check for a key without printing it:
+
+```bash
+if [ -n "${OCR_API_KEY:-}${NELLI_API_KEY:-}" ]; then
+  echo "OCR key configured"
+else
+  echo "No OCR key configured"
+fi
+```
+
+Having a key is not approval to upload a confidential document. Use the remote
+engine only after the user authorizes external submission. LiteParse v2 OCRs
+locally when remote upload is not approved.
+
+Resolve the installed skill once per shell:
+
+```bash
+PDF_TO_MD_SKILL="${PDF_TO_MD_SKILL:-$HOME/.agents/skills/pdf-to-md}"
+```
 
 ### Mode A — Scientific paper (full bundle)
 
@@ -59,21 +72,22 @@ Produces, beside the input, for stem `<stem>`:
 
 1. **Convert to Markdown** with the first engine that fits.
 
-   OCR API (preferred when a key is available; best layout fidelity):
+   OCR API (only after remote upload is approved):
 
    ```bash
-   uv run skills/pdf-to-md/scripts/ocr_api_job.py \
-     /path/to/input.pdf --output-dir /path/to/output-dir
+   uv run "$PDF_TO_MD_SKILL/scripts/ocr_api_job.py" \
+     /path/to/input.pdf --output-dir /path/to/output-dir \
+     --base-url https://api.newlineages.com/ocr --allow-remote
    ```
 
-   The helper auto-detects a local OCR host (`http://127.0.0.1:8002/ocr`) and
-   otherwise uses the remote API (`https://api.newlineages.com/ocr`). Override
-   with `OCR_BASE_URL` or `--base-url`.
+   Without `--base-url`, the helper uses the local OCR host at
+   `http://127.0.0.1:8002/ocr`. A non-local URL is rejected unless
+   `--allow-remote` is present.
 
    LiteParse v2 fallback (no key required):
 
    ```bash
-   uv run skills/pdf-to-md/scripts/liteparse_to_md.py \
+   uv run "$PDF_TO_MD_SKILL/scripts/liteparse_to_md.py" \
      /path/to/input.pdf --output-dir /path/to/output-dir
    ```
 
@@ -84,13 +98,13 @@ Produces, beside the input, for stem `<stem>`:
 2. **Build the section audit:**
 
    ```bash
-   uv run skills/pdf-to-md/scripts/build_section_audit.py /path/to/output-dir/<stem>.md
+   uv run "$PDF_TO_MD_SKILL/scripts/build_section_audit.py" /path/to/output-dir/<stem>.md
    ```
 
 3. **Populate the first-pass article JSON** (also writes the audit):
 
    ```bash
-   uv run skills/pdf-to-md/scripts/populate_article_json.py /path/to/output-dir/<stem>.md
+   uv run "$PDF_TO_MD_SKILL/scripts/populate_article_json.py" /path/to/output-dir/<stem>.md
    ```
 
    This is a *first pass*. Review and complete fields the heuristics miss
@@ -101,14 +115,14 @@ Produces, beside the input, for stem `<stem>`:
    `figure_interpretation` from captions plus the rendered pages:
 
    ```bash
-   uv run skills/pdf-to-md/scripts/render_pdf_pages_to_png.py \
+   uv run "$PDF_TO_MD_SKILL/scripts/render_pdf_pages_to_png.py" \
      /path/to/input.pdf --output-dir /path/to/output-dir/figure_review
    ```
 
 5. **Validate** against the schema and the section audit:
 
    ```bash
-   uv run skills/pdf-to-md/scripts/validate_article_json.py \
+   uv run "$PDF_TO_MD_SKILL/scripts/validate_article_json.py" \
      /path/to/output-dir/<stem>.article.json \
      --scientific-paper \
      --section-audit /path/to/output-dir/<stem>.section_audit.json
@@ -126,13 +140,14 @@ and run steps 2–5 on that `.md`.
 One step, fully local, no key:
 
 ```bash
-uv run skills/pdf-to-md/scripts/liteparse_to_md.py \
+uv run "$PDF_TO_MD_SKILL/scripts/liteparse_to_md.py" \
   /path/to/input.pdf --output-dir /path/to/output-dir
 ```
 
 Useful flags: `--no-ocr` (faster on text-based PDFs), `--ocr-server-url URL`
-(higher-accuracy OCR server), `--target-pages "1-5,10"`, `--max-pages N`,
-`--password PW`. The converter detects the title and section headings from font
+(higher-accuracy OCR server), `--target-pages "1-5,10"`, `--max-pages N`, and
+`--password-env NAME` (read a protected document password without exposing it
+in the process list). The converter detects the title and section headings from font
 size and weight, filters page furniture (watermarks, running headers, repeated
 footers), and reflows text into paragraphs — then **shape the result** (next section).
 
@@ -168,8 +183,8 @@ never by inventing content. For **Mode B**, the shaped Markdown is the deliverab
 
 | Task | Command |
 |------|---------|
-| Is there an OCR key? | `printenv OCR_API_KEY NELLI_API_KEY` |
-| Paper, key set | `ocr_api_job.py INPUT.pdf --output-dir DIR` |
+| Is there an OCR key? | Test `[ -n "${OCR_API_KEY:-}${NELLI_API_KEY:-}" ]` without printing it |
+| Approved remote paper OCR | `ocr_api_job.py INPUT.pdf --output-dir DIR --base-url URL --allow-remote` |
 | Paper, no key | `liteparse_to_md.py INPUT.pdf --output-dir DIR` |
 | Any PDF, fast | `liteparse_to_md.py INPUT.pdf --output-dir DIR --no-ocr` |
 | Section audit | `build_section_audit.py DIR/<stem>.md` |
@@ -177,7 +192,7 @@ never by inventing content. For **Mode B**, the shaped Markdown is the deliverab
 | Figure PNGs | `render_pdf_pages_to_png.py INPUT.pdf --output-dir DIR/figure_review` |
 | Validate paper | `validate_article_json.py DIR/<stem>.article.json --scientific-paper --section-audit DIR/<stem>.section_audit.json` |
 
-All commands run from the repo root with `uv run skills/pdf-to-md/scripts/<name>`.
+Commands resolve from `$PDF_TO_MD_SKILL`, which defaults to the shared installed skill directory.
 `liteparse_to_md.py` and `render_pdf_pages_to_png.py` carry PEP 723 inline
 dependencies (`liteparse`, `pypdfium2`) that `uv run` installs automatically; the
 remaining scripts are standard-library only.
@@ -225,7 +240,7 @@ remaining scripts are standard-library only.
 Fast Markdown from a non-paper PDF:
 
 ```bash
-uv run skills/pdf-to-md/scripts/liteparse_to_md.py report.pdf --output-dir /tmp/out --no-ocr
+uv run "$PDF_TO_MD_SKILL/scripts/liteparse_to_md.py" report.pdf --output-dir /tmp/out --no-ocr
 # -> /tmp/out/report.md  (+ report.ocr.json, report.job.json)
 ```
 
@@ -233,17 +248,17 @@ Full paper bundle with no OCR key (LiteParse v2 engine):
 
 ```bash
 DIR=/tmp/paper
-uv run skills/pdf-to-md/scripts/liteparse_to_md.py paper.pdf --output-dir "$DIR"
-uv run skills/pdf-to-md/scripts/populate_article_json.py "$DIR/paper.md"
-uv run skills/pdf-to-md/scripts/validate_article_json.py \
+uv run "$PDF_TO_MD_SKILL/scripts/liteparse_to_md.py" paper.pdf --output-dir "$DIR"
+uv run "$PDF_TO_MD_SKILL/scripts/populate_article_json.py" "$DIR/paper.md"
+uv run "$PDF_TO_MD_SKILL/scripts/validate_article_json.py" \
   "$DIR/paper.article.json" --scientific-paper \
   --section-audit "$DIR/paper.section_audit.json"
 ```
 
 ## Troubleshooting
 
-- **`liteparse is not installed`**: run the script with `uv run skills/pdf-to-md/scripts/liteparse_to_md.py` (not `uv run python ...`), so `uv` reads the PEP 723 inline dependency. Offline: `pip install 'liteparse>=2,<3'` first.
-- **`pdf-to-md requires LiteParse v2`**: a v1 (or non-v2) `liteparse` is installed. Reinstall with `pip install 'liteparse>=2,<3'`; the skill targets the run-llama Rust rewrite (`LiteParse` Python API), not the old v1 API.
+- **`liteparse is not installed`**: run the script itself with `uv run "$PDF_TO_MD_SKILL/scripts/liteparse_to_md.py"` (not `uv run python ...`) so uv reads the PEP 723 dependency.
+- **`pdf-to-md requires LiteParse v2`**: run the PEP 723 script directly with uv; it pins `liteparse>=2,<3` without modifying system Python.
 - **Title is a journal banner, watermark, or "Downloaded from…" line**: the converter filters furniture and repeated headers; if one slips through, remove it in the Markdown before step 2, or note that `article_extraction` re-derives the title from the body.
 - **`authors`/`methods`/`references` empty on a real paper**: the first-pass heuristics miss superscript-heavy author lines and short note formats. Fill them by hand from the Markdown; this is expected, not a converter failure.
 - **Scanned/image-only PDF gives little text**: keep OCR enabled (default) and raise `--dpi`, or point `--ocr-server-url` at EasyOCR/PaddleOCR; for best fidelity use the OCR API engine.

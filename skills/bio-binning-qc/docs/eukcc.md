@@ -181,25 +181,10 @@ eukcc folder eukaryotic_bins/ --db $EUKCC2_DB --threads 16
 
 ## Integration with Binning
 
-```bash
-# Run binning (e.g., MetaBAT2)
-metabat2 -i contigs.fasta -a depth.txt -o bins/bin -t 16
-
-# Classify bins by domain (example using simple approach)
-# In practice, use proper classification tool
-for bin in bins/*.fa; do
-  # Check for eukaryotic markers (simplified)
-  if grep -q "eukaryotic_marker" $bin; then
-    mv $bin eukaryotic_bins/
-  else
-    mv $bin prokaryotic_bins/
-  fi
-done
-
-# Run domain-specific QC
-checkm2 predict --input prokaryotic_bins/ --output-directory qc_prok/ -t 16
-eukcc folder eukaryotic_bins/ --db $EUKCC2_DB --threads 16
-```
+Consume `results/taxonomy/domain_routing.tsv` from the required QuickClade
+triage step. Create new per-domain input directories from that table without
+moving or renaming the original bins. Run CheckM2/GUNC only for bacterial and
+archaeal routes and EukCC only for eukaryotic routes.
 
 ## Output Interpretation
 
@@ -246,9 +231,8 @@ eukcc folder eukaryotic_bins/ --db $EUKCC2_DB --threads 16
 # 1. Binning
 metabat2 -i contigs.fasta -a depth.txt -o bins/bin -t 16
 
-# 2. Domain classification (example)
-# Use proper classifier in practice
-classify_bins.sh bins/ prokaryotic_bins/ eukaryotic_bins/
+# 2. Populate prokaryotic_bins/ and eukaryotic_bins/ from
+# results/taxonomy/domain_routing.tsv without modifying bins/
 
 # 3. QC for prokaryotes
 checkm2 predict --input prokaryotic_bins/ \

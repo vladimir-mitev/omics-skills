@@ -1,7 +1,7 @@
 # Tool Documentation
 
 Last verified: 2026-05-30
-Tool version/release checked: Pyrodigal v3.7.1; pyrodigal-gv v0.3.2; BRAKER v3.0.8; Infernal v1.1.5; tRNAscan-SE v2.0.12
+Tool version/release checked: Pyrodigal v3.7.1; pyrodigal-gv v0.3.2; BRAKER4 upstream workflow (checked 2026-07-11); legacy BRAKER v3.0.8; Infernal v1.1.5; tRNAscan-SE v2.0.12
 Official docs/manual: See linked per-tool guides in this directory.
 Release/source: See linked per-tool guides in this directory.
 
@@ -27,7 +27,8 @@ This directory contains practical usage guides for gene calling and RNA-feature 
 
 ### Eukaryotic gene calling
 
-- **[braker.md](braker.md)** - BRAKER3 v3.0.8 (*Genome Research* 2024) - fully automated eukaryotic annotation pipeline
+- **BRAKER4** - current upstream eukaryotic annotation workflow; pin the tested release and container digest from <https://github.com/Gaius-Augustus/BRAKER4>
+- **[braker.md](braker.md)** - legacy BRAKER3 v3.0.8 reproduction guide
   - Combines GeneMark-ETP and AUGUSTUS internally (AUGUSTUS is not run as a standalone tool)
   - RNA-seq and protein evidence integration
   - Automated training

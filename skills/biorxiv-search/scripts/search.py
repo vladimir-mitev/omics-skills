@@ -17,7 +17,6 @@ import urllib.request
 API_BASE = "https://api.biorxiv.org/details/biorxiv"
 USER_AGENT = "omics-skills-biorxiv-search/1.0 (+https://github.com/fmschulz/omics-skills)"
 VALID_FIELDS = ("title", "abstract", "authors")
-PAGE_SIZE = 100
 
 
 def compact_whitespace(text: str) -> str:
@@ -420,8 +419,15 @@ def main() -> int:
                 pages_fetched += 1
 
                 messages = data.get("messages", [])
+                page_count = None
+                response_cursor = None
                 if isinstance(messages, list) and messages and isinstance(messages[0], dict):
-                    total_available = to_int(messages[0].get("count")) or total_available
+                    message = messages[0]
+                    page_count = to_int(message.get("count"))
+                    response_cursor = to_int(message.get("cursor"))
+                    reported_total = to_int(message.get("total"))
+                    if reported_total is not None:
+                        total_available = reported_total
 
                 collection = data.get("collection", [])
                 if not isinstance(collection, list):
@@ -437,12 +443,21 @@ def main() -> int:
                         record["matched_in"] = where
                         matched.append(record)
                     if records_scanned >= args.scan_limit:
-                        reached_scan_limit = True
+                        reached_scan_limit = total_available is None or records_scanned < total_available
                         break
 
-                if reached_scan_limit or len(collection) < PAGE_SIZE:
+                if reached_scan_limit:
                     break
-                cursor += len(collection)
+                if total_available is not None and records_scanned >= total_available:
+                    break
+
+                page_advance = page_count if page_count is not None and page_count > 0 else len(collection)
+                if page_advance <= 0:
+                    break
+                next_cursor = (response_cursor if response_cursor is not None else cursor) + page_advance
+                if next_cursor <= cursor:
+                    raise RuntimeError("bioRxiv API pagination did not advance the cursor")
+                cursor = next_cursor
 
         deduped = matched
         versions_collapsed = 0

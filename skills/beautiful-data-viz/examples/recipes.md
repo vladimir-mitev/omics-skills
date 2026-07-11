@@ -7,8 +7,14 @@ These are *patterns* — adjust to the specific dataset and story.
 ## Line chart (time series) with direct labeling
 
 ```python
+from pathlib import Path
+import sys
+
 import matplotlib.pyplot as plt
 import pandas as pd
+
+SKILL_DIR = Path.home() / ".agents" / "skills" / "beautiful-data-viz"
+sys.path.insert(0, str(SKILL_DIR))
 from assets.beautiful_style import set_beautiful_style, finalize_axes
 
 set_beautiful_style(medium="notebook", background="light")
@@ -39,7 +45,13 @@ plt.show()
 ## Ranked dot plot (clean alternative to bars)
 
 ```python
+from pathlib import Path
+import sys
+
 import matplotlib.pyplot as plt
+
+SKILL_DIR = Path.home() / ".agents" / "skills" / "beautiful-data-viz"
+sys.path.insert(0, str(SKILL_DIR))
 from assets.beautiful_style import set_beautiful_style, finalize_axes
 
 set_beautiful_style(medium="notebook", background="light")
@@ -66,8 +78,14 @@ plt.show()
 ## Heatmap (numeric matrix) with perceptually uniform colormap
 
 ```python
-import seaborn as sns
+from pathlib import Path
+import sys
+
 import matplotlib.pyplot as plt
+import seaborn as sns
+
+SKILL_DIR = Path.home() / ".agents" / "skills" / "beautiful-data-viz"
+sys.path.insert(0, str(SKILL_DIR))
 from assets.beautiful_style import set_beautiful_style, finalize_axes
 
 set_beautiful_style(medium="notebook", background="light")
@@ -78,4 +96,3 @@ sns.heatmap(matrix, cmap="crest", ax=ax, cbar_kws={"shrink": 0.8})
 finalize_axes(ax, title="Heatmap", subtitle="Use perceptually uniform sequential colormaps.")
 plt.show()
 ```
-

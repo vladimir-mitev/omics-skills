@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["pyyaml>=6,<7"]
+# ///
 """Extract a minimal run manifest from Nextflow `trace.txt` + `work/` directory.
 
 This script is intentionally conservative:
@@ -16,6 +20,7 @@ Usage:
 import argparse
 import csv
 import json
+import re
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
@@ -39,11 +44,24 @@ def sniff_dialect(path: Path) -> csv.Dialect:
         return Tab()
 
 
+SECRET_ASSIGNMENT_RE = re.compile(
+    r"(?i)\b([A-Z0-9_]*(?:TOKEN|KEY|PASSWORD|SECRET|CREDENTIAL|_PAT)[A-Z0-9_]*)="
+    r"(?:'[^']*'|\"[^\"]*\"|[^\s]+)"
+)
+BEARER_RE = re.compile(r"(?i)(authorization:\s*bearer\s+)\S+")
+
+
+def redact_command(command: str) -> str:
+    command = SECRET_ASSIGNMENT_RE.sub(lambda match: f"{match.group(1)}=$REDACTED", command)
+    return BEARER_RE.sub(r"\1$REDACTED", command)
+
+
 def read_command(work_task_dir: Path) -> Optional[str]:
-    for fname in ['.command.sh', '.command.run', '.command.bash']:
-        p = work_task_dir / fname
-        if p.exists():
-            return p.read_text(errors='ignore')
+    # `.command.run` is a wrapper that can embed the full task environment.
+    # Read only the task script and redact common credential patterns.
+    path = work_task_dir / '.command.sh'
+    if path.exists():
+        return redact_command(path.read_text(errors='ignore'))
     return None
 
 

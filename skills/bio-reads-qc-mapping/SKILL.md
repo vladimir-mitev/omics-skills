@@ -1,6 +1,6 @@
 ---
 name: bio-reads-qc-mapping
-description: Ingest, QC, and map reads with reproducible outputs. Use for raw read processing and coverage stats.
+description: Ingest, quality-control, and map sequencing reads with reproducible outputs. Use when processing raw reads, removing contaminants, or calculating mapping and coverage statistics.
 ---
 
 # Bio Reads QC Mapping
@@ -32,7 +32,7 @@ Ingest, QC, and map reads with reproducible outputs. Use for raw read processing
 ## Input Requirements
 
 Prerequisites:
-- Tools available in the active environment (Pixi/conda/system). See `docs/README.md` for expected tools.
+- Tools declared in the project's pinned Pixi environment. See `docs/README.md` for expected tools.
 - Sample sheet and reads are available.
 Inputs:
 - sample_sheet.tsv

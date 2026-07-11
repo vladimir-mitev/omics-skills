@@ -20,7 +20,7 @@ slots:
   authors:
     description: Comma-separated author list as written.
   affiliations:
-    descriptions: Author affiliations, comma-separated author affiliations as written.
+    description: Author affiliations, comma-separated author affiliations as written.
   abstract:
     description: Abstract text verbatim.
   main:

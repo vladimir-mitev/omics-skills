@@ -88,4 +88,6 @@
 | Continuous, non-normal | 3+ groups | Kruskal-Wallis |
 | Categorical | 2x2 | Chi-square (or Fisher's if n<5) |
 | Correlation, linear | - | Pearson r |
-| Correlation, non-linear | - | Spearman ρ |
+| Correlation, monotonic or ordinal | - | Spearman ρ |
+
+Spearman correlation does not detect every nonlinear relationship. For non-monotonic patterns, inspect the data and use a model or dependence measure suited to the expected shape.

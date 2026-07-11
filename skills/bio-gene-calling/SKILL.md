@@ -1,6 +1,6 @@
 ---
 name: bio-gene-calling
-description: Call genes and annotate basic features for prokaryotes, viruses, and eukaryotes.
+description: Call genes and annotate basic sequence features. Use when predicting prokaryotic, viral, or eukaryotic coding sequences before downstream annotation.
 ---
 
 # Bio Gene Calling
@@ -10,13 +10,14 @@ Call genes and annotate basic features for prokaryotes, viruses, and eukaryotes.
 ## Instructions
 
 1. Select gene caller by organism class:
-   - Prokaryotes and viruses (including giant viruses): **pyrodigal-gv** v0.3+ (SIMD-accelerated Cython bindings around prodigal-gv; same model set, much faster, actively maintained).
-   - Eukaryotes: **BRAKER3** (*Genome Research* 2024, DOI: 10.1101/gr.278090.123) as the fully-automated pipeline. BRAKER3 invokes AUGUSTUS internally; do not run AUGUSTUS as a standalone caller.
+   - Bacteria and Archaea: **Pyrodigal** v3.7+ with single-genome or metagenomic mode chosen from the input.
+   - Viruses, including giant and alternative-code viruses: **pyrodigal-gv** v0.3+ with the appropriate viral model.
+   - Eukaryotes: **BRAKER4** as the current upstream workflow. Pin the tested BRAKER4 release and container digest in Pixi/provenance. Keep BRAKER3 only for a documented legacy reproduction.
 2. For eukaryotic/protist drafts with ONT cDNA or other transcriptome reads, build a transcript evidence bundle before gene calling:
    - Orient/filter full-length ONT cDNA reads with the `Pychopper` guidance in `/bio-reads-qc-mapping`, including plain `.fastq` output handling and resume from existing classified reads after report-plotting failures.
    - Map transcript reads splice-aware to each candidate draft genome with minimap2 (`-ax splice` family settings appropriate to the organism/data), sort/index BAMs, and compute a per-genome mapped fraction table.
    - Use the best-supported draft genome as the primary evidence target, but keep the full mapping table because it documents sample/genome assignment and cross-sample ambiguity.
-   - Produce StringTie long-read GTF/transcript FASTA and, when useful, a reference-free transcript assembly such as RNA-Bloom. Summarize these paths in a `gene_calling_evidence.tsv` bundle with columns: sample_id, evidence_type, genome_id, path, notes. The bundle should be directly usable by BRAKER3 or another eukaryote-aware caller.
+   - Produce StringTie long-read GTF/transcript FASTA and, when useful, a reference-free transcript assembly such as RNA-Bloom. Summarize these paths in a `gene_calling_evidence.tsv` bundle with columns: sample_id, evidence_type, genome_id, path, notes. The bundle should be directly usable by BRAKER4 or another eukaryote-aware caller.
 3. Run gene calling and produce GFF/FAA/FNA.
 4. Always run tRNA detection and rRNA detection on every assembly, and report counts per class. Negative findings (zero hits at default and relaxed thresholds) are required results — never leave ncRNA presence/absence unstated.
    - tRNA: tRNAscan-SE v2.0.12+ (preferred; isotype-specific covariance models) or ARAGORN v1.2.41+ for tmRNA where appropriate.
@@ -43,7 +44,7 @@ Call genes and annotate basic features for prokaryotes, viruses, and eukaryotes.
 ## Input Requirements
 
 Prerequisites:
-- Tools available in the active environment (Pixi/conda/system). See `docs/README.md` for expected tools.
+- Tools declared in the project's pinned Pixi environment. See `docs/README.md` for expected tools.
 - Input contigs or bins are available.
 Inputs:
 - contigs.fasta or bins/*.fasta
@@ -71,7 +72,7 @@ Inputs:
 - [ ] Gene metrics include discovery-relevant flags for unusual ORFs, gene density, coding fraction, and tRNA/RNA features.
 - [ ] `ncRNA_census.tsv` exists and records both default-threshold and relaxed-threshold results for tRNA and rRNA, including explicit zero counts.
 - [ ] For eukaryotic/protist transcript evidence, mapping summaries show which draft genome is supported and whether competing drafts have negligible, ambiguous, or substantial mapping.
-- [ ] Transcript evidence paths are recorded in a bundle with enough detail for BRAKER3 or another caller to consume them reproducibly.
+- [ ] Transcript evidence paths are recorded in a bundle with enough detail for BRAKER4 or another caller to consume them reproducibly.
 
 ## Examples
 

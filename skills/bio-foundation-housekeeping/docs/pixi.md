@@ -184,9 +184,9 @@ channels = ["conda-forge", "bioconda"]
 ### Reproducible Environments
 The pixi.lock file ensures exact reproducibility:
 ```bash
-# Commit pixi.lock to git
+# Stage the environment files after reviewing the diff and obtaining approval.
 git add pixi.toml pixi.lock
-git commit -m "Add reproducible environment"
+git diff --cached -- pixi.toml pixi.lock
 ```
 
 ### Container Integration

@@ -51,6 +51,10 @@ tmp/
 temp/
 *.tmp
 
+# Skill-local CLI outputs
+skills/biorxiv-search/out.json
+skills/biorxiv-search/scripts/out.json
+
 
 # AI scratch artifacts (task lists, session handoffs, agent memory, plans, reasoning)
 tasks/

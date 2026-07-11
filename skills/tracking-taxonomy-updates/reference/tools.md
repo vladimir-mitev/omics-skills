@@ -57,11 +57,14 @@ Run QuickClade via the BBTools container image used in the examples below:
 #### Docker examples
 Run on a FASTA in the current directory:
 ```bash
+QUICKCLADE_REF="${QUICKCLADE_REF:?set QUICKCLADE_REF to an existing spectra file}"
+test -s "$QUICKCLADE_REF"
 mkdir -p results/taxonomy
 docker run --rm -u "$(id -u):$(id -g)" \
   -v "$PWD":/work -w /work \
   bryce911/bbtools:39.85 \
-  quickclade.sh contigs.fa percontig ref=references/quickclade.spectra.gz out=results/taxonomy/quickclade_percontig.tsv usetree
+  quickclade.sh contigs.fa percontig ref="$QUICKCLADE_REF" \
+  out=results/taxonomy/quickclade_percontig.tsv format=machine usetree
 ```
 
 Run on a directory of bins:
@@ -70,7 +73,8 @@ mkdir -p results/taxonomy
 docker run --rm -u "$(id -u):$(id -g)" \
   -v "$PWD":/work -w /work \
   bryce911/bbtools:39.85 \
-  quickclade.sh bins/ percontig ref=references/quickclade.spectra.gz out=results/taxonomy/quickclade_bins_percontig.tsv usetree
+  quickclade.sh bins/ percontig ref="$QUICKCLADE_REF" \
+  out=results/taxonomy/quickclade_bins_percontig.tsv format=machine usetree
 ```
 
 #### Apptainer / Singularity examples
@@ -79,7 +83,8 @@ Pull + run directly from Docker Hub:
 mkdir -p results/taxonomy
 apptainer exec --bind "$PWD":/work --pwd /work \
   docker://bryce911/bbtools:39.85 \
-  quickclade.sh contigs.fa percontig ref=references/quickclade.spectra.gz out=results/taxonomy/quickclade_percontig.tsv usetree
+  quickclade.sh contigs.fa percontig ref="$QUICKCLADE_REF" \
+  out=results/taxonomy/quickclade_percontig.tsv format=machine usetree
 ```
 
 ### Reference spectra (important)
@@ -103,7 +108,7 @@ Release checked:
 - Outputs GTDB taxonomy strings like: `d__Bacteria;p__...;...;s__...`
 
 ### Install/run (recommended)
-Use **Pixi** for reproducible dependency management (see env/README.md in this Skill).
+Use the project's pinned **Pixi** environment and retain its lockfile.
 Always record:
 - GTDB-Tk version
 - GTDB reference package release ID/date
@@ -143,7 +148,7 @@ Release checked:
 - Provides completeness/contamination estimates and a taxonomy lineage.
 
 ### Install/run (recommended)
-Use **Pixi** (see env/README.md) and capture:
+Use the project's pinned **Pixi** environment and capture:
 - EukCC version
 - database location/version (`EUKCC2_DB` or `--db`)
 
@@ -168,7 +173,7 @@ Release checked:
 - Not a replacement for ICTV; interpret results in ICTV context and with hallmark genes/phylogeny.
 
 ### Install/run (recommended)
-Use **Pixi** (see env/README.md) and capture:
+Use the project's pinned **Pixi** environment and capture:
 - vConTACT3 version
 - database/reference used (if any)
 - parameterization (e.g., thresholds, export options)

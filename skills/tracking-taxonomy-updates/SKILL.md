@@ -1,6 +1,6 @@
 ---
 name: tracking-taxonomy-updates
-description: Track and reconcile taxonomy updates across NCBI, GTDB, ICTV, and community eukaryote frameworks with versioned provenance.
+description: Track taxonomy changes and triage sequence assignments across NCBI, GTDB, ICTV, and eukaryotic frameworks. Use when comparing releases, resolving renamed taxa, or routing genomes, bins, and contigs by domain.
 ---
 
 # Tracking Taxonomy Updates
@@ -30,7 +30,7 @@ Use authoritative sources to report taxonomy changes with explicit versions, dat
 | IDs/ranks | See `reference/ranks-and-identifiers.md` |
 | Report template | See `reference/report-template.md` |
 | QA checklist | See `reference/qa-checklist.md` |
-| Environment | See `env/README.md` |
+| Environment | Use the project's pinned Pixi environment and record its lockfile |
 
 ## Domain Triage Contract
 

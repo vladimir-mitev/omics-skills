@@ -1,6 +1,6 @@
 ---
 name: bio-fasta-database-curator
-description: "Curate, validate, and standardize FASTA/FAA sequence databases: standardize headers, merge databases, remove duplicates, convert GenBank to FASTA, and generate statistics. Use when preparing reference databases for HMM searches, MMseqs2, BLAST, and other bioinformatics workflows."
+description: Curate and validate FASTA or FAA databases. Use when standardizing headers, merging references, deduplicating sequences, converting GenBank files, or preparing BLAST, MMseqs2, and HMM inputs.
 ---
 
 # FASTA Database Curator
@@ -389,9 +389,9 @@ User: "Standardize the headers in virophage_raw.fasta and remove duplicates"
    - Final: 1,846 unique sequences
 
 4. Validate output:
-   - No whitespace in headers ✓
-   - All sequences non-empty ✓
-   - Consistent format ✓
+   - No whitespace in headers OK
+   - All sequences non-empty OK
+   - Consistent format OK
 
 5. Generate stats report
 ```

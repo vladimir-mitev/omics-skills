@@ -99,7 +99,7 @@ General format: `-m MODEL+FreqType+RateType`
 -nstop <iterations>     # Stop after N unsuccessful iterations (default: 100)
 -pers <strength>        # Perturbation strength 0-1 (default: 0.5)
 -g <constraint_tree>    # Topological constraint tree
--redo                   # Ignore checkpoint and redo analysis
+-redo                   # Ignore checkpoint, overwrite outputs, and restart
 -safe                   # Numerical stability for large datasets (>2000 seqs)
 ```
 
@@ -152,8 +152,12 @@ iqtree3 -s proteins.faa -st AA -m MFP -bb 1000 -nt AUTO
 ```
 
 ### Resume Interrupted Run
+
+Repeat the exact original command. IQ-TREE detects the matching `.ckp.gz` file
+and resumes automatically; do not add `-redo`:
+
 ```bash
-iqtree3 -s alignment.phy -redo
+iqtree3 -s alignment.phy -m GTR+G -bb 1000 -nt 8
 ```
 
 ### Ancestral State Reconstruction
@@ -172,7 +176,9 @@ iqtree3 -s alignment.phy -m GTR+G -asr -nt AUTO
 ### Memory Optimization
 - Use `-mem` flag to limit RAM usage
 - Enable `-safe` for datasets >2000 sequences (adds numerical stability)
-- Checkpoint files (`.ckp.gz`) enable resuming interrupted runs
+- Checkpoint files (`.ckp.gz`) enable interrupted runs to resume when the exact
+  original command is repeated. `-redo` discards that progress and overwrites
+  existing outputs.
 
 ### CPU Optimization
 - `-nt AUTO` automatically detects available cores

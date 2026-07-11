@@ -1,6 +1,6 @@
 ---
 name: bio-structure-annotation
-description: Structure prediction and structure-based annotation.
+description: Predict protein structures and perform structure-based annotation. Use when sequence evidence is insufficient or structural similarity, confidence, domains, or complexes matter.
 ---
 
 # Bio Structure Annotation
@@ -29,7 +29,7 @@ Structure prediction and structure-based annotation.
 ## Input Requirements
 
 Prerequisites:
-- Tools available in the active environment (Pixi/conda/system). See `docs/README.md` for expected tools.
+- Tools declared in the project's pinned Pixi environment. See `docs/README.md` for expected tools.
 - Reference DB root: set `BIO_DB_ROOT` to the project or site-local database directory.
 - Protein FASTA inputs are available.
 Inputs:

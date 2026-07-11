@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "nbclient>=0.10,<1",
+#     "nbformat>=5.10,<6",
+# ]
+# ///
 
 """
 Execute a Jupyter notebook top-to-bottom on a fresh kernel and write an executed copy.
@@ -8,7 +15,8 @@ Why this exists:
 - This creates a deterministic validation gate in CI or local checks.
 
 Usage:
-  python scripts/execute_notebook.py notebooks/01_analysis.ipynb --out notebooks/01_analysis.executed.ipynb
+  uv run --script ~/.agents/skills/notebooks/scripts/execute_notebook.py \
+    notebooks/01_analysis.ipynb --out notebooks/01_analysis.executed.ipynb
 """
 from __future__ import annotations
 

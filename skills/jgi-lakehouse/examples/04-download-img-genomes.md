@@ -49,6 +49,7 @@ ls /clusterfs/jgi/img_merfs-ro/img_web/img_web_data/download/8136918376.tar.gz
 ### Step 3: Download and Extract
 
 ```bash
+# Run these commands in a small-job scheduler allocation, not on a login node.
 # Copy genome package
 cp /clusterfs/jgi/img_merfs-ro/img_web/img_web_data/download/8136918376.tar.gz .
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -48,12 +49,37 @@ def _args(tmp: Path, **overrides):
         "year_bands": None,
         "skip_details_rerank": False,
         "force_details_rerank": False,
+        "timeout": None,
     }
     values.update(overrides)
     return SimpleNamespace(**values)
 
 
 class PolarsDovmedLocalTests(unittest.TestCase):
+    def test_authenticated_api_rejects_insecure_remote_url(self) -> None:
+        with self.assertRaisesRegex(ValueError, "require HTTPS"):
+            query_literature.make_request(
+                "http://api.example.org",
+                "/api/search_literature",
+                "secret",
+            )
+        request = query_literature.make_request(
+            "http://127.0.0.1:8000",
+            "/api/search_literature",
+            "secret",
+        )
+        self.assertEqual(request.full_url, "http://127.0.0.1:8000/api/search_literature")
+
+    def test_api_key_is_environment_only(self) -> None:
+        help_result = subprocess.run(
+            [sys.executable, str(MODULE_PATH), "--help"],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(help_result.returncode, 0, help_result.stderr)
+        self.assertNotIn("--api-key", help_result.stdout)
+
     def test_local_scan_uses_upstream_parquet_pattern_flag(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_name:
             args = _args(Path(tmp_name))
@@ -66,6 +92,42 @@ class PolarsDovmedLocalTests(unittest.TestCase):
         self.assertIn("/data/pmc/*.parquet", command)
         self.assertNotIn("--corpus", command)
         self.assertEqual(response["parquet_pattern"], "/data/pmc/*.parquet")
+        self.assertEqual(run.call_args.kwargs["timeout"], 900)
+
+    def test_local_scan_resolves_pixi_from_path(self) -> None:
+        with patch.object(query_literature.shutil, "which", return_value="/opt/pixi/bin/pixi"):
+            executable = query_literature.resolve_pixi_executable()
+
+        self.assertEqual(executable, "/opt/pixi/bin/pixi")
+
+    def test_local_scan_reads_flattened_csv_without_polars(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            args = _args(tmp)
+            output_dir = Path(args.local_output_dir)
+            output_dir.mkdir(parents=True)
+            (output_dir / "flattened.csv").write_text(
+                "pmc_id,doi,title,journal,publication_date,source,total_matches\n"
+                "PMC1,10.1/example,Example paper,Example Journal,2025-01-02,pmc,3\n",
+                encoding="utf-8",
+            )
+            with patch.object(query_literature.subprocess, "run") as run:
+                run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
+                response = query_literature.execute_local_scan(args)
+
+        self.assertEqual(response["papers"][0]["pmc_id"], "PMC1")
+        self.assertEqual(response["papers"][0]["year"], 2025)
+
+    def test_local_scan_enforces_subprocess_timeout(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            args = _args(Path(tmp_name), timeout=7)
+            with patch.object(
+                query_literature.subprocess,
+                "run",
+                side_effect=subprocess.TimeoutExpired(["pixi"], 7),
+            ):
+                with self.assertRaisesRegex(SystemExit, "timed out after 7 seconds"):
+                    query_literature.execute_local_scan(args)
 
     def test_local_scan_resolves_paths_before_changing_cwd(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_name:

@@ -68,7 +68,7 @@ def update_fig(continent):
     return make_fig(continent)
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run(debug=True)
 ```
 
 ## 2) Pattern: “data callback” → “render callbacks”

@@ -23,24 +23,11 @@ USER_AGENT = "omics-skills-arxiv-search/1.0 (+https://github.com/fmschulz/omics-
 DEFAULT_MIN_INTERVAL_SECONDS = 3.1
 DEFAULT_RETRIES = 2
 DEFAULT_RETRY_BACKOFF_SECONDS = 60.0
-RAW_QUERY_HINTS = (
-    "ti:",
-    "au:",
-    "abs:",
-    "co:",
-    "jr:",
-    "cat:",
-    "rn:",
-    "all:",
-    "submittedDate:",
-    "AND",
-    "OR",
-    "ANDNOT",
-    "(",
-    ")",
-    "[",
-    "]",
+RAW_QUERY_FIELD_RE = re.compile(
+    r"(?<![A-Za-z0-9_])(?:ti|au|abs|co|jr|cat|rn|all|submittedDate):",
+    flags=re.IGNORECASE,
 )
+RAW_QUERY_BOOLEAN_RE = re.compile(r"(?<!\S)(?:AND|OR|ANDNOT)(?!\S)")
 
 
 class ArxivHTTPError(RuntimeError):
@@ -144,7 +131,14 @@ def compact_whitespace(text: str) -> str:
 
 
 def is_raw_query(query: str) -> bool:
-    return any(token in query for token in RAW_QUERY_HINTS)
+    """Return whether a query contains explicit arXiv query syntax.
+
+    Parentheses and substrings such as ``OR`` in ``ORF`` are valid plain-text
+    search terms. Treat only field prefixes and standalone uppercase Boolean
+    operators as raw syntax.
+    """
+
+    return bool(RAW_QUERY_FIELD_RE.search(query) or RAW_QUERY_BOOLEAN_RE.search(query))
 
 
 def quote_term(term: str) -> str:

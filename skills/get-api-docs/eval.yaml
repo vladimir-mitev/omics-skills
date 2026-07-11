@@ -22,7 +22,7 @@ tasks:
          - `## Search Query`
          - `## Fetch Command`
          - `## Notes`
-      4. If `chub` is missing, say that clearly and include the exact install command `npm install -g @context-hub/cli`.
+      4. If `chub` is missing, say that clearly and include the exact install command `npm install -g @aisuite/chub`.
       5. In `## Search Query`, include one concrete `chub search "..."` command for the OpenAI Responses API.
       6. In `## Fetch Command`, include either a concrete `chub get ... --lang python` command or the sentence `Unavailable until chub is installed.`
       7. In `## Notes`, state that any eventual implementation must be grounded in retrieved docs rather than memory.
@@ -62,7 +62,7 @@ tasks:
               c4_pass=true; c4_msg="Fetch command present for installed chub"
             fi
           else
-            if grep -Fq 'npm install -g @context-hub/cli' docs_plan.md 2>/dev/null \
+            if grep -Fq 'npm install -g @aisuite/chub' docs_plan.md 2>/dev/null \
               && grep -Fq 'Unavailable until chub is installed.' docs_plan.md 2>/dev/null; then
               passed=$((passed + 1))
               c4_pass=true; c4_msg="Correct fallback guidance present when chub is missing"

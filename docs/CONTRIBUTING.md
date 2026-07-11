@@ -282,8 +282,8 @@ claude --agent omics-scientist
 ### 5. Test Cross-Platform
 
 ```bash
-# Test with Codex (if available)
-codex --system-prompt ~/.codex/agents/your-agent.md
+# Test with Codex (if available); ask it to delegate to your agent
+codex
 ```
 
 ---
@@ -374,8 +374,8 @@ git push origin feature/your-feature-name
 
 Each skill should do one thing well:
 
-- ✅ Good: `bio-reads-qc-mapping` - QC and mapping
-- ❌ Bad: `bio-everything` - QC, assembly, annotation
+- Good: `bio-reads-qc-mapping` - QC and mapping
+- Avoid: `bio-everything` - QC, assembly, annotation
 
 ### 2. Clear Boundaries
 
@@ -462,7 +462,7 @@ Show how the agent responds:
 
 ## Common Pitfalls to Avoid
 
-### ❌ Don't
+### Avoid
 
 - Create skills that overlap significantly
 - Hardcode file paths
@@ -471,7 +471,7 @@ Show how the agent responds:
 - Ignore quality gates
 - Write overly complex skills
 
-### ✅ Do
+### Prefer
 
 - Keep skills focused and modular
 - Use relative paths or parameters

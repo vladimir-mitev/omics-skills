@@ -37,6 +37,8 @@ steps:
   command: fastqc ...
   tool: FastQC
   tool_version: 0.12.1
+  inputs:
+  - reads/*.fastq.gz
   outputs:
   - results/fastqc/*.html
 - step_id: '2'
@@ -45,6 +47,10 @@ steps:
   command: trim_galore ...
   tool: Trim Galore
   tool_version: 0.6.10
+  inputs:
+  - reads/*.fastq.gz
+  outputs:
+  - results/trimmed/*.fastq.gz
 qc_steps:
 - MultiQC summary inspected; per-sample adapter content <5% after trimming
 outputs:

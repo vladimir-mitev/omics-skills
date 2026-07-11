@@ -1,6 +1,6 @@
 ---
 name: bio-viromics
-description: Detect, classify, and QC viral contigs.
+description: Detect, quality-control, and classify viral contigs. Use when identifying viruses in assemblies, checking viral completeness and contamination, or assigning viral taxonomy.
 ---
 
 # Bio Viromics
@@ -36,7 +36,7 @@ Detect, classify, and QC viral contigs.
 ## Input Requirements
 
 Prerequisites:
-- Tools available in the active environment (Pixi/conda/system). See `docs/README.md` for expected tools.
+- Tools declared in the project's pinned Pixi environment. See `docs/README.md` for expected tools.
 - Reference DB root: set `BIO_DB_ROOT` to the project or site-local database directory.
 - Input contigs are available.
 Inputs:

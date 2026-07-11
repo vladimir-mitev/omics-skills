@@ -184,8 +184,15 @@ def build_live_report(args: argparse.Namespace) -> dict[str, Any]:
     openalex_id = normalize_openalex_id(args.openalex_id) if args.openalex_id else None
     journal_metrics = load_journal_metrics(Path(args.journal_metrics))
     openalex_payload = fetch_openalex_work(doi=doi, openalex_id=openalex_id, mailto=args.mailto)
-    altmetric_summary = fetch_altmetric_summary(doi=doi, api_key=args.altmetric_api_key)
     openalex_summary = parse_openalex_work(openalex_payload)
+    # An OpenAlex-ID lookup can still resolve a DOI. Use the canonical DOI from
+    # the returned work for Altmetric instead of treating ID-based input as
+    # permanently DOI-less.
+    resolved_doi = openalex_summary.get("doi")
+    altmetric_summary = fetch_altmetric_summary(
+        doi=resolved_doi,
+        api_key=args.altmetric_api_key,
+    )
     journal_metric = lookup_journal_metric(journal_metrics, openalex_summary.get("journal_name"))
     return {
         "openalex": openalex_summary,
@@ -232,7 +239,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--altmetric-api-key",
         default=os.environ.get("ALTMETRIC_API_KEY"),
-        help="Altmetric Details Page API key",
+        help="Altmetric Details Page API key (prefer the ALTMETRIC_API_KEY environment variable)",
     )
     parser.add_argument(
         "--journal-metrics",

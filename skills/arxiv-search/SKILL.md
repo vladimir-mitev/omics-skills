@@ -1,6 +1,6 @@
 ---
 name: arxiv-search
-description: Search arXiv preprints through the official arXiv API and turn arXiv IDs into local Markdown summaries. Use when you need CS, math, physics, or quantitative biology preprints, especially recent submissions that may not yet appear in peer-reviewed literature indexes.
+description: Search arXiv through its official API and save local Markdown summaries. Use when finding recent CS, math, physics, or quantitative-biology preprints or resolving arXiv IDs.
 user-invocable: true
 ---
 

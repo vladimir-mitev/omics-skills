@@ -17,35 +17,35 @@ from cycler import cycler
 
 # A cohesive, non-default palette (feel free to swap)
 PALETTE = [
-    “#0B1320”,  # deep ink
-    “#2C7DA0”,  # ocean
-    “#5C4D7D”,  # dusk purple
-    “#F1C453”,  # warm sand
-    “#E85D75”,  # rose
-    “#43AA8B”,  # mint
+    "#0B1320",  # deep ink
+    "#2C7DA0",  # ocean
+    "#5C4D7D",  # dusk purple
+    "#F1C453",  # warm sand
+    "#E85D75",  # rose
+    "#43AA8B",  # mint
 ]
 
 def set_plot_style() -> None:
     mpl.rcParams.update({
-        “figure.dpi”: 120,
-        “savefig.dpi”: 200,
-        “figure.figsize”: (8, 4.5),
-        “font.family”: “sans-serif”,
-        “font.sans-serif”: [“Arial”, “Helvetica”, “DejaVu Sans”, “Liberation Sans”],
-        “figure.facecolor”: “#ffffff”,
-        “axes.facecolor”: “#ffffff”,
-        “axes.titlesize”: 12,
-        “axes.labelsize”: 11,
-        “xtick.labelsize”: 10,
-        “ytick.labelsize”: 10,
-        “legend.fontsize”: 10,
-        “axes.grid”: True,
-        “grid.alpha”: 0.25,
-        “axes.spines.top”: False,
-        “axes.spines.right”: False,
-        “axes.prop_cycle”: cycler(color=PALETTE),
+        "figure.dpi": 120,
+        "savefig.dpi": 200,
+        "figure.figsize": (8, 4.5),
+        "font.family": "sans-serif",
+        "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans", "Liberation Sans"],
+        "figure.facecolor": "#ffffff",
+        "axes.facecolor": "#ffffff",
+        "axes.titlesize": 12,
+        "axes.labelsize": 11,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "legend.fontsize": 10,
+        "axes.grid": True,
+        "grid.alpha": 0.25,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "axes.prop_cycle": cycler(color=PALETTE),
         # Tight layout defaults
-        “figure.constrained_layout.use”: True,
+        "figure.constrained_layout.use": True,
     })
 
 set_plot_style()
@@ -62,7 +62,7 @@ the hook in the preamble cell:
 plt.ioff()
 try:
     from matplotlib_inline.backend_inline import flush_figures
-    get_ipython().events.unregister(“post_execute”, flush_figures)
+    get_ipython().events.unregister("post_execute", flush_figures)
 except Exception:
     pass
 ```
@@ -70,7 +70,7 @@ except Exception:
 With this fix, only the cell’s final `fig` expression produces output. For
 figures created inside `if/else` blocks (where `fig` is not a top-level
 expression), use `display(fig)` explicitly instead of bare `fig`. Do not use
-`mpl.use(“agg”)` — it disables `_repr_png_()` entirely and produces zero
+`mpl.use("agg")` — it disables `_repr_png_()` entirely and produces zero
 images.
 
 ## Whitespace control

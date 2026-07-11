@@ -139,19 +139,9 @@ Then Claude works from the returned subset instead of scanning the whole reposit
 
 ## How Codex Uses It
 
-Codex is expected to load an installed agent prompt such as:
+The installer renders each canonical Markdown prompt to a native Codex TOML subagent under `~/.codex/agents/`. Start Codex normally and ask it to delegate to the named agent, or invoke a skill explicitly with `$<skill-name>`.
 
-```bash
-codex --system-prompt ~/.codex/agents/omics-scientist.md
-```
-
-Or set one as the default agent:
-
-```bash
-codex config set default_agent ~/.codex/agents/omics-scientist.md
-```
-
-The Codex agent prompt follows the same model as Claude:
+The Codex subagent follows the same model as Claude:
 
 1. Route the task with `skill_index.py route`.
 2. Restrict context to the returned agent file and `SKILL.md` files.
@@ -190,7 +180,7 @@ When adding or changing a skill, update the graph inputs, not only the prose:
 4. Run tests:
 
 ```bash
-python3 -m unittest tests/test_skill_index.py
+uv run --no-project python -m unittest tests.test_skill_index
 ```
 
 If the workflow tree or task patterns are missing, the graph will be incomplete even if the skill documentation is otherwise good.

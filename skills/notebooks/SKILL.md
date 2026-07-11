@@ -1,6 +1,6 @@
 ---
 name: notebooks
-description: Author, execute, and deliver reproducible analysis notebooks in marimo (default) or Jupyter, with all cells run end-to-end and figures embedded. Also converts between marimo and Jupyter on request.
+description: Author, execute, validate, and convert reproducible marimo or Jupyter notebooks. Use when delivering an analysis notebook with all cells run and figures embedded.
 ---
 
 # Notebooks
@@ -37,7 +37,7 @@ A notebook is not "done" until it has been executed end-to-end on a fresh kernel
      # ]
      # ///
      ```
-     Run with `uv run marimo run <notebook.py>` (uv reads the header and resolves the env automatically) or with `marimo edit --sandbox <notebook.py>` for interactive work.
+     Run with `uvx marimo run --sandbox <notebook.py>` or edit interactively with `uvx marimo edit --sandbox <notebook.py>`. The sandbox reads the header and resolves the notebook environment.
    - **Jupyter.** Register a named ipykernel for the project's pixi env *before* the first execution and pin the kernel in the notebook metadata. The kernel name is mandatory — the generic `python3` kernel leaks the system interpreter:
      ```bash
      pixi run python -m ipykernel install --user --name <project> --display-name "<project> (pixi)"
@@ -46,13 +46,19 @@ A notebook is not "done" until it has been executed end-to-end on a fresh kernel
      ```json
      "kernelspec": {"name": "<project>", "display_name": "<project> (pixi)"}
      ```
-     Add every import used in the notebook to `pixi.toml` (or the project's `requirements.txt` / `environment.yml`) so the kernel can resolve it from a clean install.
+     Add every import used in the notebook to `pixi.toml` so the kernel can resolve it from a clean install.
 
 5. **Load data with project-relative paths.** Prefer DuckDB for TSV/Parquet (`duckdb.read_csv`, `duckdb.read_parquet`). Avoid absolute paths and `~`. Avoid hidden state from the runtime working directory.
 
 6. **Run checks and all cells to generate plots.** Execute the notebook headlessly on a fresh kernel before delivery:
-   - Marimo: run `uvx marimo check <notebook.py>` before export and fix every reported issue or warning, including `empty-cells` and markdown formatting. Then run `uv run marimo export ipynb <notebook.py> -o <notebook.executed.ipynb>` or `uv run marimo run <notebook.py>` for a non-interactive smoke run; for a deterministic HTML artifact, `uv run marimo export html <notebook.py> -o <notebook.html>`. Run `uvx marimo check <notebook.py>` again after the final edit/export cycle.
-   - Jupyter: `python scripts/execute_notebook.py <notebook.ipynb>` (writes `<notebook>.executed.ipynb`) or `pixi run jupyter nbconvert --to notebook --execute --inplace <notebook.ipynb>`.
+   - Marimo: run `uvx marimo check --strict <notebook.py>` before export. Then run `uvx marimo export ipynb <notebook.py> -o <notebook.executed.ipynb> --include-outputs --sandbox -f`. For a deterministic HTML artifact, use `uvx marimo export html <notebook.py> -o <notebook.html> --sandbox -f`. Run the strict check again after the final edit/export cycle.
+   - Jupyter: resolve the installed skill root, then run its self-provisioning helper (or use the equivalent repo path while developing this skill):
+     ```bash
+     NOTEBOOKS_SKILL="${NOTEBOOKS_SKILL:-$HOME/.agents/skills/notebooks}"
+     uv run --script "$NOTEBOOKS_SKILL/scripts/execute_notebook.py" \
+       <notebook.ipynb> --kernel <project>
+     ```
+     The helper writes `<notebook>.executed.ipynb`. `pixi run jupyter nbconvert --to notebook --execute --inplace <notebook.ipynb>` is also valid when Jupyter is declared in the project environment.
 
 7. **Evaluate the plots, then refine.** This step is required, not optional. After the run-all execution:
    - Open the executed notebook (or exported HTML) and visually inspect every figure.
@@ -68,21 +74,22 @@ A notebook is not "done" until it has been executed end-to-end on a fresh kernel
    - Be reproducible from a clean clone: a new environment built from the PEP 723 header (marimo) or `pixi install` + `jupyter nbconvert --to notebook --execute` (Jupyter) must reproduce the same notebook end-to-end.
 
 9. **Convert between marimo and Jupyter** when the user asks for it:
-   - `.ipynb` → marimo `.py`: `uvx marimo convert <notebook.ipynb> -o <notebook.py>`, then `uvx marimo check <notebook.py>`, then clean up Jupyter artifacts (`display()` calls, `%magic`s, indented final expressions, ipywidget usage). See `references/widgets.md` and `references/latex.md` for ipywidget→marimo and MathJax→KaTeX mappings.
-   - marimo `.py` → `.ipynb`: `uvx marimo export ipynb <notebook.py> -o <notebook.ipynb>`.
+   - `.ipynb` → marimo `.py`: `uvx marimo convert <notebook.ipynb> -o <notebook.py>`, then `uvx marimo check --strict <notebook.py>`, then clean up Jupyter artifacts (`display()` calls, `%magic`s, indented final expressions, ipywidget usage). See `references/widgets.md` and `references/latex.md` for ipywidget→marimo and MathJax→KaTeX mappings.
+   - marimo `.py` → `.ipynb`: `uvx marimo export ipynb <notebook.py> -o <notebook.ipynb> --include-outputs --sandbox -f`.
    - After conversion, re-run step 6 (check/execute), step 7 (inspect plots), and step 8 (deliver pre-executed).
 
 ## Quick Reference
 
 | Task | Action |
 |------|--------|
-| Author marimo notebook | Edit `.py`, run `uv run marimo edit --sandbox <notebook.py>` |
+| Resolve bundled helpers | `NOTEBOOKS_SKILL="${NOTEBOOKS_SKILL:-$HOME/.agents/skills/notebooks}"` |
+| Author marimo notebook | Edit `.py`, run `uvx marimo edit --sandbox <notebook.py>` |
 | Author Jupyter notebook | Register pixi kernel, set notebook `kernelspec`, edit `.ipynb` |
-| Lint marimo notebook | `uvx marimo check <notebook.py>` |
-| Execute marimo headlessly | `uv run marimo export ipynb <notebook.py> -o <executed.ipynb>` |
-| Execute Jupyter headlessly | `python scripts/execute_notebook.py <notebook.ipynb>` |
+| Lint marimo notebook | `uvx marimo check --strict <notebook.py>` |
+| Execute marimo headlessly | `uvx marimo export ipynb <notebook.py> -o <executed.ipynb> --include-outputs --sandbox -f` |
+| Execute Jupyter headlessly | `uv run --script "$NOTEBOOKS_SKILL/scripts/execute_notebook.py" <notebook.ipynb> --kernel <project>` |
 | Convert `.ipynb` → marimo | `uvx marimo convert <notebook.ipynb> -o <notebook.py>` |
-| Convert marimo → `.ipynb` | `uv run marimo export ipynb <notebook.py> -o <notebook.ipynb>` |
+| Convert marimo → `.ipynb` | `uvx marimo export ipynb <notebook.py> -o <notebook.ipynb> --include-outputs --sandbox -f` |
 | Marimo references | `references/notebook_structure.md`, `references/UI.md`, `references/SQL.md`, `references/STATE.md`, `references/EXPORTS.md`, `references/PYTEST.md`, `references/TOP-LEVEL-IMPORTS.md`, `references/DEPLOYMENT.md` |
 | Conversion references | `references/widgets.md`, `references/latex.md` |
 | Pixi + Jupyter | `references/pixi_jupyter.md` |
@@ -109,11 +116,11 @@ A notebook is not "done" until it has been executed end-to-end on a fresh kernel
 - [ ] Kernel registered and pinned: marimo PEP 723 header complete, or Jupyter `kernelspec` set to a named pixi kernel.
 - [ ] Every Python import used in the notebook is declared in the dependency spec (PEP 723 header or `pixi.toml`).
 - [ ] Data paths are project-relative and verified to exist.
-- [ ] Headless run-all succeeds on a fresh kernel: marimo `marimo export ipynb` or Jupyter `nbconvert --execute` exits zero.
+- [ ] Headless run-all succeeds on a fresh kernel: marimo export uses `--include-outputs --sandbox`, or Jupyter execution exits zero.
 - [ ] Every figure is inspected after execution; any figure that fails the visual checks above triggers a code revision and re-run.
 - [ ] Manuscript/paper figures have no in-plot titles or subtitles.
 - [ ] Delivered notebook has every cell pre-executed with figures embedded; users do not have to run the notebook to see the plots.
-- [ ] For marimo: `uvx marimo check <notebook.py>` is run by default and reports no issues or warnings; do not treat exit code zero as enough if the output says "Found issues."
+- [ ] For marimo: `uvx marimo check --strict <notebook.py>` passes before and after export.
 - [ ] For marimo: no malformed markdown cells, quoted-string fragments inside `mo.md(...)`, trailing empty cells, or `return`-only placeholder cells remain.
 
 ## Examples
@@ -163,9 +170,10 @@ def _(df, plt):
 
 Then:
 ```bash
-uvx marimo check notebook.py
-uv run marimo export ipynb notebook.py -o notebook.executed.ipynb
-uvx marimo check notebook.py
+uvx marimo check --strict notebook.py
+uvx marimo export ipynb notebook.py -o notebook.executed.ipynb \
+  --include-outputs --sandbox -f
+uvx marimo check --strict notebook.py
 ```
 
 ### Example 2: Jupyter notebook with a named pixi kernel
@@ -175,7 +183,8 @@ uvx marimo check notebook.py
 pixi run python -m ipykernel install --user --name myproject --display-name "myproject (pixi)"
 
 # After authoring, run end-to-end on a fresh kernel:
-python skills/notebooks/scripts/execute_notebook.py notebooks/analysis.ipynb \
+NOTEBOOKS_SKILL="${NOTEBOOKS_SKILL:-$HOME/.agents/skills/notebooks}"
+uv run --script "$NOTEBOOKS_SKILL/scripts/execute_notebook.py" notebooks/analysis.ipynb \
   --kernel myproject \
   --out notebooks/analysis.executed.ipynb
 ```
@@ -184,8 +193,9 @@ python skills/notebooks/scripts/execute_notebook.py notebooks/analysis.ipynb \
 
 ```bash
 uvx marimo convert notebooks/legacy.ipynb -o notebooks/legacy.py
-uvx marimo check notebooks/legacy.py
-uv run marimo export ipynb notebooks/legacy.py -o notebooks/legacy.executed.ipynb
+uvx marimo check --strict notebooks/legacy.py
+uvx marimo export ipynb notebooks/legacy.py -o notebooks/legacy.executed.ipynb \
+  --include-outputs --sandbox -f
 ```
 
 ## Troubleshooting

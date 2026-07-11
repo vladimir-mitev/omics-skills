@@ -2,7 +2,7 @@
 # Installs agents and skills for Claude Code and Codex CLI
 
 .PHONY: help install install-all install-selected install-claude install-codex \
-        install-claude-agents install-codex-agents _install-agents install-skills install-catalog \
+        install-claude-agents install-codex-agents _install-agents _install-codex-agents install-skills install-catalog \
         install-claude-skills install-codex-skills link-claude-skills link-codex-skills \
         build-catalog install-hook uninstall-hook hook-status benchmark \
         check-deps install-python-deps uninstall uninstall-all uninstall-selected \
@@ -115,7 +115,7 @@ install: check-deps ## Install with an interactive selector when possible
 	fi
 
 install-all: install-claude install-codex ## Install all agents and skills without prompting
-	@echo "$(GREEN)✓ Installation complete!$(NC)"
+	@echo "$(GREEN)OK Installation complete!$(NC)"
 	@echo ""
 	@$(MAKE) --no-print-directory status
 
@@ -140,15 +140,15 @@ install-selected:
 	else \
 		echo "$(YELLOW)Skipping agents$(NC)"; \
 	fi
-	@echo "$(GREEN)✓ Installation complete!$(NC)"
+	@echo "$(GREEN)OK Installation complete!$(NC)"
 	@echo ""
 	@$(MAKE) --no-print-directory status
 
 install-claude: build-catalog install-skills install-catalog install-claude-agents link-claude-skills ## Install for Claude Code only
-	@echo "$(GREEN)✓ Claude Code installation complete$(NC)"
+	@echo "$(GREEN)OK Claude Code installation complete$(NC)"
 
 install-codex: build-catalog install-skills install-catalog install-codex-agents link-codex-skills ## Install for Codex CLI only
-	@echo "$(GREEN)✓ Codex CLI installation complete$(NC)"
+	@echo "$(GREEN)OK Codex CLI installation complete$(NC)"
 	@echo "  Skills linked at $(CODEX_SKILLS_DIR)"
 
 install-hook: ## Install the routing-hint hook for Claude Code + Codex CLI
@@ -167,7 +167,7 @@ build-catalog: ## Build the shared skill catalog files
 	@echo "$(BLUE)Building skill catalog...$(NC)"
 	@mkdir -p $(CATALOG_DIR)
 	@python3 $(SCRIPTS_DIR)/skill_index.py build --repo $(CURDIR) --out $(CATALOG_DIR) >/dev/null
-	@echo "  $(GREEN)✓$(NC) $(CATALOG_DIR)/catalog.json"
+	@echo "  $(GREEN)OK$(NC) $(CATALOG_DIR)/catalog.json"
 
 install-catalog: ## Install the shared skill catalog to ~/.agents/omics-skills
 	@echo "$(BLUE)Installing skill catalog to $(AGENTS_CATALOG_DIR)...$(NC)"
@@ -189,14 +189,14 @@ install-catalog: ## Install the shared skill catalog to ~/.agents/omics-skills
 		else \
 			cp $$src $$target; \
 		fi; \
-		echo "  $(GREEN)✓$(NC) $$item"; \
+		echo "  $(GREEN)OK$(NC) $$item"; \
 	done
 
 install-claude-agents: ## Install agents to Claude Code
 	@$(MAKE) --no-print-directory _install-agents AGENT_TARGET_DIR=$(CLAUDE_AGENTS_DIR) AGENT_PLATFORM="Claude Code"
 
 install-codex-agents: ## Install agents to Codex CLI
-	@$(MAKE) --no-print-directory _install-agents AGENT_TARGET_DIR=$(CODEX_AGENTS_DIR) AGENT_PLATFORM="Codex CLI"
+	@$(MAKE) --no-print-directory _install-codex-agents AGENT_TARGET_DIR=$(CODEX_AGENTS_DIR) AGENT_PLATFORM="Codex CLI"
 
 # Shared agent installer used by install-claude-agents / install-codex-agents.
 # Places each agent as a symlink or copy (INSTALL_METHOD), backing up any
@@ -204,32 +204,69 @@ install-codex-agents: ## Install agents to Codex CLI
 _install-agents:
 	@echo "$(BLUE)Installing agents to $(AGENT_PLATFORM)...$(NC)"
 	@mkdir -p $(AGENT_TARGET_DIR)
-	@for agent in $(SELECTED_AGENT_FILES); do \
+	@set -e; for agent in $(SELECTED_AGENT_FILES); do \
 		agent_path=$(AGENTS_DIR)/$$agent; \
 		basename=$$(basename $$agent); \
 		target=$(AGENT_TARGET_DIR)/$$basename; \
 		if [ ! -f $$agent_path ]; then \
-			echo "  $(RED)✗$(NC) $$agent not found"; \
-			continue; \
+			echo "  $(RED)ERROR$(NC) $$agent not found"; \
+			exit 1; \
 		fi; \
 		if [ -L $$target ]; then \
 			rm $$target; \
 		elif [ -f $$target ]; then \
 			echo "  $(YELLOW)Warning: $$basename exists (backing up)$(NC)"; \
-			mv $$target $$target.bak; \
+			backup=$$target.bak.$$(date +%s%N); \
+			mv $$target $$backup; \
 		fi; \
 		if [ "$(INSTALL_METHOD)" = "symlink" ]; then \
 			ln -sf $$agent_path $$target; \
 		else \
 			cp $$agent_path $$target; \
 		fi; \
-		echo "  $(GREEN)✓$(NC) $$basename"; \
+		echo "  $(GREEN)OK$(NC) $$basename"; \
+	done
+
+# Codex agents use TOML, so the Markdown source must be rendered rather than
+# symlinked. Re-run installation after changing an agent prompt.
+_install-codex-agents:
+	@echo "$(BLUE)Installing agents to $(AGENT_PLATFORM)...$(NC)"
+	@mkdir -p $(AGENT_TARGET_DIR)
+	@set -e; for agent in $(SELECTED_AGENT_FILES); do \
+		agent_path=$(AGENTS_DIR)/$$agent; \
+		basename=$$(basename $$agent .md); \
+		target=$(AGENT_TARGET_DIR)/$$basename.toml; \
+		legacy=$(AGENT_TARGET_DIR)/$$basename.md; \
+		if [ ! -f $$agent_path ]; then \
+			echo "  $(RED)ERROR$(NC) $$agent not found"; \
+			exit 1; \
+		fi; \
+		if [ -L $$target ]; then \
+			rm $$target; \
+		elif [ -f $$target ]; then \
+			backup=$$target.bak.$$(date +%s%N); \
+			mv $$target $$backup; \
+			echo "  $(YELLOW)Backed up existing $$basename.toml to $$backup$(NC)"; \
+		fi; \
+		if [ -L $$legacy ] || [ -f $$legacy ]; then \
+			backup=$$legacy.legacy.bak.$$(date +%s%N); \
+			mv $$legacy $$backup; \
+			echo "  $(YELLOW)Backed up legacy $$basename.md to $$backup$(NC)"; \
+		fi; \
+		python3 $(SCRIPTS_DIR)/render_codex_agent.py $$agent_path $$target; \
+		echo "  $(GREEN)OK$(NC) $$basename.toml"; \
 	done
 
 install-skills: ## Install skills to ~/.agents/skills
 	@echo "$(BLUE)Installing skills to $(AGENTS_SKILLS_DIR)...$(NC)"
 	@mkdir -p $(AGENTS_SKILLS_DIR)
-	@total=$$(for skill_name in $(SELECTED_SKILL_DIRS); do echo "$$skill_name"; done | wc -l); \
+	@set -e; for skill_name in $(SELECTED_SKILL_DIRS); do \
+		if [ ! -d $(SKILLS_DIR)/$$skill_name ]; then \
+			echo "  $(RED)ERROR$(NC) $$skill_name not found"; \
+			exit 1; \
+		fi; \
+	done; \
+	total=$$(for skill_name in $(SELECTED_SKILL_DIRS); do echo "$$skill_name"; done | wc -l); \
 	current=0; \
 	for skill_name in $(SELECTED_SKILL_DIRS); do \
 		skill=$(SKILLS_DIR)/$$skill_name; \
@@ -252,16 +289,16 @@ install-skills: ## Install skills to ~/.agents/skills
 				cp -r $$skill $$target; \
 			fi; \
 			if [ "$(VERBOSE)" = "1" ]; then \
-				echo "  [$$current/$$total] $(GREEN)✓$(NC) $$basename"; \
+				echo "  [$$current/$$total] $(GREEN)OK$(NC) $$basename"; \
 			else \
 				printf "\r  Progress: $$current/$$total skills"; \
 			fi; \
 		fi; \
 	done; \
 	if [ "$(VERBOSE)" != "1" ]; then \
-		printf "\r  $(GREEN)✓$(NC) Installed: $$total/$$total skills\n"; \
+		printf "\r  $(GREEN)OK$(NC) Installed: $$total/$$total skills\n"; \
 	else \
-		echo "  $(GREEN)✓$(NC) Completed: $$total/$$total skills"; \
+		echo "  $(GREEN)OK$(NC) Completed: $$total/$$total skills"; \
 	fi
 
 install-claude-skills: install-skills link-claude-skills ## Backwards-compatible target
@@ -282,7 +319,7 @@ link-claude-skills: ## Link Claude skills dir to ~/.agents/skills
 	else \
 		ln -sfn $(AGENTS_SKILLS_DIR) $(CLAUDE_SKILLS_DIR); \
 	fi
-	@echo "  $(GREEN)✓$(NC) $(CLAUDE_SKILLS_DIR) -> $(AGENTS_SKILLS_DIR)"
+	@echo "  $(GREEN)OK$(NC) $(CLAUDE_SKILLS_DIR) -> $(AGENTS_SKILLS_DIR)"
 
 link-codex-skills: ## Link Codex skills dir to ~/.agents/skills
 	@echo "$(BLUE)Linking Codex skills to $(AGENTS_SKILLS_DIR)...$(NC)"
@@ -300,7 +337,7 @@ link-codex-skills: ## Link Codex skills dir to ~/.agents/skills
 	else \
 		ln -sfn $(AGENTS_SKILLS_DIR) $(CODEX_SKILLS_DIR); \
 	fi
-	@echo "  $(GREEN)✓$(NC) $(CODEX_SKILLS_DIR) -> $(AGENTS_SKILLS_DIR)"
+	@echo "  $(GREEN)OK$(NC) $(CODEX_SKILLS_DIR) -> $(AGENTS_SKILLS_DIR)"
 
 install-codex-skills: ## Backwards-compatible target
 	@$(MAKE) --no-print-directory link-codex-skills
@@ -309,16 +346,16 @@ install-codex-skills: ## Backwards-compatible target
 
 check-deps: ## Check if required commands are available
 	@echo "$(BLUE)Checking dependencies...$(NC)"
-	@command -v claude >/dev/null 2>&1 && echo "  $(GREEN)✓$(NC) Claude Code CLI found" || echo "  $(YELLOW)○$(NC) Claude Code CLI not found (install from https://claude.com/claude-code)"
-	@command -v codex >/dev/null 2>&1 && echo "  $(GREEN)✓$(NC) Codex CLI found" || echo "  $(YELLOW)○$(NC) Codex CLI not found (optional)"
-	@command -v python3 >/dev/null 2>&1 && echo "  $(GREEN)✓$(NC) Python 3 found" || echo "  $(YELLOW)○$(NC) Python 3 not found (required for installation and some skills)"
-	@command -v uv >/dev/null 2>&1 && echo "  $(GREEN)✓$(NC) uv found" || echo "  $(YELLOW)○$(NC) uv not found (required only for make install-python-deps)"
+	@command -v claude >/dev/null 2>&1 && echo "  $(GREEN)OK$(NC) Claude Code CLI found" || echo "  $(YELLOW)INFO$(NC) Claude Code CLI not found (install from https://claude.com/claude-code)"
+	@command -v codex >/dev/null 2>&1 && echo "  $(GREEN)OK$(NC) Codex CLI found" || echo "  $(YELLOW)INFO$(NC) Codex CLI not found (optional)"
+	@command -v python3 >/dev/null 2>&1 && echo "  $(GREEN)OK$(NC) Python 3 found" || echo "  $(YELLOW)INFO$(NC) Python 3 not found (required for installation and some skills)"
+	@command -v uv >/dev/null 2>&1 && echo "  $(GREEN)OK$(NC) uv found" || echo "  $(YELLOW)INFO$(NC) uv not found (required only for make install-python-deps)"
 	@echo ""
 
 install-python-deps: ## Install Python dependencies for skills
 	@echo "$(BLUE)Installing Python dependencies for skills...$(NC)"
 	@if ! command -v uv >/dev/null 2>&1; then \
-		echo "  $(RED)✗$(NC) uv not found - cannot install Python dependencies"; \
+		echo "  $(RED)ERROR$(NC) uv not found - cannot install Python dependencies"; \
 		exit 1; \
 	fi
 	@uv venv $(PYTHON_ENV_DIR) >/dev/null
@@ -328,7 +365,7 @@ install-python-deps: ## Install Python dependencies for skills
 			basename=$$(basename $$skill); \
 			echo "  Installing deps for $$basename..."; \
 			uv pip install --python $(PYTHON_ENV_DIR)/bin/python -r $$req --quiet; \
-			echo "  $(GREEN)✓$(NC) $$basename"; \
+			echo "  $(GREEN)OK$(NC) $$basename"; \
 		fi; \
 	done
 
@@ -349,20 +386,22 @@ uninstall: ## Uninstall with an interactive selector when possible
 	fi
 
 uninstall-all: uninstall-claude uninstall-codex uninstall-skills uninstall-catalog ## Uninstall everything without prompting
-	@echo "$(GREEN)✓ Uninstallation complete$(NC)"
+	@echo "$(GREEN)OK Uninstallation complete$(NC)"
 
 uninstall-selected: ## Uninstall only SELECTED_AGENT_FILES / SELECTED_SKILL_DIRS
 	@for agent in $(SELECTED_AGENT_FILES); do \
-		for dir in $(CLAUDE_AGENTS_DIR) $(CODEX_AGENTS_DIR); do \
-			t="$$dir/$$agent"; \
-			if [ -L "$$t" ] || [ -f "$$t" ]; then rm -f "$$t"; echo "  $(GREEN)✓$(NC) removed $$t"; fi; \
+		t="$(CLAUDE_AGENTS_DIR)/$$agent"; \
+		if [ -L "$$t" ] || [ -f "$$t" ]; then rm -f "$$t"; echo "  $(GREEN)OK$(NC) removed $$t"; fi; \
+		name=$${agent%.md}; \
+		for t in "$(CODEX_AGENTS_DIR)/$$name.toml" "$(CODEX_AGENTS_DIR)/$$name.md"; do \
+			if [ -L "$$t" ] || [ -f "$$t" ]; then rm -f "$$t"; echo "  $(GREEN)OK$(NC) removed $$t"; fi; \
 		done; \
 	done
 	@for skill in $(SELECTED_SKILL_DIRS); do \
 		t="$(AGENTS_SKILLS_DIR)/$$skill"; \
-		if [ -L "$$t" ] || [ -e "$$t" ]; then rm -rf "$$t"; echo "  $(GREEN)✓$(NC) removed $$t"; fi; \
+		if [ -L "$$t" ] || [ -e "$$t" ]; then rm -rf "$$t"; echo "  $(GREEN)OK$(NC) removed $$t"; fi; \
 	done
-	@echo "$(GREEN)✓ Uninstall complete$(NC)"
+	@echo "$(GREEN)OK Uninstall complete$(NC)"
 	@$(MAKE) --no-print-directory status
 
 uninstall-claude: ## Uninstall from Claude Code
@@ -375,59 +414,62 @@ uninstall-claude: ## Uninstall from Claude Code
 			current=$$((current + 1)); \
 			rm $$target; \
 			if [ "$(VERBOSE)" = "1" ]; then \
-				echo "  [$$current/$(AGENT_COUNT)] $(GREEN)✓$(NC) Removed $$basename"; \
+				echo "  [$$current/$(AGENT_COUNT)] $(GREEN)OK$(NC) Removed $$basename"; \
 			else \
 				printf "\r  Agents: $$current/$(AGENT_COUNT)"; \
 			fi; \
 		fi; \
 	done; \
 	if [ "$(VERBOSE)" != "1" ]; then \
-		printf "\r  $(GREEN)✓$(NC) Removed: $$current/$(AGENT_COUNT) agents\n"; \
+		printf "\r  $(GREEN)OK$(NC) Removed: $$current/$(AGENT_COUNT) agents\n"; \
 	else \
-		echo "  $(GREEN)✓$(NC) Completed: $$current/$(AGENT_COUNT) agents"; \
+		echo "  $(GREEN)OK$(NC) Completed: $$current/$(AGENT_COUNT) agents"; \
 	fi
 	@if [ -L "$(CLAUDE_SKILLS_DIR)" ]; then \
 		target=$$(readlink "$(CLAUDE_SKILLS_DIR)"); \
 		if [ "$$target" = "$(AGENTS_SKILLS_DIR)" ]; then \
 			rm "$(CLAUDE_SKILLS_DIR)"; \
-			echo "  $(GREEN)✓$(NC) Removed $(CLAUDE_SKILLS_DIR) symlink"; \
+			echo "  $(GREEN)OK$(NC) Removed $(CLAUDE_SKILLS_DIR) symlink"; \
 		else \
-			echo "  $(YELLOW)○$(NC) Preserved non-omics Claude skills symlink: $$target"; \
+			echo "  $(YELLOW)INFO$(NC) Preserved non-omics Claude skills symlink: $$target"; \
 		fi; \
 	fi
-	@echo "$(GREEN)✓ Claude Code uninstalled$(NC)"
+	@echo "$(GREEN)OK Claude Code uninstalled$(NC)"
 
 uninstall-codex: ## Uninstall from Codex CLI
 	@echo "$(BLUE)Uninstalling from Codex CLI...$(NC)"
 	@current=0; \
 	for agent in $(AGENT_FILES); do \
-		basename=$$(basename $$agent); \
+		name=$$(basename $$agent .md); \
+		basename=$$name.toml; \
 		target=$(CODEX_AGENTS_DIR)/$$basename; \
+		legacy=$(CODEX_AGENTS_DIR)/$$name.md; \
 		if [ -L $$target ] || [ -f $$target ]; then \
 			current=$$((current + 1)); \
 			rm $$target; \
 			if [ "$(VERBOSE)" = "1" ]; then \
-				echo "  [$$current/$(AGENT_COUNT)] $(GREEN)✓$(NC) Removed $$basename"; \
+				echo "  [$$current/$(AGENT_COUNT)] $(GREEN)OK$(NC) Removed $$basename"; \
 			else \
 				printf "\r  Agents: $$current/$(AGENT_COUNT)"; \
 			fi; \
 		fi; \
+		if [ -L $$legacy ] || [ -f $$legacy ]; then rm $$legacy; fi; \
 	done; \
 	if [ "$(VERBOSE)" != "1" ]; then \
-		printf "\r  $(GREEN)✓$(NC) Removed: $$current/$(AGENT_COUNT) agents\n"; \
+		printf "\r  $(GREEN)OK$(NC) Removed: $$current/$(AGENT_COUNT) agents\n"; \
 	else \
-		echo "  $(GREEN)✓$(NC) Completed: $$current/$(AGENT_COUNT) agents"; \
+		echo "  $(GREEN)OK$(NC) Completed: $$current/$(AGENT_COUNT) agents"; \
 	fi
 	@if [ -L "$(CODEX_SKILLS_DIR)" ]; then \
 		target=$$(readlink "$(CODEX_SKILLS_DIR)"); \
 		if [ "$$target" = "$(AGENTS_SKILLS_DIR)" ]; then \
 			rm "$(CODEX_SKILLS_DIR)"; \
-			echo "  $(GREEN)✓$(NC) Removed $(CODEX_SKILLS_DIR) symlink"; \
+			echo "  $(GREEN)OK$(NC) Removed $(CODEX_SKILLS_DIR) symlink"; \
 		else \
-			echo "  $(YELLOW)○$(NC) Preserved non-omics Codex skills symlink: $$target"; \
+			echo "  $(YELLOW)INFO$(NC) Preserved non-omics Codex skills symlink: $$target"; \
 		fi; \
 	fi
-	@echo "$(GREEN)✓ Codex CLI uninstalled$(NC)"
+	@echo "$(GREEN)OK Codex CLI uninstalled$(NC)"
 
 uninstall-skills: ## Remove omics-skills from ~/.agents/skills
 	@echo "$(BLUE)Uninstalling skills from $(AGENTS_SKILLS_DIR)...$(NC)"
@@ -441,7 +483,7 @@ uninstall-skills: ## Remove omics-skills from ~/.agents/skills
 				current=$$((current + 1)); \
 				rm -rf $$target; \
 				if [ "$(VERBOSE)" = "1" ]; then \
-					echo "  [$$current/$$total] $(GREEN)✓$(NC) Removed $$basename"; \
+					echo "  [$$current/$$total] $(GREEN)OK$(NC) Removed $$basename"; \
 				else \
 					printf "\r  Skills: $$current/$$total"; \
 				fi; \
@@ -449,18 +491,18 @@ uninstall-skills: ## Remove omics-skills from ~/.agents/skills
 		fi; \
 	done; \
 	if [ "$(VERBOSE)" != "1" ]; then \
-		printf "\r  $(GREEN)✓$(NC) Removed: $$current/$$total skills\n"; \
+		printf "\r  $(GREEN)OK$(NC) Removed: $$current/$$total skills\n"; \
 	else \
-		echo "  $(GREEN)✓$(NC) Completed: $$current/$$total skills"; \
+		echo "  $(GREEN)OK$(NC) Completed: $$current/$$total skills"; \
 	fi
 
 uninstall-catalog: ## Remove the shared skill catalog from ~/.agents/omics-skills
 	@echo "$(BLUE)Uninstalling skill catalog from $(AGENTS_CATALOG_DIR)...$(NC)"
 	@if [ -d $(AGENTS_CATALOG_DIR) ]; then \
 		rm -rf $(AGENTS_CATALOG_DIR); \
-		echo "  $(GREEN)✓$(NC) Removed $(AGENTS_CATALOG_DIR)"; \
+		echo "  $(GREEN)OK$(NC) Removed $(AGENTS_CATALOG_DIR)"; \
 	else \
-		echo "  $(YELLOW)○$(NC) Nothing to remove"; \
+		echo "  $(YELLOW)INFO$(NC) Nothing to remove"; \
 	fi
 
 ##@ Status
@@ -517,12 +559,12 @@ status: ## Show installation status
 			basename=$$(basename $$agent); \
 			if [ -f $(CLAUDE_AGENTS_DIR)/$$basename ] || [ -L $(CLAUDE_AGENTS_DIR)/$$basename ]; then \
 				if [ -L $(CLAUDE_AGENTS_DIR)/$$basename ]; then \
-					echo "    $(GREEN)✓$(NC) $$basename (symlink)"; \
+					echo "    $(GREEN)OK$(NC) $$basename (symlink)"; \
 				else \
-					echo "    $(GREEN)✓$(NC) $$basename (copy)"; \
+					echo "    $(GREEN)OK$(NC) $$basename (copy)"; \
 				fi; \
 			else \
-				echo "    $(RED)✗$(NC) $$basename"; \
+				echo "    $(RED)ERROR$(NC) $$basename"; \
 			fi; \
 		done; \
 	else \
@@ -541,11 +583,10 @@ status: ## Show installation status
 	@echo "$(YELLOW)Codex CLI:$(NC)"
 	@echo "  Agents directory: $(CODEX_AGENTS_DIR)"
 	@if [ -d $(CODEX_AGENTS_DIR) ]; then \
-		total=$$(ls -1 $(CODEX_AGENTS_DIR)/*.md 2>/dev/null | wc -l); \
+		total=$$(ls -1 $(CODEX_AGENTS_DIR)/*.toml 2>/dev/null | wc -l); \
 		installed=0; \
-		skills_total=$$(find $(SKILLS_DIR) -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l); \
 		for agent in $(AGENT_FILES); do \
-			basename=$$(basename $$agent); \
+			basename=$$(basename $$agent .md).toml; \
 			if [ -f $(CODEX_AGENTS_DIR)/$$basename ] || [ -L $(CODEX_AGENTS_DIR)/$$basename ]; then \
 				installed=$$((installed + 1)); \
 			fi; \
@@ -568,16 +609,20 @@ status: ## Show installation status
 
 test: ## Test repository structure and installation
 	@$(SCRIPTS_DIR)/test-install.sh
-	@python3 -m unittest discover -s tests -v
+	@uv run --no-project --with requests python -m unittest discover -s tests -v
 
 ##@ Maintenance
 
 clean: ## Remove backup files
 	@echo "$(BLUE)Cleaning backup files...$(NC)"
-	@find $(CLAUDE_AGENTS_DIR) -name "*.bak" -delete 2>/dev/null || true
-	@find $(AGENTS_SKILLS_DIR) -name "*.bak" -delete 2>/dev/null || true
-	@find $(CODEX_AGENTS_DIR) -name "*.bak" -delete 2>/dev/null || true
-	@echo "$(GREEN)✓ Backup files removed$(NC)"
+	@for agent in $(AGENT_FILES); do \
+		name=$${agent%.md}; \
+		rm -f $(CLAUDE_AGENTS_DIR)/$$agent.bak* \
+			$(CODEX_AGENTS_DIR)/$$name.toml.bak* \
+			$(CODEX_AGENTS_DIR)/$$name.md.legacy.bak* 2>/dev/null || true; \
+	done
+	@for skill in $(SKILL_DIRS); do rm -rf $(AGENTS_SKILLS_DIR)/$$skill.bak* 2>/dev/null || true; done
+	@echo "$(GREEN)OK Backup files removed$(NC)"
 
 update: ## Update symlinks (if using symlink method)
 ifeq ($(INSTALL_METHOD),symlink)
@@ -592,19 +637,23 @@ validate: ## Validate installation
 	@errors=0; \
 	for agent in omics-scientist literature-expert science-writer dataviz-artist; do \
 		if ! [ -f $(CLAUDE_AGENTS_DIR)/$$agent.md ]; then \
-			echo "  $(RED)✗$(NC) Missing: $$agent.md in Claude Code"; \
+			echo "  $(RED)ERROR$(NC) Missing: $$agent.md in Claude Code"; \
+			errors=$$((errors + 1)); \
+		fi; \
+		if ! [ -f $(CODEX_AGENTS_DIR)/$$agent.toml ]; then \
+			echo "  $(RED)ERROR$(NC) Missing: $$agent.toml in Codex CLI"; \
 			errors=$$((errors + 1)); \
 		fi; \
 	done; \
 	for skill in bio-logic bio-foundation-housekeeping bio-reads-qc-mapping; do \
 		if ! [ -d $(AGENTS_SKILLS_DIR)/$$skill ]; then \
-			echo "  $(RED)✗$(NC) Missing: $$skill in shared skills"; \
+			echo "  $(RED)ERROR$(NC) Missing: $$skill in shared skills"; \
 			errors=$$((errors + 1)); \
 		fi; \
 	done; \
 	if [ $$errors -eq 0 ]; then \
-		echo "  $(GREEN)✓$(NC) Installation valid"; \
+		echo "  $(GREEN)OK$(NC) Installation valid"; \
 	else \
-		echo "  $(RED)✗$(NC) Found $$errors errors"; \
+		echo "  $(RED)ERROR$(NC) Found $$errors errors"; \
 		exit 1; \
 	fi

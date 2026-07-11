@@ -1,6 +1,6 @@
 ---
 name: bio-annotation
-description: Functional annotation and taxonomy inference from sequence homology.
+description: Annotate genes or proteins and infer taxonomy from sequence homology. Use when assigning functions, domains, or taxonomic labels to genomes, contigs, or protein sets.
 ---
 
 # Bio Annotation
@@ -43,7 +43,7 @@ Functional annotation and taxonomy inference from sequence homology.
 ## Input Requirements
 
 Prerequisites:
-- Tools available in the active environment (Pixi/conda/system). See `docs/README.md` for expected tools.
+- Tools declared in the project's pinned Pixi environment. See `docs/README.md` for expected tools.
 - Reference DB root: set `BIO_DB_ROOT` to the project or site-local database directory.
 - Input FASTA and reference DBs are readable.
 Inputs:
@@ -73,7 +73,7 @@ Inputs:
 - [ ] Verify InterProScan output options are valid: use `-b` or `-d`, never both together.
 - [ ] Verify packaged InterProScan installs have been initialized with `python3 setup.py -f interproscan.properties` when required.
 - [ ] Verify required InterProScan helper binaries are resolvable, especially `ps_scan.pl`, `pfscan`, and `pfsearch`.
-- [ ] Run a small login-node smoke test on 1-2 proteins before submitting a large cluster job.
+- [ ] Run a short debug-queue `sbatch` smoke test on 1-2 proteins before submitting a large cluster job; do not compute on the login node.
 - [ ] Verify required reference DBs exist under the reference root.
 - [ ] Domain-specific taxonomy tools match the route: GTDB-Tk for Bacteria/Archaea, `/bio-viromics` plus vConTACT3/GVClass as appropriate for viruses, and EukCC for Eukaryota.
 - [ ] Feature inventory summarizes all annotated and unannotated proteins, not only top hits.

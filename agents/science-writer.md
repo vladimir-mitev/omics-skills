@@ -101,8 +101,8 @@ START
 - **"scientific critique", "methodological bias", "evidence quality", "review evidence"** → `/bio-logic`
 - **"peer review", "review this manuscript", "major revision", "decision letter", "rebuttal", "reviewer comments", "multi-reviewer", "review council", "critique manuscript", "manuscript review"** → `/manuscript-review-council`
 - **"proposal", "grant", "funding proposal", "review this proposal"** → `/proposal-review`
-- **"AI scientist", "evaluate agent output", "score AI output", "rank AI scientists"** → `/ai-scientist-evaluator`
-- **"write", "rewrite", "manuscript", "Abstract", "Methods", "response letter"** → `/scientific-writing`
+- **"AI scientist", "AI-generated notebook", "AI-generated analysis", "AI-generated analysis notebook", "evaluate agent output", "score AI output", "rank AI scientists"** → `/ai-scientist-evaluator`
+- **"draft manuscript", "rewrite scientific prose", "manuscript", "Abstract", "Methods", "response letter"** → `/scientific-writing`
 - **"pdf to markdown", "pdf to md", "convert pdf", "convert manuscript to markdown", "paper to markdown", "parse pdf", "liteparse", "ocr pdf"** → `/pdf-to-md`
 - **"CSAG", "argument graph", "claim evidence graph", "conditional scientific argumentation", "extract claims and evidence"** → `/csag-extraction`
 - **"document workflow", "Nextflow", "Snakemake", "pipeline methods"** → `/bio-workflow-methods-docwriter`

@@ -10,7 +10,7 @@
 
 ## Generate a Token
 
-The public Lakehouse UI is protected by Cloudflare Access. Use a Dremio Personal Access Token (PAT) when the UI exposes PAT management for your account; otherwise use the local `get_dremio_token.sh` helper from an internal network or SSH tunnel to create a short-lived login token.
+The public Lakehouse UI is protected by Cloudflare Access. Use a Dremio Personal Access Token (PAT) when the UI exposes PAT management for your account; otherwise use the local `get_dremio_token.sh` helper from an internal host to create a short-lived login token.
 
 ### 1. Access Dremio UI
 1. Open browser and navigate to: https://lakehouse.jgi.lbl.gov
@@ -29,11 +29,15 @@ The public Lakehouse UI is protected by Cloudflare Access. Use a Dremio Personal
 7. **IMPORTANT**: Copy the token immediately (shown only once)
 
 ### 3. Store Token Securely
-Run this command with your generated token:
+Store the generated token without placing it in shell history:
 
 ```bash
-echo "YOUR_TOKEN_HERE" > ~/.secrets/dremio_pat
+install -d -m 700 ~/.secrets
+read -r -s -p "Dremio PAT: " DREMIO_PAT
+printf '\n'
+printf '%s\n' "$DREMIO_PAT" > ~/.secrets/dremio_pat
 chmod 600 ~/.secrets/dremio_pat
+unset DREMIO_PAT
 ```
 
 ### 4. Configure Environment
@@ -53,35 +57,17 @@ source ~/.bashrc  # or source ~/.zshrc
 Test the token (from LBNL network or SSH tunnel):
 
 ```bash
-uv run --with requests python << 'EOF'
-import os
-import sys
-
-sys.path.insert(0, "scripts")
-from rest_client import show_schemas
-
-token = os.getenv("DREMIO_PAT")
-if not token:
-    token = open(os.path.expanduser("~/.secrets/dremio_pat")).read().strip()
-    os.environ["DREMIO_PAT"] = token
-
-schemas = show_schemas()
-print("✓ Successfully connected to JGI Lakehouse!")
-print(f"Schema count: {len(schemas)}")
-EOF
+export DREMIO_PAT=$(<~/.secrets/dremio_pat)
+uv run scripts/rest_client.py
 ```
 
-## Alternative: SSH Tunnel (If on JGI Network)
+## Run the login helper on an internal host
 
-If you have SSH access to JGI internal network:
+The helper needs an interactive terminal and stores the token on that host:
 
 ```bash
-# Create tunnel
-ssh -L 9047:lakehouse-1.jgi.lbl.gov:9047 your-jgi-server.lbl.gov
-
-# Then in another terminal, use the token script
-export DREMIO_HOST=localhost
-./scripts/get_dremio_token.sh <username>
+ssh -t <lbnl-server> \
+  'cd ~/.agents/skills/jgi-lakehouse && ./scripts/get_dremio_token.sh'
 ```
 
 ## Security Notes
@@ -92,20 +78,16 @@ export DREMIO_HOST=localhost
 
 ## Operational Pitfalls (Important)
 
-### 1. Set `DREMIO_PAT` before importing `rest_client`
+### 1. Set `DREMIO_PAT` before the first request
 
-If your script does:
+`rest_client` resolves the token when it builds each request. Imports can happen
+before or after the environment assignment, but the token must exist before a
+query call:
 
 ```python
 from rest_client import query
 os.environ["DREMIO_PAT"] = token
-```
-
-you may get auth failures depending on client version. Always set token first:
-
-```python
-os.environ["DREMIO_PAT"] = token
-from rest_client import query
+rows = query("SELECT 1")
 ```
 
 ### 2. Token lifetime depends on how token was created

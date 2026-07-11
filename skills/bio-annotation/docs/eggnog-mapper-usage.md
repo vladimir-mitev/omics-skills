@@ -468,7 +468,7 @@ export PATH="/path/to/pixi/envs/default/bin:${PATH}"
 8. **Save all outputs**: Keep seed orthologs and hits files for troubleshooting
 9. **Use resume feature**: Enable `--resume` for large datasets
 10. **Never use `--dbmem` with <128 GB RAM**: It will OOM-kill; see resource guidelines above
-11. **Always test on login node first**: Run 2-3 proteins to verify PATH, DB access, and CLI before submitting arrays
+11. **Use a debug-queue smoke job**: Submit 2-3 proteins with a short `sbatch` job to verify PATH, database access, and the exact CLI before submitting arrays; do not compute on the login node
 
 ## Integration with Other Tools
 

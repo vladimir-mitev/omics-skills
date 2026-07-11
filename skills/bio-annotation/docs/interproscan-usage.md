@@ -182,25 +182,40 @@ If a packaged install still fails on helper binaries after this, prefer fixing
 the environment first and rerunning the smoke test rather than launching the
 full cluster job blind.
 
-### 4. Validate the exact installation with a tiny smoke test
+### 4. Validate the exact installation with a debug-queue smoke test
 
-Before launching a large cluster run, execute a login-node smoke test on 1-2
-proteins with the exact CLI you plan to submit:
+Before launching a large cluster run, submit 1-2 proteins to the site's debug
+queue with the exact CLI intended for the full job. Do not run the computation on
+the login node:
 
 ```bash
-./interproscan.sh \
-  -i smoke_input.faa \
-  -b smoke_run \
-  -f TSV \
-  -cpu 1 \
-  -dp \
-  -iprlookup \
-  -goterms \
-  -T ./tmp
+sbatch \
+  --qos="${DEBUG_QOS:?set DEBUG_QOS to the site's debug QOS}" \
+  --job-name=interpro-smoke \
+  --cpus-per-task=1 \
+  --mem=16G \
+  --time=00:15:00 \
+  --wrap='set -euo pipefail
+work_tmp="${TMPDIR:-${SLURM_TMPDIR:-/tmp}}/interproscan"
+mkdir -p "${work_tmp}"
+./interproscan.sh -i smoke_input.faa -b smoke_run -f TSV -cpu 1 -dp -iprlookup -goterms -T "${work_tmp}"
+test -s smoke_run.tsv'
 ```
 
-Only submit the large job after the smoke test reaches completion and writes the
-expected TSV output.
+On Dori, use the required project account and debug QOS:
+
+```bash
+sbatch -A grp-org-sc-mgs --qos=jgi_debug \
+  --job-name=interpro-smoke --cpus-per-task=1 --mem=16G --time=00:15:00 \
+  --wrap='set -euo pipefail
+work_tmp="${TMPDIR:-${SLURM_TMPDIR:-/tmp}}/interproscan"
+mkdir -p "${work_tmp}"
+./interproscan.sh -i smoke_input.faa -b smoke_run -f TSV -cpu 1 -dp -iprlookup -goterms -T "${work_tmp}"
+test -s smoke_run.tsv'
+```
+
+Only submit the large job after Slurm reports completion and `smoke_run.tsv` is
+present, non-empty, and parseable.
 
 ## Common Usage Examples
 

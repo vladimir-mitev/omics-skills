@@ -13,16 +13,9 @@ Release/source: https://github.com/BigDataBiology/SemiBin/blob/main/SemiBin/semi
 
 ## Installation
 
-**Conda (recommended):**
+**With Pixi and GPU support:**
 ```bash
-conda create -n semibin2
-conda activate semibin2
-conda install -c conda-forge -c bioconda semibin
-```
-
-**With GPU support (faster):**
-```bash
-pixi install semibin pytorch-gpu cuda
+pixi add semibin pytorch-gpu cuda
 ```
 
 **Supported Python versions:** 3.8-3.13

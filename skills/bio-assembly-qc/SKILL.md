@@ -1,6 +1,6 @@
 ---
 name: bio-assembly-qc
-description: Assemble genomes/metagenomes and produce assembly QC artifacts.
+description: Assemble genomes or metagenomes and assess assembly quality. Use when turning sequence reads into contigs and reporting completeness, continuity, and contamination evidence.
 ---
 
 # Bio Assembly QC
@@ -39,7 +39,7 @@ Assemble genomes/metagenomes and produce assembly QC artifacts.
 ## Input Requirements
 
 Prerequisites:
-- Tools available in the active environment (Pixi/conda/system). See `docs/README.md` for expected tools.
+- Tools declared in the project's pinned Pixi environment. See `docs/README.md` for expected tools.
 - Sufficient disk and RAM for chosen assembler.
 Inputs:
 - reads/*.fastq.gz or reads/*.fastq (raw or filtered reads; verify actual compression by content when suffixes are suspect).

@@ -37,13 +37,40 @@ WEAK_PATTERN_TOKENS = {
     "docs",
     "documentation",
     "document",
+    "gene",
     "quality",
+    "report",
     "review",
     "this",
     "write",
     "writing",
 }
-SOFTWARE_REVIEW_ACTION_TOKENS = {"review", "documentation", "functionality", "structure", "usefulness"}
+SOFTWARE_REVIEW_ACTION_TOKENS = {
+    "audit",
+    "bug",
+    "bugs",
+    "diagnose",
+    "documentation",
+    "fix",
+    "functionality",
+    "improve",
+    "review",
+    "setup",
+    "structure",
+    "test",
+    "tests",
+    "usefulness",
+}
+SOFTWARE_REPO_TOKENS = {
+    "code",
+    "codebase",
+    "installer",
+    "plugin",
+    "router",
+    "routing",
+    "script",
+    "scripts",
+}
 SCIENTIFIC_CONTEXT_TOKENS = {
     "abstract",
     "annotation",
@@ -218,14 +245,11 @@ def extract_first_heading(markdown: str) -> str | None:
     return None
 
 
-def extract_platforms(text: str) -> list[str]:
-    lowered = text.lower()
-    platforms: list[str] = []
-    if "claude code" in lowered or "claude" in lowered:
-        platforms.append("claude")
-    if "codex" in lowered:
-        platforms.append("codex")
-    return sorted(set(platforms)) or ["claude", "codex"]
+def extract_platforms(frontmatter_value: str) -> list[str]:
+    """Read an explicit platform restriction; prose mentions never restrict use."""
+    tokens = set(TOKEN_PATTERN.findall(frontmatter_value.lower()))
+    platforms = sorted(tokens & {"claude", "codex"})
+    return platforms or ["claude", "codex"]
 
 
 def extract_skill_references(markdown: str, exclude: str) -> tuple[list[str], dict[str, list[str]]]:
@@ -349,12 +373,10 @@ def is_software_repo_review(query_tokens: set[str]) -> bool:
     The omics-skills router has no code-review skill. Explicit code/repo review
     prompts should stay silent instead of matching scientific review patterns.
     """
-    has_repo_subject = bool(query_tokens & {"repo", "repository"}) or (
-        "code" in query_tokens and "review" in query_tokens
-    )
+    has_repo_subject = bool(query_tokens & {"repo", "repository", "codebase"})
+    has_software_subject = bool(query_tokens & SOFTWARE_REPO_TOKENS)
     has_review_action = bool(query_tokens & SOFTWARE_REVIEW_ACTION_TOKENS)
-    has_scientific_context = bool(query_tokens & SCIENTIFIC_CONTEXT_TOKENS)
-    return has_repo_subject and has_review_action and not has_scientific_context
+    return has_repo_subject and (has_review_action or has_software_subject)
 
 
 def parse_repo(repo_root: Path) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
@@ -369,7 +391,7 @@ def parse_repo(repo_root: Path) -> tuple[dict[str, dict[str, Any]], dict[str, di
             "title": extract_first_heading(body) or name,
             "description": frontmatter.get("description", "").strip(),
             "path": str(skill_file.relative_to(repo_root)),
-            "platforms": extract_platforms("\n".join((frontmatter.get("description", ""), body))),
+            "platforms": extract_platforms(frontmatter.get("platforms", "")),
             "agents": [],
             "sections": [],
             "task_patterns": [],
@@ -1174,10 +1196,10 @@ def installed_agent_path(agent_name: str, platform: str, fallback: str | None) -
     if platform == "claude":
         candidates.append(Path.home() / ".claude" / "agents" / f"{agent_name}.md")
     elif platform == "codex":
-        candidates.append(Path.home() / ".codex" / "agents" / f"{agent_name}.md")
+        candidates.append(Path.home() / ".codex" / "agents" / f"{agent_name}.toml")
     else:
         candidates.append(Path.home() / ".claude" / "agents" / f"{agent_name}.md")
-        candidates.append(Path.home() / ".codex" / "agents" / f"{agent_name}.md")
+        candidates.append(Path.home() / ".codex" / "agents" / f"{agent_name}.toml")
     for candidate in candidates:
         if candidate.exists():
             return str(candidate)

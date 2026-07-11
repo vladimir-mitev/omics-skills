@@ -1,6 +1,6 @@
 ---
 name: crossref-lookup
-description: Query the Crossref REST API for DOI validation, title search, citation metadata, and bibliography audits. Use when you need DOI lookup, title-to-DOI matching, or reference metadata cleanup.
+description: Query Crossref for DOI validation, title matching, citation metadata, and bibliography audits. Use when resolving references or cleaning citation records.
 ---
 
 # Crossref Lookup

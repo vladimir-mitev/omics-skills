@@ -30,6 +30,20 @@ class SkillIndexTests(unittest.TestCase):
         )
         self.assertEqual(frontmatter["description"], "first line second line")
 
+    def test_incidental_runtime_mention_does_not_restrict_skill_platforms(self) -> None:
+        self.assertEqual(skill_index.extract_platforms(""), ["claude", "codex"])
+        self.assertEqual(
+            skill_index.extract_platforms("[codex]"),
+            ["codex"],
+        )
+        payload = skill_index.build_outputs(REPO_ROOT)
+        evaluator = next(
+            skill
+            for skill in payload["catalog"]["skills"]
+            if skill["name"] == "ai-scientist-evaluator"
+        )
+        self.assertEqual(evaluator["platforms"], ["claude", "codex"])
+
     def test_build_outputs_produces_expected_relationships(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -129,6 +143,21 @@ class SkillIndexTests(unittest.TestCase):
         self.assertEqual(result["primary_skills"], [])
         self.assertEqual(result["ordered_skills"], [])
 
+    def test_omics_skills_repo_audit_is_a_hard_negative(self) -> None:
+        result = skill_index.route_request(
+            task=(
+                "go over this omics-skills repo, diagnose bugs, improve the "
+                "skill setup, and improve the writeup"
+            ),
+            agent=None,
+            platform="codex",
+            top_k=4,
+            repo=str(REPO_ROOT),
+            index_root=None,
+        )
+        self.assertEqual(result["primary_skills"], [])
+        self.assertEqual(result["ordered_skills"], [])
+
     def test_generic_single_token_pattern_overlap_is_suppressed(self) -> None:
         query_tokens = skill_index.tokenize("perform a code review of this repository")
         self.assertEqual(
@@ -137,6 +166,16 @@ class SkillIndexTests(unittest.TestCase):
         )
         self.assertGreater(
             skill_index.task_pattern_overlap(query_tokens, skill_index.tokenize("code review")),
+            0.0,
+        )
+
+    def test_generic_gene_does_not_activate_hgt_pattern(self) -> None:
+        query_tokens = skill_index.tokenize("build a phylogenetic tree from marker gene alignments")
+        self.assertEqual(
+            skill_index.task_pattern_overlap(
+                query_tokens,
+                skill_index.tokenize("gene donor"),
+            ),
             0.0,
         )
 
@@ -194,7 +233,9 @@ class SkillIndexTests(unittest.TestCase):
             )
             (skills_root / "read-qc" / "SKILL.md").write_text("# installed\n", encoding="utf-8")
             (skills_root / "assembly" / "SKILL.md").write_text("# installed\n", encoding="utf-8")
-            (codex_agents / "omics-scientist.md").write_text("# installed agent\n", encoding="utf-8")
+            (codex_agents / "omics-scientist.toml").write_text(
+                'name = "omics-scientist"\n', encoding="utf-8"
+            )
             (index_root / "skill_index.py").write_text("# marker\n", encoding="utf-8")
 
             payload = skill_index.build_outputs(repo)
@@ -212,7 +253,7 @@ class SkillIndexTests(unittest.TestCase):
 
             self.assertEqual(
                 result["agent_path"],
-                str(codex_agents / "omics-scientist.md"),
+                str(codex_agents / "omics-scientist.toml"),
             )
             self.assertEqual(
                 result["skill_paths"]["assembly"],

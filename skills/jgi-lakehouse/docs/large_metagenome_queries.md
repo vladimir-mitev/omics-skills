@@ -75,14 +75,17 @@ per HTTP request. For a 487K-row result set this means ~975 sequential API calls
 Arrow Flight streams results as Apache Arrow columnar batches over a persistent gRPC
 connection. It is **~20× faster** than REST pagination for large results.
 
-### Setup
+### Runtime
 
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install \
-  "https://github.com/dremio-hub/arrow-flight-client-examples/releases/download/dremio-flight-python-v1.1.0/dremio_flight-1.1.0-py3-none-any.whl" \
-  pandas
+uv run \
+  --with "dremio-flight @ https://github.com/dremio-hub/arrow-flight-client-examples/releases/download/dremio-flight-python-v1.1.0/dremio_flight-1.1.0-py3-none-any.whl" \
+  --with pandas \
+  analysis.py
 ```
+
+Submit bulk retrieval and joins as a scheduler job with memory sized from a small
+pilot. Do not run this workflow on a login node.
 
 ### Authentication with PAT token (no username needed)
 
@@ -98,7 +101,7 @@ def flight_query(sql):
         "hostname": "lakehouse-1.jgi.lbl.gov",
         "port":     32010,
         "token":    os.environ["DREMIO_PAT"],   # PAT from ~/.secrets/dremio_pat
-        "tls":      False,
+        "tls":      True,
         "query":    sql,
     }
     ep = DremioFlightEndpoint(args)
@@ -142,7 +145,7 @@ HOST = "lakehouse-1.jgi.lbl.gov"
 PORT = 32010
 
 def flight_query(sql):
-    args = {"hostname": HOST, "port": PORT, "token": PAT, "tls": False, "query": sql}
+    args = {"hostname": HOST, "port": PORT, "token": PAT, "tls": True, "query": sql}
     ep = DremioFlightEndpoint(args)
     return ep.get_reader(ep.connect()).read_pandas()
 

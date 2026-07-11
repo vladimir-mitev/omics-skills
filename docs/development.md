@@ -29,7 +29,7 @@ Commands:
 python3 scripts/skill_index.py build
 python3 scripts/validate-skills.py
 python3 scripts/validate-supplementary-docs.py
-python3 -m unittest discover -s tests -v
+uv run --no-project --with requests python -m unittest discover -s tests -v
 make benchmark
 ```
 
@@ -38,6 +38,7 @@ make benchmark
 Keep documentation concrete:
 
 - Say what a skill is for, what it expects, and what it produces.
+- Keep frontmatter descriptions concise and include an explicit `Use when` or `Use for` trigger.
 - Prefer short examples over abstract descriptions.
 - Record exact tool versions, database names, URLs, and commands when a result needs to be reproducible.
 - For supplementary tool/source guides, include `Last verified`, `Tool version/release checked`, `Official docs/manual`, and `Release/source` lines near the top.
@@ -66,11 +67,19 @@ Before opening a pull request:
 ```bash
 python3 scripts/validate-skills.py
 python3 scripts/validate-supplementary-docs.py
-python3 -m unittest discover -s tests -v
+uv run --no-project --with requests python -m unittest discover -s tests -v
 make benchmark
 uvx --from mkdocs --with 'mkdocs-material==9.5.*' --with pymdown-extensions mkdocs build --strict
 ```
 
+The skill validator also checks the 500-line limit, a 400-character per-description limit, the aggregate discovery budget, and local Markdown links. Validate both plugin surfaces when their metadata changes:
+
+```bash
+claude plugin validate .
+codex plugin marketplace add .
+codex plugin list --available --json
+```
+
 If routing behavior changes, update `tests/routing_benchmark.yaml` and refresh `docs/routing_baseline.json` only after reviewing the benchmark delta.
 
-For contribution workflow details, see [Contributing](CONTRIBUTING.md). Distribution and marketplace notes live in [Distribution](DISTRIBUTION.md).
+The [Skill Quality](skill-quality.md) page records current per-skill improvement priorities. For contribution workflow details, see [Contributing](CONTRIBUTING.md). Distribution and marketplace notes live in [Distribution](DISTRIBUTION.md).

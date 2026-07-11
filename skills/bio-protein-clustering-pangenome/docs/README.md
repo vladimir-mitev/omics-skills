@@ -1,7 +1,7 @@
 # Tool Documentation
 
 Last verified: 2026-05-30
-Tool version/release checked: OrthoFinder v3.1.5; MMseqs2 official static build checked 2026-05-30; ProteinOrtho v6.3.6
+Tool version/release checked: OrthoFinder v3.1.5; MMseqs2 v18-8cc5c; ProteinOrtho v6.3.6
 Official docs/manual: See linked per-tool guides in this directory.
 Release/source: See linked per-tool guides in this directory.
 
@@ -14,14 +14,14 @@ This directory contains practical usage guides for protein clustering and pangen
 | Tool | Best for | Speed | Documentation |
 |------|----------|-------|---------------|
 | **OrthoFinder v3.1.5** | Default orthology inference, gene + species trees | Medium | [orthofinder.md](orthofinder.md) |
-| **MMseqs2 latest static build** | Sequence clustering and search backbones; very large datasets | Very fast | [mmseqs2.md](mmseqs2.md) |
+| **MMseqs2 v18-8cc5c** | Sequence clustering and search backbones; very large datasets | Very fast | [mmseqs2.md](mmseqs2.md) |
 | **ProteinOrtho v6.3.6** | Large pangenomes where OrthoFinder is RAM-limited | Fast | [proteinortho.md](proteinortho.md) |
 
 ### Quick selection guide
 
 - Default orthology inference up to a few hundred genomes -> **OrthoFinder v3.1.5** (v3 accuracy/scaling improvements; current source: https://github.com/OrthoFinder/OrthoFinder/releases/tag/v3.1.5).
 - Very large pangenomes where OrthoFinder is too RAM-heavy -> **ProteinOrtho v6.3.6** (graph-based RBH; PoFF extension adds synteny support; source: https://gitlab.com/paulklemm_PHD/proteinortho/-/releases/v6.3.6).
-- Sequence clustering at any scale -> **MMseqs2** latest official static build checked 2026-05-30 (`easy-cluster` or `easy-linclust`; docs: https://github.com/soedinglab/MMseqs2/wiki and https://mmseqs.com/latest/userguide.pdf). Add `--gpu` only after verifying the current CUDA build on the target node.
+- Sequence clustering at any scale -> **MMseqs2 v18-8cc5c** (`easy-cluster` or `easy-linclust`; docs: https://github.com/soedinglab/MMseqs2/wiki and https://github.com/soedinglab/MMseqs2/releases/tag/18-8cc5c). GPU search first appeared in v16. Use `--gpu` only with a GPU-enabled build and a command that exposes the flag; Turing GPUs are supported and Ampere-or-newer GPUs provide the full-speed path.
 - Synteny across many genomes → run alongside `ntSynt` or MCScanX (see SKILL.md).
 
 > **Retired:** OrthoMCL has been dropped from this workflow. Existing pipelines should migrate to OrthoFinder v3.
@@ -48,7 +48,6 @@ This directory contains practical usage guides for protein clustering and pangen
 |------|---------------------|
 | MMseqs2 (easy-linclust) | 10–30 minutes |
 | MMseqs2 (easy-cluster) | 1–3 hours |
-| MMseqs2 (easy-cluster, GPU) | ~5–10 minutes on compatible CUDA nodes |
 | ProteinOrtho (DIAMOND) | 2–6 hours |
 | OrthoFinder v3 (DIAMOND) | 3–10 hours |
 | OrthoFinder v3 (MSA mode) | 10–40 hours |
@@ -62,7 +61,7 @@ Each tool guide includes:
    - Papers and manuals
 
 2. **Installation Instructions**
-   - Conda/Bioconda (recommended)
+   - Pinned Pixi project environment
    - Docker containers
    - Manual installation
 
@@ -95,8 +94,9 @@ Each tool guide includes:
 ### 1. Basic Pangenome Analysis
 
 ```bash
-# Fast clustering for presence/absence matrix
-mmseqs easy-cluster proteins.faa orthogroups tmp \
+# Start from one protein FASTA per genome and a complete genomes.tsv manifest.
+# If MMseqs2 needs a combined FASTA, create protein_to_genome.tsv before concatenation.
+mmseqs easy-cluster combined_proteins.faa orthogroups tmp \
     --min-seq-id 0.9 \
     -c 0.8 \
     --threads 16
@@ -170,11 +170,24 @@ OG0000002     gene002    *          gene202
 ```python
 import pandas as pd
 
-# Read orthogroup table
-og = pd.read_csv('orthogroups.tsv', sep='\t', index_col=0)
+# Read an external orthogroup table. Treat both blank cells and literal '*'
+# placeholders as absence.
+og = pd.read_csv(
+    'orthogroups.tsv',
+    sep='\t',
+    index_col=0,
+    na_values=['', '*'],
+    keep_default_na=True,
+)
 
-# Create binary presence/absence matrix
-presence = og.notna().astype(int)
+# Count comma-delimited protein IDs, then derive presence/absence.
+def copy_count(cell):
+    if pd.isna(cell) or not str(cell).strip() or str(cell).strip() == '*':
+        return 0
+    return len([protein for protein in str(cell).split(',') if protein.strip()])
+
+copy_number = og.apply(lambda column: column.map(copy_count))
+presence = (copy_number > 0).astype(int)
 
 # Calculate core/accessory/cloud
 n_genomes = len(og.columns)

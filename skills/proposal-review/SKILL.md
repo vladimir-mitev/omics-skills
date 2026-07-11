@@ -1,6 +1,6 @@
 ---
 name: proposal-review
-description: Structured, decision-ready review framework for AI/ML, computational biology, and bioscience proposals. Use when evaluating grant, project, or funding proposals.
+description: Produce structured, decision-ready reviews of AI/ML, computational-biology, or bioscience proposals. Use when evaluating grants, projects, or funding applications.
 ---
 
 # Proposal Review
@@ -27,9 +27,10 @@ Produce a rigorous, decision-ready review for AI/ML, computational biology, and 
    - AI/ML: baselines, ablations, leakage prevention, calibration, external validation, compute realism
    - Bio or wet lab: controls, replicates, statistical plan, assay feasibility, translational path
 5. Include at least six risks covering technical, data or experimental, budget or timeline, and adoption or regulatory concerns when relevant.
-6. Provide a weighted scorecard on a 1 to 5 scale with short justifications for each score.
-7. End with a clear funding recommendation: `Strong Accept`, `Accept`, `Borderline`, or `Reject`.
-8. Keep the review concrete and action-oriented. Reference proposal details when available and name fatal flaws plainly.
+6. If the sponsor supplies a rubric, use its categories, weights, and decision vocabulary. Otherwise use the default 1-to-5 scorecard below; do not mix sponsor and default weights.
+7. Default weights: strategic fit and novelty 15%, technical rigor 25%, feasibility and resources 20%, team and execution 15%, risk, ethics, and compliance 15%, budget and schedule 10%.
+8. Map the default weighted mean to `Strong Accept` (>=4.5), `Accept` (>=3.7), `Borderline` (>=2.8), or `Reject` (<2.8). A documented fatal flaw may override the numeric band.
+9. Keep the review concrete and action-oriented. Reference proposal details when available and name fatal flaws plainly.
 
 ## Quick Reference
 
@@ -41,6 +42,7 @@ Produce a rigorous, decision-ready review for AI/ML, computational biology, and 
 | Review rigor | Assess controls, baselines, validation, statistics, and reproducibility |
 | Review risk | Build a risk register with likelihood, impact, warning signs, and mitigations |
 | Make a decision | Give a final recommendation plus concrete funding conditions or rejection reasons |
+| Use a sponsor rubric | Preserve its categories, weights, thresholds, and recommendation labels |
 
 ## Input Requirements
 

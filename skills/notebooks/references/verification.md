@@ -28,11 +28,13 @@ A notebook is “done” only if:
 Use **Restart Kernel and Run All Cells**.
 
 ### In automation (preferred if available)
-Use `scripts/execute_notebook.py` which executes the notebook via **nbclient** and writes an executed notebook artifact.
+Use the installed skill's `scripts/execute_notebook.py`, which provisions its dependencies through PEP 723, executes the notebook via **nbclient**, and writes an executed notebook artifact.
 
 Example:
 ```bash
-python scripts/execute_notebook.py notebooks/01_analysis.ipynb --out notebooks/01_analysis.executed.ipynb
+NOTEBOOKS_SKILL="${NOTEBOOKS_SKILL:-$HOME/.agents/skills/notebooks}"
+uv run --script "$NOTEBOOKS_SKILL/scripts/execute_notebook.py" \
+  notebooks/01_analysis.ipynb --out notebooks/01_analysis.executed.ipynb
 ```
 
 ## Output inspection checklist

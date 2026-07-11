@@ -1,125 +1,117 @@
-#!/bin/bash
-#
-# get_dremio_token.sh - Generate Dremio access token from username/password
-#
-# Usage:
-#   ./get_dremio_token.sh <username> <password>
-#   ./get_dremio_token.sh  # Prompts for credentials interactively
-#
-# Network Requirements:
-#   - Port 9047 must be accessible on lakehouse-1.jgi.lbl.gov
-#   - If blocked, use SSH tunnel: ssh -L 9047:lakehouse-1.jgi.lbl.gov:9047 gateway-host
-#   - Or request firewall access from JGI network team
-#
-# Security Notes:
-#   - This uses the v2 login API (internal use only)
-#   - PAT feature not available until Dremio Enterprise upgrade
-#   - Do NOT hardcode credentials in scripts or commit them to git
-#   - Store token in DREMIO_PAT environment variable or secure vault
-#
-# Example:
-#   export DREMIO_PAT=$(./get_dremio_token.sh myuser mypass)
-#
-# Reference: Georg Rath's script from JGI Slack
-#
+#!/usr/bin/env bash
+# Generate a short-lived Dremio token without exposing credentials or token output.
 
 set -euo pipefail
+umask 077
 
-# Configuration
+usage() {
+  cat >&2 <<'USAGE'
+Usage: get_dremio_token.sh [--output PATH]
+
+Credentials are read interactively. The token is written to PATH atomically
+with mode 0600 (default: ~/.secrets/dremio_pat); it is never printed.
+USAGE
+}
+
 DREMIO_HOST="${DREMIO_HOST:-lakehouse-1.jgi.lbl.gov}"
 DREMIO_PORT="${DREMIO_PORT:-9047}"
 DREMIO_LOGIN_URL="https://${DREMIO_HOST}:${DREMIO_PORT}/apiv2/login"
+OUTFILE="${HOME}/.secrets/dremio_pat"
 
-# Helper function to parse JSON (avoids jq dependency)
-q() {
-  python3 -c "import sys, json; print(json.load(sys.stdin)['$1'].strip())"
-}
+while (($#)); do
+  case "$1" in
+    --output)
+      if (($# < 2)) || [[ -z "$2" || "$2" == "-" ]]; then
+        echo "Error: --output requires a file path" >&2
+        usage
+        exit 2
+      fi
+      OUTFILE="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Error: credentials are read interactively and are not accepted as arguments" >&2
+      usage
+      exit 2
+      ;;
+  esac
+done
 
-HOMEPATH=$(readlink -f ~/)
-OUTFILE=$HOMEPATH"/.secrets/dremio_pat"
-
-# Input validation
-if [ $# -eq 0 ]; then
-  # Interactive mode - will have the option to output the token to a file
-
-  read -p "Output file where the token will be stored (default: ~/.secrets/dremio_pat, leave empty if you don't want to change): " OUTFILE_CHANGE
-  read -p "Username: " USERNAME
-  read -sp "Password: " PASSWORD
-  echo
-elif [ $# -eq 2 ]; then
-  # Command-line arguments
-  USERNAME="$1"
-  PASSWORD="$2"
-  OUTFILE_CHANGE=""
-else
-  echo "Error: Invalid arguments" >&2
-  echo "Usage: $0 [username] [password]" >&2
-  echo "   Or: $0  (for interactive prompt)" >&2
+if ! command -v curl >/dev/null 2>&1; then
+  echo "Error: curl is required" >&2
+  exit 1
+fi
+if ! command -v uv >/dev/null 2>&1; then
+  echo "Error: uv is required for safe JSON handling" >&2
   exit 1
 fi
 
-# Validate inputs
-if [ -z "$USERNAME" ] || [ -z "$PASSWORD" ]; then
-  echo "Error: Username and password cannot be empty" >&2
+IFS= read -r -p "Username: " USERNAME
+IFS= read -r -s -p "Password: " PASSWORD
+printf '\n' >&2
+if [[ -z "$USERNAME" || -z "$PASSWORD" ]]; then
+  echo "Error: username and password cannot be empty" >&2
   exit 1
 fi
 
-if ! [ -z "$OUTFILE_CHANGE"]; then
-  echo "Changing the output file path to $OUTFILE_CHANGE"
-  OUTFILE=$OUTFILE_CHANGE
-fi
-
-
-# Make API request
-TEMP_FILE=$(mktemp)
-trap "rm -f $TEMP_FILE" EXIT
-
-
-# print the curl command for debugging purposes (without the password)
-# echo "Running curl command: curl --silent --insecure --write-out \"%{http_code}\" --output $TEMP_FILE -X POST $DREMIO_LOGIN_URL --header 'Content-Type: application/json' --data-raw '{ \"userName\": \"$USERNAME\", \"password\": \"********\" }'"
-HTTP_CODE=$(curl --silent --insecure \
-  --write-out "%{http_code}" \
-  --output "$TEMP_FILE" \
-  -X POST "$DREMIO_LOGIN_URL" \
-  --header 'Content-Type: application/json' \
-  --data-raw "{
-    \"userName\": \"$USERNAME\",
-    \"password\": \"$PASSWORD\"
-  }")
-
-# Check response
-if [ "$HTTP_CODE" -ne 200 ]; then
-  echo "Error: Authentication failed (HTTP $HTTP_CODE)" >&2
-  cat "$TEMP_FILE" >&2
-  exit 1
-fi
-
-# Extract token
-if ! TOKEN=$(cat "$TEMP_FILE" | q "token" 2>/dev/null); then
-  echo "Error: Failed to parse token from response" >&2
-  cat "$TEMP_FILE" >&2
-  exit 1
-fi
-
-if [ -z "$TOKEN" ]; then
-  echo "Error: Token is empty" >&2
-  exit 1
-fi
-
-# Output token
-echo "$TOKEN"
-
-# Write if in the out file if a path was provided
-if ! [ -z "$OUTFILE" ]; then
-  # fullpath=$(readlink -f "$OUTFILE")
-  # dir=$(dirname $fullpath)
-  dir=$(dirname $OUTFILE)
-  # echo $dir
-  if [ ! -d $dir ] 
-  then
-    echo "creating the dir $dir"
-    mkdir -p $dir
+PAYLOAD_FILE=$(mktemp)
+RESPONSE_FILE=$(mktemp)
+TOKEN_TMP=""
+cleanup() {
+  rm -f -- "$PAYLOAD_FILE" "$RESPONSE_FILE"
+  if [[ -n "$TOKEN_TMP" ]]; then
+    rm -f -- "$TOKEN_TMP"
   fi
-  echo "Exporting the token to $OUTFILE"
-  echo "$TOKEN" > "$OUTFILE"
+}
+trap cleanup EXIT HUP INT TERM
+chmod 600 "$PAYLOAD_FILE" "$RESPONSE_FILE"
+
+# Send credentials over stdin so shell quoting cannot change the JSON payload and
+# neither credential appears in the Python process arguments.
+printf '%s\n%s' "$USERNAME" "$PASSWORD" |
+  uv run --no-project python -c \
+    'import json, sys; username = sys.stdin.readline().rstrip("\n"); password = sys.stdin.read(); json.dump({"userName": username, "password": password}, sys.stdout)' \
+    >"$PAYLOAD_FILE"
+unset USERNAME PASSWORD
+
+CURL_ARGS=(
+  --silent
+  --show-error
+  --write-out "%{http_code}"
+  --output "$RESPONSE_FILE"
+  --request POST
+  --header "Content-Type: application/json"
+  --data-binary "@$PAYLOAD_FILE"
+)
+if [[ -n "${DREMIO_CA_BUNDLE:-}" ]]; then
+  CURL_ARGS+=(--cacert "$DREMIO_CA_BUNDLE")
 fi
+
+HTTP_CODE=$(curl "${CURL_ARGS[@]}" "$DREMIO_LOGIN_URL")
+if [[ "$HTTP_CODE" != "200" ]]; then
+  echo "Error: authentication failed (HTTP $HTTP_CODE)" >&2
+  exit 1
+fi
+
+if ! TOKEN=$(uv run --no-project python -c \
+  'import json, sys; token = json.load(sys.stdin).get("token"); assert isinstance(token, str) and token.strip(); print(token.strip())' \
+  <"$RESPONSE_FILE" 2>/dev/null); then
+  echo "Error: authentication response did not contain a token" >&2
+  exit 1
+fi
+
+OUTDIR=$(dirname -- "$OUTFILE")
+mkdir -p -- "$OUTDIR"
+TOKEN_TMP=$(mktemp "$OUTDIR/.dremio_pat.tmp.XXXXXX")
+chmod 600 "$TOKEN_TMP"
+printf '%s\n' "$TOKEN" >"$TOKEN_TMP"
+unset TOKEN
+mv -f -- "$TOKEN_TMP" "$OUTFILE"
+TOKEN_TMP=""
+chmod 600 "$OUTFILE"
+
+echo "Token stored in $OUTFILE" >&2

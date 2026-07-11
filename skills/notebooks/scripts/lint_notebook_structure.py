@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "nbformat>=5.10,<6",
+# ]
+# ///
 
 """
 Lint notebook structure for "KISS + Markdown-first" requirements.
@@ -12,7 +18,8 @@ Optional:
 - --require-local-pixi: require pixi.toml in the same directory as the notebook.
 
 Usage:
-  python scripts/lint_notebook_structure.py notebooks/01_analysis.ipynb
+  uv run --script ~/.agents/skills/notebooks/scripts/lint_notebook_structure.py \
+    notebooks/01_analysis.ipynb
 """
 from __future__ import annotations
 

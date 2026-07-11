@@ -1,6 +1,6 @@
 ---
 name: plotly-dashboard-skill
-description: Build production-ready Plotly Dash dashboards with consistent theming, clear layouts, and performant callbacks.
+description: Build production-ready Plotly Dash dashboards. Use when scientific data needs an interactive, consistently themed layout with clear and performant callbacks.
 ---
 
 # Plotly Dashboard Skill

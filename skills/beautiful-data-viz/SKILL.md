@@ -1,6 +1,6 @@
 ---
 name: beautiful-data-viz
-description: Create publication-quality matplotlib/seaborn charts with readable axes, tight layout, curated palettes, and Tufte-style high-data-ink design.
+description: Create publication-quality static charts with matplotlib or seaborn. Use when scientific figures need readable axes, accessible palettes, tight layouts, and high data-ink design.
 argument-hint: "[medium=notebook|paper|slides] [background=light|dark]"
 ---
 
@@ -60,7 +60,13 @@ Create polished, publication-ready visualizations in Python/Jupyter with strong 
 ### Example 1: Apply the shared style helper
 
 ```python
+from pathlib import Path
+import sys
+
+SKILL_DIR = Path.home() / ".agents" / "skills" / "beautiful-data-viz"
+sys.path.insert(0, str(SKILL_DIR))
 from assets.beautiful_style import set_beautiful_style, finalize_axes
+
 set_beautiful_style(medium="paper", background="light")
 # build plot here
 finalize_axes(ax, xlabel="Time (days)", ylabel="Value", tight=True)
@@ -69,6 +75,11 @@ finalize_axes(ax, xlabel="Time (days)", ylabel="Value", tight=True)
 ### Example 2: Direct labels and range-frame axes
 
 ```python
+from pathlib import Path
+import sys
+
+SKILL_DIR = Path.home() / ".agents" / "skills" / "beautiful-data-viz"
+sys.path.insert(0, str(SKILL_DIR))
 from assets.beautiful_style import apply_range_frame, direct_label
 
 ax.plot(x, y, color="#666666", linewidth=1.5)

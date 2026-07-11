@@ -179,7 +179,7 @@ LIMIT 50;
 
 Integrated Microbial Genomes database - gene annotations, functions, and genomic features.
 
-**→ For comprehensive IMG table documentation, see [IMG-tables-reference.md](IMG-tables-reference.md)**
+For the full IMG table reference, see [IMG-tables-reference.md](IMG-tables-reference.md).
 
 ### Schemas
 
@@ -630,11 +630,13 @@ LIMIT 10;
 ### Step 2: Access Files on JGI Filesystem
 
 ```bash
+# Run copy and extraction in a small-job scheduler allocation, not on a login node.
 # Check if genome package exists
 TAXON_OID=2728369577
 ls -la /clusterfs/jgi/img_merfs-ro/img_web/img_web_data/download/${TAXON_OID}.tar.gz
 
 # Extract to working directory
+mkdir -p ./genomes
 tar -xzf /clusterfs/jgi/img_merfs-ro/img_web/img_web_data/download/${TAXON_OID}.tar.gz -C ./genomes/
 
 # Or access per-taxon directory directly

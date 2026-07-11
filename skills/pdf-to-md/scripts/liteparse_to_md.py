@@ -9,7 +9,7 @@ LiteParse v2 (https://github.com/run-llama/liteparse) parses fully locally with
 NO API key. OCR is on by default via bundled Tesseract; point ``--ocr-server-url``
 at an HTTP OCR server (EasyOCR/PaddleOCR/custom) for higher accuracy. This is the
 fast / no-key fallback for the pdf-to-md skill. For layout-heavy scientific PDFs,
-``ocr_api_job.py`` (remote OCR API) is preferred when an OCR key is available.
+``ocr_api_job.py`` can use an approved remote OCR API explicitly.
 
 The native parser ships inside the ``liteparse`` wheel, so running this script
 with ``uv run`` auto-provisions the right per-platform executable — nothing to
@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import statistics
 import sys
@@ -66,7 +67,7 @@ def load_liteparse():
     except ImportError as exc:  # pragma: no cover - exercised only without the dep
         raise SystemExit(
             "liteparse is not installed. Run this script with `uv run` (which "
-            "auto-installs the inline dependency), or `pip install liteparse`."
+            "auto-installs the inline dependency)."
         ) from exc
 
 
@@ -86,7 +87,7 @@ def ensure_v2(liteparse) -> str:
     if not major.isdigit() or int(major) != 2 or not hasattr(liteparse, "LiteParse"):
         raise SystemExit(
             f"pdf-to-md requires LiteParse v2 (run-llama Rust rewrite); found "
-            f"version {version!r}. Install it with: pip install 'liteparse>=2,<3'"
+            f"version {version!r}. Run this PEP 723 script directly with uv."
         )
     return version
 
@@ -253,7 +254,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--target-pages", default=None, help="e.g. '1-5,10,15-20'.")
     parser.add_argument("--max-pages", type=int, default=None)
     parser.add_argument("--dpi", type=float, default=None)
-    parser.add_argument("--password", default=None)
+    parser.add_argument(
+        "--password-env",
+        metavar="NAME",
+        help="Read the document password from environment variable NAME.",
+    )
     return parser.parse_args()
 
 
@@ -280,8 +285,11 @@ def main() -> int:
         config["max_pages"] = args.max_pages
     if args.dpi is not None:
         config["dpi"] = args.dpi
-    if args.password:
-        config["password"] = args.password
+    if args.password_env:
+        password = os.getenv(args.password_env)
+        if password is None:
+            raise SystemExit(f"environment variable {args.password_env!r} is not set")
+        config["password"] = password
 
     parser = liteparse.LiteParse(**config)
     result = parser.parse(input_path)

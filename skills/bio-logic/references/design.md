@@ -26,7 +26,7 @@
 
 | Question Type | Best Design | Why |
 |---------------|-------------|-----|
-| Does X cause Y? | RCT | Controls confounding |
+| Does X cause Y? | RCT when feasible; otherwise a justified quasi-experiment or natural experiment | Targets confounding and identification assumptions explicitly |
 | Is X associated with Y? | Cohort | Temporal sequence |
 | Why did Y happen? | Case-control | Efficient for rare outcomes |
 | How common is Y? | Cross-sectional | Prevalence estimate |

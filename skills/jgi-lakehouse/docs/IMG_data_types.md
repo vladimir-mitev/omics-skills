@@ -288,7 +288,7 @@ Once you've identified the genomes you want, use the `taxon_oid` field to downlo
 # Genome packages are located at:
 /clusterfs/jgi/img_merfs-ro/img_web/img_web_data/download/{taxon_oid}.tar.gz
 
-# Example: Download and extract MAG
+# Run the copy and extraction in a small-job scheduler allocation, not on a login node.
 cp /clusterfs/jgi/img_merfs-ro/img_web/img_web_data/download/2601500125.tar.gz .
 tar -xzf 2601500125.tar.gz
 

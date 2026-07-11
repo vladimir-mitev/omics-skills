@@ -166,7 +166,12 @@
         "required": [
           "step_id",
           "name",
-          "status"
+          "status",
+          "tool",
+          "tool_version",
+          "command",
+          "inputs",
+          "outputs"
         ],
         "properties": {
           "step_id": {

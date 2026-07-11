@@ -23,7 +23,7 @@ marimo has a rich set of UI components.
 * `mo.ui.array(elements: list[mo.ui.Element])` - create an array of UI elements
 * `mo.ui.form(element: mo.ui.Element, label='', bordered=True)` - wrap an element in a form
 
-As always, you can learn more about the available inputs to all these components via `uv --with marimo run python -c "import marimo as mo; help(mo.ui.form)"` 
+Inspect the installed API with `uv run --no-project --with marimo python -c "import marimo as mo; help(mo.ui.form)"`.
 
 ## Forms
 

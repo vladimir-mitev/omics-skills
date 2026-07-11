@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["requests>=2.32,<3"]
+# ///
 """
 Download microbial genomes with IMG taxon OIDs from JGI Lakehouse + Filesystem.
 
 Usage:
-    python download_img_genomes.py [--count N] [--domain DOMAIN] [--output-dir DIR]
+    uv run download_img_genomes.py [--count N] [--domain DOMAIN] [--output-dir DIR]
 
 Examples:
-    python download_img_genomes.py --count 5 --domain Bacteria
-    python download_img_genomes.py --count 3 --domain Archaea --output-dir my_genomes
+    uv run download_img_genomes.py --count 5 --domain Bacteria
+    uv run download_img_genomes.py --count 3 --domain Archaea --output-dir my_genomes
 """
 
 import argparse
@@ -25,7 +29,7 @@ DREMIO_HOST = os.getenv("DREMIO_HOST", "lakehouse-1.jgi.lbl.gov")
 DREMIO_PORT = os.getenv("DREMIO_PORT", "9047")
 DREMIO_BASE_URL = f"https://{DREMIO_HOST}:{DREMIO_PORT}/api/v3"
 DREMIO_REQUEST_TIMEOUT = float(os.getenv("DREMIO_REQUEST_TIMEOUT", "60"))
-TLS_DISABLED_VALUES = {"0", "false", "no", "off"}
+DREMIO_JOB_TIMEOUT = float(os.getenv("DREMIO_JOB_TIMEOUT", "300"))
 ALLOWED_DOMAINS = {"Archaea", "Bacteria", "Eukaryota", "Viruses"}
 MAX_QUERY_LIMIT = 5000
 
@@ -34,11 +38,6 @@ IMG_DOWNLOAD_DIR = Path(
     os.getenv("IMG_DOWNLOAD_DIR", "/clusterfs/jgi/img_merfs-ro/img_web/img_web_data/download")
 )
 IMG_DATA_DIR = Path(os.getenv("IMG_DATA_DIR", "/clusterfs/jgi/img_merfs-ro/img_web_data_merfs"))
-
-
-def verify_tls() -> bool:
-    """Return whether Dremio HTTPS requests should verify TLS certificates."""
-    return os.getenv("DREMIO_VERIFY_TLS", "1").strip().lower() not in TLS_DISABLED_VALUES
 
 
 def validate_domain(domain: str) -> str:
@@ -73,9 +72,11 @@ def _is_relative_to(path: Path, base: Path) -> bool:
 
 
 def safe_extract_tar(tar: tarfile.TarFile, extract_dir: Path) -> None:
-    """Extract a tarball after rejecting members that escape extract_dir."""
+    """Extract regular files, directories, and in-tree links only."""
     base = extract_dir.resolve()
     for member in tar.getmembers():
+        if member.isdev() or member.isfifo():
+            raise ValueError(f"Unsafe tar special file: {member.name}")
         target = (base / member.name).resolve()
         if not _is_relative_to(target, base):
             raise ValueError(f"Unsafe tar member path: {member.name}")
@@ -113,18 +114,22 @@ def query(sql: str, limit: int = 100) -> list:
         headers=headers,
         json={"sql": sql},
         timeout=DREMIO_REQUEST_TIMEOUT,
-        verify=verify_tls(),
     )
     response.raise_for_status()
     job_id = response.json().get("id")
+    if not job_id:
+        raise ValueError("Dremio response did not include a job ID")
 
     # Wait for completion
+    deadline = time.monotonic() + DREMIO_JOB_TIMEOUT
     while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError(f"Query did not complete within {DREMIO_JOB_TIMEOUT:g}s")
         status = requests.get(
             f"{DREMIO_BASE_URL}/job/{job_id}",
             headers=headers,
-            timeout=DREMIO_REQUEST_TIMEOUT,
-            verify=verify_tls(),
+            timeout=min(DREMIO_REQUEST_TIMEOUT, remaining),
         )
         status.raise_for_status()
         status_json = status.json()
@@ -133,7 +138,7 @@ def query(sql: str, limit: int = 100) -> list:
             break
         elif status_json.get("jobState") in ("FAILED", "CANCELED", "CANCELLED"):
             raise RuntimeError(f"Query failed: {status_json.get('errorMessage')}")
-        time.sleep(1)
+        time.sleep(min(1, max(0, deadline - time.monotonic())))
 
     # Get results
     results = requests.get(
@@ -141,7 +146,6 @@ def query(sql: str, limit: int = 100) -> list:
         headers=headers,
         params={"limit": limit},
         timeout=DREMIO_REQUEST_TIMEOUT,
-        verify=verify_tls(),
     )
     results.raise_for_status()
     return results.json().get("rows", [])
@@ -239,6 +243,15 @@ def download_genome(taxon_oid: str, output_dir: Path) -> dict:
                 shutil.copy2(src_file, dst_file)
                 files_copied.append(src_file.name)
 
+        if not files_copied:
+            return {
+                "success": False,
+                "taxon_oid": taxon_oid,
+                "directory": str(dst_dir),
+                "error": "IMG data directory contained none of the expected fallback files",
+                "files_copied": [],
+            }
+
         return {
             "success": True,
             "taxon_oid": taxon_oid,
@@ -315,9 +328,9 @@ def main(argv: list[str] | None = None):
         results.append(result)
 
         if result["success"]:
-            print(f"   ✓ Downloaded successfully")
+            print("   Downloaded successfully")
         else:
-            print(f"   ✗ Failed: {result.get('error')}")
+            print(f"   Failed: {result.get('error')}")
 
     # Save metadata
     metadata_file = output_dir / "downloaded_genomes.json"

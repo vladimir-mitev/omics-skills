@@ -13,9 +13,10 @@ Release/source: https://github.com/OrthoFinder/OrthoFinder/releases/tag/v3.1.5
 
 ## Installation
 
-### Conda (Recommended)
+### Pixi
 ```bash
-conda install -c bioconda orthofinder
+pixi add orthofinder
+pixi run orthofinder --version
 ```
 
 ### Manual Installation
@@ -51,8 +52,8 @@ orthofinder -f DIRECTORY [OPTIONS]
 
 ### Search Method
 - `-S PROGRAM` - Sequence search program
-  - `blast` - NCBI BLAST+ (default, slower, more sensitive)
-  - `diamond` - Diamond (faster, recommended for >20 species)
+  - `diamond` - Diamond (default; recommended for most datasets)
+  - `blast` - NCBI BLAST+
   - `diamond_ultra_sens` - Diamond ultra-sensitive mode
   - `blast_gz` - BLAST with compressed database
   - `mmseqs` - MMseqs2 (fastest for very large datasets)
@@ -71,7 +72,8 @@ orthofinder -f DIRECTORY [OPTIONS]
 
 ### Species Tree Options
 - `-s TREE_FILE` - Provide custom species tree (Newick format)
-- `-S` - Skip orthogroup inference, use previous results
+
+`-S` always expects a sequence-search program. To restart from previous search results, use `-b RESULTS_DIR`; it is not a flag for skipping orthogroup inference.
 
 ### Incremental Analysis
 - `--core RESULTS_DIR` - Designate core analysis for incremental workflow
@@ -262,13 +264,13 @@ genome_cols = orthogroups.columns
 
 # Create presence/absence matrix
 def is_present(cell):
-    return 0 if pd.isna(cell) or cell == '' else 1
+    return 0 if pd.isna(cell) or str(cell).strip() in {'', '*'} else 1
 
 presence = orthogroups.apply(lambda col: col.apply(is_present))
 
 # Identify single-copy orthologs
 def is_single_copy(cell):
-    if pd.isna(cell) or cell == '':
+    if pd.isna(cell) or str(cell).strip() in {'', '*'}:
         return False
     return ',' not in str(cell)
 

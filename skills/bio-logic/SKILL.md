@@ -1,6 +1,6 @@
 ---
 name: bio-logic
-description: Evaluate scientific rigor, methods, biases, and evidence quality for claims, papers, and study designs.
+description: Evaluate scientific claims, methods, biases, and evidence strength. Use when stress-testing a study design, paper, analysis, or causal interpretation.
 ---
 
 # Bio-Logic: Scientific Reasoning Evaluation
@@ -33,7 +33,7 @@ Use relevant sections based on the review scope. Skip items not applicable to th
 
 ```
 ## Methodology
-- [ ] Design matches research question (causal claim → RCT needed)
+- [ ] Design identifies the causal estimand through randomization or a justified quasi-experimental or natural-experiment strategy
 - [ ] Sample size justified (power analysis reported)
 - [ ] Randomization/blinding implemented where feasible
 - [ ] Confounders identified and controlled

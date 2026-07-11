@@ -170,11 +170,11 @@ Use the public GitHub repository URL, `https://github.com/fmschulz/omics-skills`
 #### Repository Structure for Marketplaces
 
 Marketplaces look for:
-- ✅ `SKILL.md` files with YAML frontmatter (you have this)
-- ✅ Clear directory structure (you have this)
-- ✅ README.md documentation (you have this)
-- ✅ LICENSE file in the repository root
-- ✅ GitHub topics/tags (need to add)
+- Present: `SKILL.md` files with YAML frontmatter
+- Present: clear directory structure
+- Present: README documentation
+- Present: `LICENSE` in the repository root
+- Pending: add GitHub topics and tags
 
 ---
 
@@ -347,8 +347,8 @@ Release notes should cover:
 - [Use case 2]
 
 **Tested With:**
-- Claude Code: ✓
-- Codex CLI: ✓
+- Claude Code: OK
+- Codex CLI: OK
 
 **Additional Notes:**
 This skill is part of the omics-skills collection available at:

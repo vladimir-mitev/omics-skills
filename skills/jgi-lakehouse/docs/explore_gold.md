@@ -11,35 +11,35 @@ Current off-network workstations may not be able to access the internal Dremio A
 - Port 9047 is blocked/firewalled
 - Public HTTPS endpoint has Cloudflare Access protection
 
-## Solution: Run from LBNL Server
+## Run from an LBNL compute allocation
 
-You need to run the exploration script from the **same LBNL server** where you generated the token.
+Use a scheduler allocation with Lakehouse network access. Do not run the scan on a
+login node.
 
-### Step 1: Copy Files to LBNL Server
+### Step 1: Confirm the installed skill and token
 
 ```bash
-# From your workstation, copy the exploration script
-scp scripts/explore_gold_database.sh <lbnl-server>:~/
-scp ~/.secrets/dremio_pat <lbnl-server>:~/.secrets/
+test -x ~/.agents/skills/jgi-lakehouse/scripts/explore_gold_database.sh
+test -s ~/.secrets/dremio_pat || \
+  ~/.agents/skills/jgi-lakehouse/scripts/get_dremio_token.sh
 ```
 
-### Step 2: SSH to LBNL Server
+### Step 2: SSH to the LBNL login host
 
 ```bash
 ssh <lbnl-server>
 ```
 
-### Step 3: Run the Exploration Script
+### Step 3: Submit the exploration
 
 ```bash
-# Set the token
-export DREMIO_PAT=$(cat ~/.secrets/dremio_pat)
-
-# Run the exploration
-bash ~/explore_gold_database.sh > gold_exploration_results.txt 2>&1
-
-# View results
-cat gold_exploration_results.txt
+# Select the site's small-job account and partition. Avoid Dori high-memory nodes.
+export SLURM_ACCOUNT=<small-job-account>
+export SLURM_PARTITION=<small-job-partition>
+sbatch -A "$SLURM_ACCOUNT" -p "$SLURM_PARTITION" \
+  --time=00:10:00 --cpus-per-task=1 --mem=2G \
+  --output=gold_exploration_results.txt \
+  --wrap='bash ~/.agents/skills/jgi-lakehouse/scripts/explore_gold_database.sh'
 ```
 
 ## What the Script Does
@@ -49,47 +49,33 @@ The script will:
 1. **List all available schemas** in the lakehouse
 2. **Find the GOLD database** (or similar)
 3. **List all tables** in GOLD
-4. **For each table**, show:
+4. **For the first three tables**, show:
    - Column names and data types
    - Row count
    - Sample data (first 2 rows)
 
 ## Alternative: Manual Exploration
 
-If you prefer to explore manually, here are the SQL commands:
+Use the verified HTTPS client for manual queries:
 
 ```bash
-# Set token
-export DREMIO_PAT=$(cat ~/.secrets/dremio_pat)
-BASE_URL="https://lakehouse-1.jgi.lbl.gov:9047/api/v3"
+export DREMIO_PAT=$(<~/.secrets/dremio_pat)
+uv run --with requests python - <<'PY'
+import sys
+from pathlib import Path
 
-# Helper function
-run_query() {
-  local sql="$1"
-  local job=$(curl -s --insecure -X POST "$BASE_URL/sql" \
-    -H "Authorization: Bearer $DREMIO_PAT" \
-    -H "Content-Type: application/json" \
-    -d "{\"sql\": \"$sql\"}")
+sys.path.insert(0, str(Path.home() / ".agents/skills/jgi-lakehouse/scripts"))
+from rest_client import query
 
-  local job_id=$(echo "$job" | uv run python -c "import sys,json; print(json.load(sys.stdin).get('id',''))")
-
-  sleep 1
-
-  curl -s --insecure "$BASE_URL/job/$job_id/results?limit=100" \
-    -H "Authorization: Bearer $DREMIO_PAT" | uv run python -m json.tool
-}
-
-# List all schemas
-run_query "SHOW SCHEMAS"
-
-# List GOLD tables
-run_query "SHOW TABLES IN GOLD"
-
-# Describe a specific table
-run_query "DESCRIBE GOLD.PROJECT"
-
-# Sample data from a table
-run_query "SELECT * FROM GOLD.PROJECT LIMIT 5"
+for sql in (
+    "SHOW SCHEMAS",
+    "SHOW TABLES IN GOLD",
+    "DESCRIBE GOLD.PROJECT",
+    "SELECT * FROM GOLD.PROJECT LIMIT 5",
+):
+    print(sql)
+    print(query(sql))
+PY
 ```
 
 ## Expected Output
@@ -111,7 +97,7 @@ Found 15 schemas:
   - IMG
   ...
 
-✓ GOLD schema found!
+GOLD schema found
 
 2. Listing tables in GOLD schema...
 ────────────────────────────────────────────────────────────────
@@ -174,16 +160,16 @@ cat ~/gold_data_catalog.txt
 ## Troubleshooting
 
 **Error: "No route to host"**
-→ You're not on the LBNL network. Make sure you're SSH'd into the correct server.
+: Use a compute allocation with LBNL network access.
 
 **Error: "Unauthorized" or "401"**
-→ Token might be expired (30 hour lifetime). Regenerate using the admin's script.
+: The token may be expired. Generate a new token with the helper.
 
 **Error: "GOLD schema not found"**
-→ The schema might have a different name. Check the schema list for variations like "Gold", "gold", etc.
+: Check the schema list for variations such as `Gold` or `gold`.
 
 **No output**
-→ Check that curl and python3 are available on the LBNL server
+: Check that `uv` is available in the scheduler allocation.
 
 ## Next Steps
 

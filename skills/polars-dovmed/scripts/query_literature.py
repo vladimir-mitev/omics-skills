@@ -2,12 +2,14 @@
 """Small helper for grouped polars-dovmed literature queries."""
 
 import argparse
+import csv
 import copy
 import concurrent.futures
 import difflib
 import json
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import time
@@ -62,6 +64,7 @@ MAX_TERM_SPANS_PER_TERM = 4
 MAX_FULLTEXT_CONTEXTS = 36
 CONTEXT_SNIPPET_CHARS = 240
 DEFAULT_LOCAL_REPO = str(Path("~/dev/polars-dovmed").expanduser())
+DEFAULT_LOCAL_SCAN_TIMEOUT = 900
 LOCAL_CORPUS_ENV = {
     "pmc": "DOVMED_PMC_PARQUET",
     "biorxiv": "DOVMED_BIORXIV_PARQUET",
@@ -209,9 +212,12 @@ def parse_args():
         default=2,
         help="Maximum concurrent hosted API jobs for --year-bands.",
     )
-    parser.add_argument("--timeout", type=int)
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        help="HTTP timeout, or maximum local scan runtime in seconds (local default: 900)",
+    )
     parser.add_argument("--base-url", default="https://api.newlineages.com")
-    parser.add_argument("--api-key")
     parser.add_argument(
         "--corpus",
         choices=["pmc", "biorxiv", "both"],
@@ -339,11 +345,13 @@ def parse_args():
         parser.error("--year-bands applies to search requests, not paper-details lookups")
     if args.year_band_workers < 1:
         parser.error("--year-band-workers must be at least 1")
+    if args.timeout is not None and args.timeout < 1:
+        parser.error("--timeout must be at least 1 second")
     return args
 
 
-def load_api_key(explicit_key):
-    api_key = explicit_key or os.environ.get("POLARS_DOVMED_API_KEY")
+def load_api_key():
+    api_key = os.environ.get("POLARS_DOVMED_API_KEY")
     if not api_key:
         raise SystemExit("missing POLARS_DOVMED_API_KEY")
     return api_key
@@ -358,7 +366,7 @@ def determine_execution_mode(args):
     # instead of the generic "local mode does not support ..." message.
     if args.query or args.details:
         return "api"
-    if args.api_key or os.environ.get("POLARS_DOVMED_API_KEY"):
+    if os.environ.get("POLARS_DOVMED_API_KEY"):
         return "api"
     if corpus != "pmc":
         return "local"
@@ -657,6 +665,33 @@ def compact_local_paper(row):
     }
 
 
+def resolve_pixi_executable():
+    """Resolve pixi from PATH, with the standard user install as a fallback."""
+    executable = shutil.which("pixi")
+    if executable:
+        return executable
+    fallback = Path("~/.pixi/bin/pixi").expanduser()
+    if fallback.is_file() and os.access(fallback, os.X_OK):
+        return str(fallback)
+    raise SystemExit(
+        "pixi is required for local dovmed scans but was not found on PATH or at ~/.pixi/bin/pixi"
+    )
+
+
+def read_flattened_papers(path, max_results):
+    """Read compact scan results without requiring polars in this helper's environment."""
+    if not path.exists():
+        return []
+    with path.open(encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        papers = []
+        for row in reader:
+            papers.append(compact_local_paper(row))
+            if len(papers) >= max_results:
+                break
+    return papers
+
+
 def execute_local_scan(args):
     if args.query or args.details:
         raise SystemExit(
@@ -679,9 +714,10 @@ def execute_local_scan(args):
     output_dir = local_output_dir(args)
     output_dir.parent.mkdir(parents=True, exist_ok=True)
     parquet_pattern = local_parquet_pattern(args)
+    local_timeout = getattr(args, "timeout", None) or DEFAULT_LOCAL_SCAN_TIMEOUT
 
     command = [
-        os.path.expanduser("~/.pixi/bin/pixi"),
+        resolve_pixi_executable(),
         "run",
         "dovmed",
         "scan",
@@ -711,22 +747,27 @@ def execute_local_scan(args):
     }
     maybe_save_json(args.save_payload, payload)
 
-    result = subprocess.run(
-        command,
-        cwd=repo_dir,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            command,
+            cwd=repo_dir,
+            capture_output=True,
+            text=True,
+            timeout=local_timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise SystemExit(
+            f"local dovmed scan timed out after {local_timeout} seconds"
+        ) from exc
+
+    if result.returncode != 0:
+        raise SystemExit(result.stderr.strip() or result.stdout.strip() or "local dovmed scan failed")
 
     processed_path = output_dir / "processed.parquet"
     legacy_processed_path = output_dir / "prcoessed.parquet"
-    papers = []
     readable_processed_path = processed_path if processed_path.exists() else legacy_processed_path
-    if readable_processed_path.exists():
-        import polars as pl
-
-        df = pl.read_parquet(readable_processed_path)
-        papers = [compact_local_paper(row) for row in df.head(args.max_results).to_dicts()]
+    flattened_path = output_dir / "flattened.csv"
+    papers = read_flattened_papers(flattened_path, args.max_results)
 
     response = {
         "execution_mode": "local",
@@ -741,15 +782,12 @@ def execute_local_scan(args):
         "processed_parquet": str(readable_processed_path)
         if readable_processed_path.exists()
         else None,
-        "flattened_csv": str(output_dir / "flattened.csv")
-        if (output_dir / "flattened.csv").exists()
+        "flattened_csv": str(flattened_path)
+        if flattened_path.exists()
         else None,
         "papers": papers,
     }
     maybe_save_json(args.save_response, response)
-
-    if result.returncode != 0:
-        raise SystemExit(result.stderr.strip() or result.stdout.strip() or "local dovmed scan failed")
     return response
 
 
@@ -761,7 +799,18 @@ def companion_json_path(path, suffix):
     return str(output.with_name(f"{output.stem}_{suffix}{ext}"))
 
 
+def validate_authenticated_base_url(base_url):
+    parsed = urllib.parse.urlparse(base_url)
+    hostname = (parsed.hostname or "").lower()
+    if parsed.scheme == "https":
+        return
+    if parsed.scheme == "http" and hostname in {"127.0.0.1", "localhost", "::1"}:
+        return
+    raise ValueError("authenticated API requests require HTTPS or a loopback HTTP URL")
+
+
 def make_request(base_url, endpoint, api_key, *, method="GET", payload=None):
+    validate_authenticated_base_url(base_url)
     data = None
     if payload is not None:
         data = json.dumps(payload).encode("utf-8")
@@ -1508,7 +1557,7 @@ def main():
         print(json.dumps(summary, indent=2))
         return
 
-    api_key = load_api_key(args.api_key)
+    api_key = load_api_key()
     endpoint, payload = build_request(args)
     timeout = args.timeout or (600 if endpoint.endswith("advanced") else 120)
     use_async_jobs = should_use_async_jobs(args, endpoint, payload)

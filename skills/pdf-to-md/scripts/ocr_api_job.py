@@ -8,9 +8,9 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
 LOCAL_BASE_URL = "http://127.0.0.1:8002/ocr"
-REMOTE_BASE_URL = "https://api.newlineages.com/ocr"
 API_KEY_ENV_VARS = ("OCR_API_KEY", "NELLI_API_KEY")
 BASE_URL_ENV = "OCR_BASE_URL"
 
@@ -25,30 +25,32 @@ def run_curl(args: list[str], *, api_key: str) -> subprocess.CompletedProcess[st
     return run(["curl", "-fsS", "-K", "-", *args], input_text=config)
 
 
-def resolve_base_url(explicit: str | None) -> str:
-    """Return the OCR base URL from explicit arg, env var, or auto-detection."""
-    if explicit:
-        return explicit
+def is_local_url(url: str) -> bool:
+    return (urlparse(url).hostname or "").lower() in {"127.0.0.1", "localhost", "::1"}
+
+
+def resolve_base_url(explicit: str | None, *, allow_remote: bool) -> str:
+    """Return an approved OCR URL without silently uploading a document."""
+    candidate = explicit
     env_url = os.getenv(BASE_URL_ENV, "").strip()
-    if env_url:
-        return env_url
-    # Auto-detect: try local first, fall back to remote
-    probe = run(["curl", "-sf", "-o", "/dev/null", "-w", "%{http_code}",
-                  f"{LOCAL_BASE_URL}/health"])
-    if probe.returncode == 0 and probe.stdout.strip().startswith("2"):
-        return LOCAL_BASE_URL
-    return REMOTE_BASE_URL
+    if not candidate and env_url:
+        candidate = env_url
+    candidate = candidate or LOCAL_BASE_URL
+    if not is_local_url(candidate) and not allow_remote:
+        raise SystemExit(
+            "Refusing to upload the document to a remote OCR service without "
+            "--allow-remote. Confirm that external document submission is approved."
+        )
+    return candidate
 
 
 def require_api_key(args: argparse.Namespace) -> str:
-    if args.api_key:
-        return args.api_key
     for env_var in API_KEY_ENV_VARS:
         key = os.getenv(env_var, "").strip()
         if key:
             return key
     names = " or ".join(API_KEY_ENV_VARS)
-    raise SystemExit(f"Missing OCR API key. Set {names} or pass --api-key.")
+    raise SystemExit(f"Missing OCR API key. Set {names} in the environment.")
 
 
 def curl_json(url: str, *, api_key: str, method: str = "GET", form_file: Path | None = None) -> dict:
@@ -74,11 +76,16 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("input_path", type=Path)
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--base-url", default=None,
-                        help="OCR API base URL. Auto-detected from OCR_BASE_URL env, "
-                             "local health probe, or remote fallback if not provided.")
-    parser.add_argument("--api-key", default=None,
-                        help="OCR API key. Falls back to OCR_API_KEY / NELLI_API_KEY env vars.")
+    parser.add_argument(
+        "--base-url",
+        default=None,
+        help="OCR API base URL. Uses OCR_BASE_URL or the local service by default.",
+    )
+    parser.add_argument(
+        "--allow-remote",
+        action="store_true",
+        help="Allow upload to a non-local OCR URL after external submission is approved.",
+    )
     parser.add_argument("--timeout-seconds", type=int, default=1800)
     parser.add_argument("--poll-interval-seconds", type=int, default=2)
     return parser.parse_args()
@@ -92,7 +99,7 @@ def main() -> int:
         raise FileNotFoundError(input_path)
 
     api_key = require_api_key(args)
-    base_url = resolve_base_url(args.base_url).rstrip("/")
+    base_url = resolve_base_url(args.base_url, allow_remote=args.allow_remote).rstrip("/")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     create_payload = curl_json(

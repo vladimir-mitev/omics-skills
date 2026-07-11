@@ -1,6 +1,6 @@
 ---
 name: biorxiv-search
-description: Search bioRxiv preprints through the official bioRxiv API and locally filter titles, abstracts, and authors for keyword queries. Use when you need recent biology preprints, bioRxiv-native metadata, date-range scans, DOI lookups, or author shortlists that may not yet appear in peer-reviewed literature indexes.
+description: Search bioRxiv through its official API and filter title, abstract, and author metadata. Use when finding recent biology preprints, scanning date ranges, resolving DOIs, or building author shortlists.
 ---
 
 # bioRxiv Search
@@ -27,7 +27,8 @@ Search bioRxiv through its official API for recent-preprint discovery, date-rang
    - By default, consider both the supplied full-name form and an abbreviated-first-name form, for example `--author "Peter Nugent"` and `--author "P. Nugent"`.
    - Do not silently merge these in the final answer. Report full-name matches and abbreviated-first-name matches in separate groups because initials can be ambiguous.
    - The CLI also expands obvious first-initial variants from the supplied author string, so prefer separate passes or a local partition of returned records by the literal `authors` text when you need clean buckets.
-8. The API paginates 100 records at a time.
+8. The API currently returns up to 30 records per page.
+   - Let the CLI follow the response `cursor`, `count`, and `total` fields; do not assume a fixed page size when deciding whether the interval is exhausted.
    - Increase `--scan-limit` when the query is broad and the first pages do not contain enough matches.
 9. By default, the CLI collapses multiple versions of the same preprint and keeps the latest version for each DOI.
    - Use `--all-versions` only when version-by-version output matters.

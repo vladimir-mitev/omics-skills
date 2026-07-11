@@ -1,14 +1,10 @@
 ---
 name: ai-scientist-evaluator
 description: >-
-  Critically review, score, compare, and rank one or more AI scientist outputs
-  for biology, bioinformatics, computational life science, or adjacent research
-  tasks. Trigger when the user asks to evaluate notebooks, code, figures,
-  analyses, manuscripts, software, or final reports produced by AI scientists;
-  compare multiple AI scientists on the same task; judge publication readiness;
-  or audit rigor, reproducibility, novelty, and task completion. Do not use
-  this skill to perform the original research task itself unless the user is
-  explicitly asking for a reviewer-style audit of already produced outputs.
+  Review, score, compare, and rank AI-generated biology or bioinformatics
+  research artifacts. Use when auditing AI-scientist notebooks, code, figures,
+  analyses, manuscripts, or reports for rigor, reproducibility, novelty, and
+  task completion.
 ---
 
 # AI Scientist Evaluator
@@ -75,7 +71,7 @@ than a research generator. Evaluate completed outputs, not just plans.
     [`assets/evaluation_schema.json`](assets/evaluation_schema.json). Use
     [`assets/report_template.md`](assets/report_template.md) for markdown
     reports. For completed JSON reviews, you may aggregate rankings with
-    `python scripts/aggregate_reviews.py review1.json review2.json --out_md leaderboard.md`.
+    `uv run --no-project python "$HOME/.agents/skills/ai-scientist-evaluator/scripts/aggregate_reviews.py" review1.json review2.json --out_md leaderboard.md`.
 
 ## Quick Reference
 
@@ -93,7 +89,7 @@ than a research generator. Evaluate completed outputs, not just plans.
 | Score consistently | Read `references/score_scale.md` |
 | Draft a report | Use `assets/report_template.md` |
 | Produce structured JSON | Use `assets/evaluation_template.json` and `assets/evaluation_schema.json` |
-| Rank finished JSON reviews | Run `python scripts/aggregate_reviews.py review1.json review2.json --out_md leaderboard.md` |
+| Rank finished JSON reviews | Run `uv run --no-project python "$HOME/.agents/skills/ai-scientist-evaluator/scripts/aggregate_reviews.py" review1.json review2.json --out_md leaderboard.md` |
 
 ## Input Requirements
 
@@ -173,7 +169,9 @@ I would trust it.
 ### Example 3: Rank finished JSON evaluations
 
 ```bash
-python scripts/aggregate_reviews.py review_a.json review_b.json --out_md leaderboard.md
+uv run --no-project python \
+  "$HOME/.agents/skills/ai-scientist-evaluator/scripts/aggregate_reviews.py" \
+  review_a.json review_b.json --out_md leaderboard.md
 ```
 
 ## Troubleshooting
