@@ -83,7 +83,11 @@ class PolarsDovmedLocalTests(unittest.TestCase):
     def test_local_scan_uses_upstream_parquet_pattern_flag(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_name:
             args = _args(Path(tmp_name))
-            with patch.object(query_literature.subprocess, "run") as run:
+            with patch.object(
+                query_literature,
+                "resolve_pixi_executable",
+                return_value="/usr/bin/pixi",
+            ), patch.object(query_literature.subprocess, "run") as run:
                 run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
                 response = query_literature.execute_local_scan(args)
 
@@ -111,7 +115,11 @@ class PolarsDovmedLocalTests(unittest.TestCase):
                 "PMC1,10.1/example,Example paper,Example Journal,2025-01-02,pmc,3\n",
                 encoding="utf-8",
             )
-            with patch.object(query_literature.subprocess, "run") as run:
+            with patch.object(
+                query_literature,
+                "resolve_pixi_executable",
+                return_value="/usr/bin/pixi",
+            ), patch.object(query_literature.subprocess, "run") as run:
                 run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
                 response = query_literature.execute_local_scan(args)
 
@@ -122,6 +130,10 @@ class PolarsDovmedLocalTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_name:
             args = _args(Path(tmp_name), timeout=7)
             with patch.object(
+                query_literature,
+                "resolve_pixi_executable",
+                return_value="/usr/bin/pixi",
+            ), patch.object(
                 query_literature.subprocess,
                 "run",
                 side_effect=subprocess.TimeoutExpired(["pixi"], 7),
@@ -141,7 +153,11 @@ class PolarsDovmedLocalTests(unittest.TestCase):
                 "load_queries_file",
                 return_value={"anchor": [["mirusvirus"]]},
             ):
-                with patch.object(query_literature.subprocess, "run") as run:
+                with patch.object(
+                    query_literature,
+                    "resolve_pixi_executable",
+                    return_value="/usr/bin/pixi",
+                ), patch.object(query_literature.subprocess, "run") as run:
                     run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
                     query_literature.execute_local_scan(args)
 
@@ -162,7 +178,11 @@ class PolarsDovmedLocalTests(unittest.TestCase):
                 {"DOVMED_BIORXIV_PARQUET": "/data/biorxiv/*.parquet"},
                 clear=True,
             ):
-                with patch.object(query_literature.subprocess, "run") as run:
+                with patch.object(
+                    query_literature,
+                    "resolve_pixi_executable",
+                    return_value="/usr/bin/pixi",
+                ), patch.object(query_literature.subprocess, "run") as run:
                     run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
                     response = query_literature.execute_local_scan(args)
 
