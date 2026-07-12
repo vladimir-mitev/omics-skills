@@ -13,6 +13,29 @@ from pathlib import Path
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 GITIGNORE_TEMPLATE = SKILL_ROOT / "examples" / "gitignore.example"
 
+MIT_LICENSE = """MIT License
+
+Copyright (c) {year} {author}
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
 
 def pixi_name(value: str) -> str:
     normalized = re.sub(r"[^a-z0-9-]+", "-", value.lower()).strip("-")
@@ -251,6 +274,30 @@ def scaffold_files(
     return files
 
 
+def publication_files(project_name: str, author: str, license_id: str, year: int) -> dict[Path, tuple[str, bool]]:
+    if license_id != "MIT":
+        raise ValueError("the bundled scaffold currently supports --license MIT only")
+    if not author.strip():
+        raise ValueError("--author must be non-empty")
+    if year < 1900 or year > 9999:
+        raise ValueError("--copyright-year must be a four-digit year")
+    title = project_name.replace('"', "'")
+    citation_author = author.replace('"', "'")
+    citation = (
+        "cff-version: 1.2.0\n"
+        f'title: "{title}"\n'
+        'message: "If you use this project, please cite it using this metadata."\n'
+        "type: software\n"
+        "authors:\n"
+        f'  - name: "{citation_author}"\n'
+        "license: MIT\n"
+    )
+    return {
+        Path("LICENSE"): (MIT_LICENSE.format(year=year, author=author), False),
+        Path("CITATION.cff"): (citation, False),
+    }
+
+
 def conflicts(project_root: Path, files: dict[Path, tuple[str, bool]]) -> list[Path]:
     mismatches: list[Path] = []
     for relative, (content, _) in files.items():
@@ -294,6 +341,9 @@ def main(argv: list[str] | None = None) -> int:
         metavar="YYYY-MM-DD_TOPIC",
         help="Add one dated experiment README and refusing runall template",
     )
+    parser.add_argument("--license", dest="license_id", choices=("MIT",), help="Opt in to LICENSE and CITATION.cff generation")
+    parser.add_argument("--author", help="Explicit author or entity name for publication files")
+    parser.add_argument("--copyright-year", type=int, help="Explicit copyright year for LICENSE")
     parser.add_argument("--check", action="store_true", help="Verify the scaffold without writing")
     args = parser.parse_args(argv)
 
@@ -306,6 +356,11 @@ def main(argv: list[str] | None = None) -> int:
             layout=args.layout,
             first_experiment=args.first_experiment,
         )
+        publication_values = (args.license_id, args.author, args.copyright_year)
+        if any(value is not None for value in publication_values):
+            if any(value is None for value in publication_values):
+                raise ValueError("--license, --author, and --copyright-year must be supplied together")
+            files.update(publication_files(project_name, args.author, args.license_id, args.copyright_year))
     except ValueError as exc:
         parser.error(str(exc))
 

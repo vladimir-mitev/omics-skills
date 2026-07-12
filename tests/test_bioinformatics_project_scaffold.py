@@ -173,6 +173,29 @@ class BioinformaticsProjectScaffoldTests(unittest.TestCase):
             self.assertIn("README.md", result.stdout)
             self.assertFalse((project / "pixi.toml").exists())
 
+    def test_publication_files_are_opt_in_and_use_explicit_values(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = Path(tmpdir) / "coastal-metagenomes"
+            result = self.run_scaffold(
+                project,
+                "--license", "MIT",
+                "--author", "Coastal Genomics Team",
+                "--copyright-year", "2026",
+            )
+            self.assertIn("17 created, 0 unchanged", result.stdout)
+            self.assertIn("Copyright (c) 2026 Coastal Genomics Team", (project / "LICENSE").read_text())
+            citation = (project / "CITATION.cff").read_text()
+            self.assertIn('name: "Coastal Genomics Team"', citation)
+            self.assertIn("license: MIT", citation)
+
+    def test_partial_publication_metadata_is_rejected_without_writes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = Path(tmpdir) / "coastal-metagenomes"
+            result = self.run_scaffold(project, "--license", "MIT", check=False)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("must be supplied together", result.stderr)
+            self.assertFalse(project.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

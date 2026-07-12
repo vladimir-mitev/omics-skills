@@ -12,6 +12,18 @@ Use this as the single scientific-writing skill for both Codex and Claude Code. 
 
 The two modes share the same role set and the same hard rules. Pick the entry point that matches the request; the workflow then routes accordingly.
 
+## Routing Boundary
+
+- Use this skill when the requested output is manuscript prose or a prose-
+  quality review that preserves the underlying scientific claims.
+- Use `/bio-logic` when the main question is whether a method, design, causal
+  claim, or interpretation is scientifically justified.
+- Use `/manuscript-review-council` for journal-style peer review or a
+  multi-reviewer critique. Route the resulting evidence-backed revisions back
+  here.
+- Generic requests containing only “write” do not establish scientific-writing
+  intent and should remain unmatched.
+
 ## State Assumptions First
 
 Before drafting or reviewing, state:

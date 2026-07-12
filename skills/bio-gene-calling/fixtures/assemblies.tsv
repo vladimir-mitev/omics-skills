@@ -1,0 +1,4 @@
+assembly_id	domain	mode	fasta
+bacterium	bacteria	single	bacterium.fna
+virus	virus	single	virus.fna
+eukaryote	eukaryota	single	eukaryote.fna

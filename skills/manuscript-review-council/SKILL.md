@@ -1,6 +1,6 @@
 ---
 name: manuscript-review-council
-description: Run a multi-agent manuscript review with specialist reports, disagreement checks, and an editor synthesis. Use when reviewing a scientific paper, preprint, revision, or rebuttal.
+description: Run a multi-agent manuscript critique with specialist reports, disagreement checks, and editor synthesis. Use for scientific review, revision assessment, or judging whether an author response resolves prior concerns.
 ---
 
 # Manuscript Review Council
@@ -59,6 +59,7 @@ The council definition lives in local files:
     - reviewer reports
     - disagreement or conflict notes
     - editor meta-review
+    - validate deterministic paths and machine-readable issues against `schemas/review-bundle.schema.json` with `scripts/validate_review_bundle.py`
 12. Write an editor meta-review that includes:
    - headline recommendation
    - rationale across novelty, rigor, evidence strength, clarity, reproducibility, and significance
@@ -71,6 +72,7 @@ The council definition lives in local files:
     - use `/bio-logic` for evidence-strength and causal-claim stress tests
     - never fabricate supporting papers
 14. If the user wants polished review prose, a rebuttal outline, or a cleaned-up decision letter, use `/scientific-writing` after the council establishes the factual review skeleton.
+    - Requests to rewrite manuscript prose or draft an author rebuttal/response letter route directly to `/scientific-writing`; do not start a council unless the user also asks for scientific critique or resolution assessment.
 15. Preserve provenance in the final deliverable:
     - keep per-reviewer notes separate from the editor synthesis
     - point to sections, figures, or tables when possible
@@ -114,6 +116,7 @@ The council definition lives in local files:
 - [ ] The final recommendation matches the ranked issues
 - [ ] No citations, datasets, experiments, or venue rules are invented
 - [ ] Reproducibility and ethics checks are added when the manuscript warrants them
+- [ ] Artifacts use `reviews/<manuscript-slug>/<UTC-run-id>/...`, issue records validate against the bundled schema, and prose editing/rebuttal drafting remains outside the council route.
 
 ## Examples
 

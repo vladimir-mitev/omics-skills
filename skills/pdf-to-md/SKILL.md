@@ -234,6 +234,7 @@ remaining scripts are standard-library only.
   recorded).
 - Provenance (`<stem>.job.json`) records the engine, tool version, and OCR setting.
 - No test inputs or outputs are written inside this repository.
+- The local paper-bundle fixture proves section audit, schema population, figure-legend handling, and scientific-paper validation; its missing-author companion proves absent metadata is rejected rather than invented.
 
 ## Examples
 

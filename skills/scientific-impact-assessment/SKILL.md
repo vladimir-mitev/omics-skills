@@ -26,6 +26,7 @@ Use this skill to measure the reach of a paper with citation, attention, and jou
    - Do not present journal impact factor as a proxy for article quality.
    - Do not present Altmetric attention as equivalent to scholarly citation impact.
 7. If the journal is not in the curated table, return the OpenAlex result anyway and say the journal-level reference lookup was not available.
+8. Repeated OpenAlex lookups use a TTL-bound response cache and a cross-process pacing lock. Defaults are `--cache-ttl 86400` and `--min-interval 0.1`; use `--cache-dir` or `OPENALEX_CACHE_DIR` for a project/site cache. Live reports record this request policy.
 
 ## Quick Reference
 
@@ -73,6 +74,7 @@ Use this skill to measure the reach of a paper with citation, attention, and jou
 - [ ] Altmetric is marked optional and unavailable when no API key is configured
 - [ ] Journal impact factors are read from the bundled references table, not improvised from memory
 - [ ] Any third-party journal metric source is labeled as such in the output
+- [ ] Repeated OpenAlex requests record cache TTL and minimum interval; expired responses are refreshed under the pacing lock.
 
 ## Examples
 

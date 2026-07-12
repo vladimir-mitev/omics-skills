@@ -10,6 +10,8 @@ Search PubMed Central Open Access and bioRxiv parquet corpora with `polars-dovme
 
 Use the bundled helper, `skills/polars-dovmed/scripts/query_literature.py`, for hosted API or local parquet-backed searches. The helper auto-loads `~/.config/polars-dovmed/.env`.
 
+Run the helper with `uv run --script` so its pinned Parquet fallback dependency is available. Local runs record `--corpus-revision` (or `DOVMED_CORPUS_REVISION`) and fall back from `flattened.csv` to `processed.parquet` or the legacy `prcoessed.parquet` only when the compact output is absent.
+
 Current hosted API defaults:
 - Treat API keys as secrets in artifacts. Do not save keys in run directories, memory records, summaries, or final answers.
 - Save generated run artifacts under `tasks/polars-dovmed-runs/<slug>/` by default, not under `skills/polars-dovmed/`.
@@ -83,7 +85,7 @@ mkdir -p "$RUN"
 cp skills/polars-dovmed/fixtures/smoke_prompt.txt "$RUN/prompt.txt"
 cp skills/polars-dovmed/fixtures/smoke_query.json "$RUN/query.json"
 
-timeout 90s uv run --no-project python skills/polars-dovmed/scripts/query_literature.py \
+timeout 90s uv run --script skills/polars-dovmed/scripts/query_literature.py \
   --queries-file "$RUN/query.json" \
   --corpus biorxiv \
   --mode discovery \
@@ -146,7 +148,7 @@ mkdir -p "$RUN"
 printf '%s\n' "papers describing hosts of Mirusviricota" > "$RUN/prompt.txt"
 # Write and inspect "$RUN/query.json" before running the search.
 
-timeout 90s uv run --no-project python skills/polars-dovmed/scripts/query_literature.py \
+timeout 90s uv run --script skills/polars-dovmed/scripts/query_literature.py \
   --queries-file "$RUN/query.json" \
   --corpus biorxiv \
   --mode discovery \
@@ -163,7 +165,7 @@ timeout 90s uv run --no-project python skills/polars-dovmed/scripts/query_litera
 OpenPMC pass with parallel clean year bands:
 
 ```bash
-timeout 120s uv run --no-project python skills/polars-dovmed/scripts/query_literature.py \
+timeout 120s uv run --script skills/polars-dovmed/scripts/query_literature.py \
   --queries-file "$RUN/query.json" \
   --corpus pmc \
   --mode discovery \
@@ -184,7 +186,7 @@ For citation metadata enrichment after a shortlist, prefer bounded Crossref
 fallback over web search:
 
 ```bash
-uv run --no-project python skills/polars-dovmed/scripts/query_literature.py \
+uv run --script skills/polars-dovmed/scripts/query_literature.py \
   --details PMC6362216 PMC10132079 \
   --corpus pmc \
   --crossref-metadata \
@@ -204,7 +206,7 @@ For a range crossing bands, pass an explicit comma list to `--year-bands`, for e
 Fetch details directly when you already know identifiers:
 
 ```bash
-uv run --no-project python skills/polars-dovmed/scripts/query_literature.py \
+uv run --script skills/polars-dovmed/scripts/query_literature.py \
   --details PMC6912108 PMC8490762 \
   --corpus pmc \
   --save-payload "$RUN/payload_details.json" \
@@ -218,7 +220,7 @@ For bioRxiv details, pass DOI values with `--corpus biorxiv`.
 Use local mode when hosted access is unavailable or explicitly unwanted.
 
 ```bash
-uv run --no-project python skills/polars-dovmed/scripts/query_literature.py \
+uv run --script skills/polars-dovmed/scripts/query_literature.py \
   --execution-mode local \
   --corpus pmc \
   --local-parquet-pattern "$DOVMED_PMC_PARQUET" \
@@ -310,7 +312,7 @@ Ranking priority:
 
 ```bash
 RUN=tasks/polars-dovmed-runs/klosneuvirinae-hosts
-uv run --no-project python skills/polars-dovmed/scripts/query_literature.py \
+uv run --script skills/polars-dovmed/scripts/query_literature.py \
   --execution-mode local \
   --corpus pmc \
   --local-parquet-pattern "$DOVMED_PMC_PARQUET" \

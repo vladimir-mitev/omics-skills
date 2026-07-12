@@ -16,6 +16,10 @@ Structure prediction and structure-based annotation.
    - **ESMFold** for fast monomer pre-screening only (15–20 GB VRAM; lower accuracy than Boltz-2).
 3. Search predicted or experimental structures with **Foldseek v9+**. Use `--gpu 1` on CUDA Turing or newer for the ProstT5-backed search (4–27× speedup). Consider Foldseek-Multimer when complex-vs-complex search is needed.
 4. Annotate hits and route high-value unknowns back to `/bio-annotation` for sequence-side context, or to comparative analyses via `/bio-protein-clustering-pangenome`.
+5. Build and validate commands with `scripts/run_structure_annotation.py`.
+   Public MSA services receive biological sequences; `--use-msa-server` is
+   rejected unless the user explicitly approved upload with
+   `--approve-public-msa-upload`.
 
 ## Quick Reference
 
@@ -25,6 +29,7 @@ Structure prediction and structure-based annotation.
 | Validate inputs | Confirm required inputs and reference data exist. |
 | Review outputs | Inspect reports and QC gates before proceeding. |
 | Tool docs | See `docs/README.md`. |
+| Validate and plan | `uv run --script scripts/run_structure_annotation.py ...` |
 
 ## Input Requirements
 
@@ -49,6 +54,8 @@ Inputs:
 - [ ] On failure: retry with alternative parameters; if still failing, record in report and exit non-zero.
 - [ ] Verify proteins.faa is non-empty and amino acid encoded.
 - [ ] Verify Foldseek databases exist under the reference root.
+- [ ] GPU Foldseek searches use a database produced by `makepaddedseqdb`.
+- [ ] Public MSA upload has explicit user approval recorded before `--use_msa_server` is used.
 
 ## Examples
 

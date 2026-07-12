@@ -127,8 +127,8 @@ If it is missing, create a project or shared DB location under `$BIO_DB_ROOT`, i
 
 ### Classification example
 ```bash
-gtdbtk classify_wf --genome_dir bins --out_dir results/taxonomy/gtdbtk \
-  --cpus 16 -x fa
+SLURM_ACCOUNT="${SLURM_ACCOUNT:?}" \
+  scripts/submit_taxonomy.sh gtdbtk bins results/taxonomy/gtdbtk
 ```
 
 GTDB-Tk 2.7.x runs the ANI screen by default using the pre-sketched skani database. If a project requires species that pass the ANI screen to still be placed in pplacer trees, add `--place_species`; this replaces the older `--skip_ani_screen` workflow.
@@ -154,8 +154,8 @@ Use the project's pinned **Pixi** environment and capture:
 
 ### Run examples
 ```bash
-eukcc single --out results/taxonomy/eukcc_one --threads 8 bin.fa
-eukcc folder --out results/taxonomy/eukcc_bins --threads 8 bins
+SLURM_ACCOUNT="${SLURM_ACCOUNT:?}" \
+  scripts/submit_taxonomy.sh eukcc bins results/taxonomy/eukcc_bins
 ```
 
 ---
@@ -180,9 +180,8 @@ Use the project's pinned **Pixi** environment and capture:
 
 ### Run examples
 ```bash
-vcontact3 prepare_databases --list-versions
-vcontact3 prepare_databases --get-version latest --set-location ./db
-vcontact3 run --nucleotide genomes.fna --output results/taxonomy/vcontact3
+SLURM_ACCOUNT="${SLURM_ACCOUNT:?}" \
+  scripts/submit_taxonomy.sh vcontact3 genomes.fna results/taxonomy/vcontact3
 ```
 
 ---
@@ -207,8 +206,8 @@ Release checked:
 
 ### Run examples
 ```bash
-gvclass my_genomes -o results/taxonomy/gvclass -t 32
-gvclass --contigs candidate_contigs.fna -o results/taxonomy/gvclass_contigs -t 32
+SLURM_ACCOUNT="${SLURM_ACCOUNT:?}" \
+  scripts/submit_taxonomy.sh gvclass my_genomes results/taxonomy/gvclass
 ```
 
 ---

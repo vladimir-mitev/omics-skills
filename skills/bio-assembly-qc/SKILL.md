@@ -9,19 +9,29 @@ Assemble genomes/metagenomes and produce assembly QC artifacts.
 
 ## Instructions
 
-1. Select an assembler based on read type, genome/metagenome scope, and sample diversity:
+1. Validate the assembly manifest and inspect a restartable execution plan before starting expensive work:
+
+   ```bash
+   uv run --no-project python skills/bio-assembly-qc/scripts/run_assembly_qc.py \
+     assemblies.tsv --out results/bio-assembly-qc
+   uv run --no-project python skills/bio-assembly-qc/scripts/run_assembly_qc.py \
+     assemblies.tsv --out results/bio-assembly-qc --execute
+   ```
+
+   The driver rejects samples whose upstream `read_qc_status` is not `passed`, normalizes assembler-specific outputs to per-sample `contigs.fasta`, chooses QUAST versus MetaQUAST from the declared mode, and reuses only non-empty declared outputs.
+2. Select an assembler based on read type, genome/metagenome scope, and sample diversity:
    - Illumina short-read isolates and hybrid assemblies: SPAdes v4.0.0+ (final feature release; bug-fix-only series continues). Use `metaSPAdes` for short-read metagenomes.
    - Long-read bacterial isolates (PacBio CLR, ONT): Flye v2.9.5+ for the draft/baseline assembly. Use Autocycler v0.6+ when a complete, high-confidence bacterial consensus genome is needed from multiple independent long-read assembly attempts; do not use it for mixed-community metagenomes.
    - Long-read metagenomes: Flye v2.9.5+ in `--meta` mode (metaFlye) as the baseline for ONT/CLR mixed-community assemblies.
    - HiFi metagenomes: prefer **metaMDBG v1.1** (~2× more circularized high-quality MAGs vs metaFlye on HiFi, better virus/plasmid recovery; *Nature Biotechnology* 2024, DOI: 10.1038/s41587-023-01983-6). Keep metaFlye as a comparator when a per-sample failure mode is suspected.
    - Diverse or very large long-read datasets where speed dominates: **myloasm** (2025) as a faster long-read metagenome assembler when its profile matches the dataset; document the choice in the run log.
-2. Run assembly with resource-aware settings and record exact CLI, version, thread count, and RAM ceiling.
+3. Run assembly with resource-aware settings and record exact CLI, version, thread count, and RAM ceiling.
    - For very large ONT/metagenome FASTQs, use `/bio-reads-qc-mapping` guidance for filtering and avoid redundant full-file raw-read preflights before filtering. Record raw file metadata (`stat` path, size, mtime), optionally run a small sampled check, and write `seqkit stats` after each produced read set.
    - Use atomic output patterns for long-running filters and assemblies: write to `.tmp`, verify non-empty/readable output, then `mv` into the final path. Resume mode should skip existing final outputs only after sanity checks; when checks fail, use a tool-supported overwrite option or remove the corrupt final output before rerunning.
    - For Flye/metaFlye failures or interrupted jobs, prefer `--resume` or `--resume-from` in the existing output directory when the prior run is structurally intact. Do not delete a large partial assembly unless logs or missing stage files show it is corrupted.
-3. Run QUAST v5.3+ (use MetaQUAST for metagenomes) and summarize metrics.
-4. For every produced `contigs.fasta`, invoke `/tracking-taxonomy-updates` to run the BBTools-container QuickClade `percontig` domain screen before choosing downstream genome/MAG/viral/eukaryotic workflows.
-5. Use the QuickClade domain routing table to decide the next step:
+4. Run QUAST v5.3+ (use MetaQUAST for metagenomes) and summarize metrics.
+5. For every produced `contigs.fasta`, invoke `/tracking-taxonomy-updates` to run the BBTools-container QuickClade `percontig` domain screen before choosing downstream genome/MAG/viral/eukaryotic workflows.
+6. Use the QuickClade domain routing table to decide the next step:
    - Bacteria/Archaea -> `/bio-gene-calling`, `/bio-annotation`, and GTDB-Tk taxonomy assignment.
    - Viral or virus-like -> `/bio-viromics` before prokaryotic MAG tooling.
    - Eukaryota -> eukaryote-aware gene/QC workflows and EukCC where bins or genomes are present.
@@ -43,7 +53,7 @@ Prerequisites:
 - Sufficient disk and RAM for chosen assembler.
 Inputs:
 - reads/*.fastq.gz or reads/*.fastq (raw or filtered reads; verify actual compression by content when suffixes are suspect).
-- assembler choice (spades | flye | metaflye | metamdbg | myloasm | autocycler).
+- `assemblies.tsv` with `sample_id`, `mode`, `read1`, `read2`, and `read_qc_status`; supported core modes are `short_isolate`, `long_isolate`, `short_metagenome`, `long_metagenome`, and `hifi_metagenome`.
 
 ## Output
 
@@ -56,6 +66,7 @@ Inputs:
 ## Quality Gates
 
 - [ ] Assembly size range and N50 distribution meet project thresholds.
+- [ ] Every assembler output is normalized to a non-empty per-sample `contigs.fasta` before QC or downstream routing.
 - [ ] On failure: retry with alternative parameters; if still failing, record in report and exit non-zero.
 - [ ] Verify reads are present and readable. If `gzip -t` fails on a `.gz`-named file, inspect magic bytes or file type before labeling it corrupt; it may be plain FASTQ with the wrong suffix.
 - [ ] Check available disk space before assembly.
@@ -74,6 +85,8 @@ Inputs:
 reads/*.fastq.gz (raw reads).
 assembler choice (spades | flye).
 ```
+
+Use `fixtures/assemblies.tsv` as the executable short-read, long-read, and metagenome planning fixture.
 
 ## Troubleshooting
 

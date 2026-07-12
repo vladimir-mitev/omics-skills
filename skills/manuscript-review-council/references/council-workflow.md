@@ -55,6 +55,8 @@ Retain these artifacts even if the user only asked for prose:
 - conflict log
 - editor meta-review
 
+Persist them under `reviews/<manuscript-slug>/<YYYYMMDDTHHMMSSZ>/`: `packet.json`, `reviewers/<role>.json`, `issues.json`, `conflicts.json`, and `editor.json`. Validate the bundle index against `../schemas/review-bundle.schema.json`; do not use ad hoc filenames that cannot be joined across runs.
+
 ## Decision Discipline
 
 - Ground criticism in the manuscript or in explicit missing information.

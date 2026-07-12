@@ -24,6 +24,7 @@ Supplementary docs last verified: 2026-05-30. Current source checks cover Prefec
 | Prefect+Dask scaffold | See `prefect-dask.md` |
 | Prefect on Slurm | See `prefect-hpc-slurm.md` |
 | Nextflow on HPC | See `nextflow-hpc.md` |
+| Submit Nextflow through Slurm | `SLURM_ACCOUNT=... scripts/submit_nextflow.sh main.nf 'data/*.fastq.gz' results` |
 | Examples | See `examples.md` |
 
 ## Input Requirements
@@ -45,6 +46,9 @@ Supplementary docs last verified: 2026-05-30. Current source checks cover Prefec
 - [ ] Tiny test run completes end-to-end
 - [ ] Resume/retry behavior verified
 - [ ] Resource plan matches cluster limits
+- [ ] Temporary Dask clusters are created by the task runner at flow runtime and closed with the flow
+- [ ] Compound FASTQ suffixes do not leak into sample output names
+- [ ] Nextflow launch runs through `sbatch` and verifies trace and non-empty result artifacts
 
 ## Examples
 

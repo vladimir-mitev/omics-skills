@@ -11,7 +11,7 @@ This page records the default tool choices referenced by the agents and bioinfor
 | Domain taxonomy triage | BBTools QuickClade via `bryce911/bbtools`, followed by GTDB-Tk, EukCC, vConTACT3, or GVClass by domain | None documented |
 | Binning | QuickBin via `bryce911/bbtools` | SemiBin2 with CUDA-backed PyTorch |
 | Bin QC | CheckM2, EukCC, GUNC | None documented |
-| Gene calling | pyrodigal, pyrodigal-gv, BRAKER3 | None documented |
+| Gene calling | pyrodigal, pyrodigal-gv, BRAKER4; BRAKER3 for legacy reproduction | None documented |
 | ncRNA screening | tRNAscan-SE, Infernal `cmsearch` against Rfam covariance models | None documented |
 | Annotation | DIAMOND, eggNOG-mapper, InterProScan, pyhmmer, TaxonKit | MMseqs2-GPU |
 | Phylogenomics | VeryFastTree, IQ-TREE, MAFFT, trimAl, ete4 | None documented |

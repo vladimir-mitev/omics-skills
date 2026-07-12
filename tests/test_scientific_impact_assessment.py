@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
+import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -71,6 +73,20 @@ class ScientificImpactAssessmentTests(unittest.TestCase):
             api_key="test-key",
         )
         self.assertEqual(report["openalex"]["doi"], "10.1038/s41586-024-00000-0")
+
+    def test_openalex_cache_reuses_fresh_and_refreshes_expired_response(self) -> None:
+        payload = {"id": "https://openalex.org/W1"}
+        with tempfile.TemporaryDirectory() as tmp:
+            cache_dir = Path(tmp)
+            with patch.object(scientific_impact_assessment, "fetch_json", return_value=payload) as fetch:
+                first = scientific_impact_assessment.fetch_openalex_cached("https://api.openalex.org/works/W1", cache_dir=cache_dir, cache_ttl=60, min_interval=0)
+                second = scientific_impact_assessment.fetch_openalex_cached("https://api.openalex.org/works/W1", cache_dir=cache_dir, cache_ttl=60, min_interval=0)
+                self.assertEqual(first, second)
+                self.assertEqual(fetch.call_count, 1)
+                cache = next((cache_dir / "responses").glob("*.json"))
+                os.utime(cache, (1, 1))
+                scientific_impact_assessment.fetch_openalex_cached("https://api.openalex.org/works/W1", cache_dir=cache_dir, cache_ttl=60, min_interval=0)
+                self.assertEqual(fetch.call_count, 2)
 
 
 if __name__ == "__main__":

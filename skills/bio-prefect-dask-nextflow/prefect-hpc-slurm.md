@@ -34,32 +34,37 @@ Best when:
 
 ### Template
 ```python
-from dask_jobqueue import SLURMCluster
-from dask.distributed import Client
 from prefect import flow, task
 from prefect_dask import DaskTaskRunner
-
-def build_cluster() -> Client:
-    cluster = SLURMCluster(
-        cores=8,
-        processes=1,
-        memory="32GB",
-        walltime="02:00:00",
-        queue="compute",
-        # job_extra_directives=[...],  # cluster-specific
-    )
-    cluster.scale(jobs=10)  # or cluster.adapt(minimum=1, maximum=10)
-    return Client(cluster)
 
 @task
 def heavy_step(x: int) -> int:
     return x * x
 
-@flow(task_runner=DaskTaskRunner(address=build_cluster().scheduler.address))
+@flow(
+    task_runner=DaskTaskRunner(
+        cluster_class="dask_jobqueue.SLURMCluster",
+        cluster_kwargs={
+            "cores": 8,
+            "processes": 1,
+            "memory": "32GB",
+            "walltime": "02:00:00",
+            "queue": "compute",
+            # "account": "site-account",
+            # "job_extra_directives": [...],
+        },
+        adapt_kwargs={"minimum": 0, "maximum": 10},
+    )
+)
 def hpc_flow(items: list[int]) -> list[int]:
     futures = [heavy_step.submit(x) for x in items]
     return [f.result() for f in futures]
 ```
+
+`DaskTaskRunner` constructs this cluster when the flow starts and closes the
+client and temporary cluster when the flow run ends. Do not call a cluster
+factory while Python evaluates the `@flow` decorator; that submits workers at
+import time and leaves ownership unclear after failures.
 
 ### Pitfalls (double scheduling)
 You may end up with:

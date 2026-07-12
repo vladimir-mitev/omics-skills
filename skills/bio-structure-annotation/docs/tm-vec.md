@@ -9,24 +9,9 @@ Release/source: https://github.com/tymor22/tm-vec/releases/tag/1.0.2
 
 ## Installation
 
-### CPU Installation
-```bash
-conda create -n tmvec faiss-cpu python=3.9 -c pytorch
-conda activate tmvec
-pip install tm-vec
-```
-
-### GPU Installation
-```bash
-conda create -n tmvec faiss-gpu python=3.9 -c pytorch
-conda activate tmvec
-pip install tm-vec
-```
-
-If installation fails, resolve dependencies:
-```bash
-conda install mkl=2021 mkl_fft
-```
+Pin the maintained fork in the project's Pixi environment. The original
+`tymor22/tm-vec` repository points users to `valentynbez/tmvec` for continued
+maintenance.
 
 ### Download Model Weights
 Required for embedding generation:
@@ -63,17 +48,20 @@ embeddings = np.load('database.npy', allow_pickle=True)
 
 ## Common Usage
 
-### Embedding Sequences
-Use Google Colab notebook or scripts in the repository's `scripts/` folder.
+### Build a database
 
-### Building Custom Databases
-See DeepBLAST wiki for detailed instructions on:
-- Embedding your sequences with TM-vec models
-- Creating searchable databases with FAISS
-- Index optimization for large databases
+```bash
+tmvec build-db --input-fasta references.faa --output tmvec_db/references
+```
 
-### Searching Against Databases
-See DeepBLAST wiki for search protocol and examples.
+### Search a database
+
+```bash
+tmvec search \
+  --query queries.faa \
+  --database tmvec_db/references.npz \
+  --output tmvec_hits.tsv
+```
 
 ## Input/Output Formats
 
@@ -92,9 +80,7 @@ See DeepBLAST wiki for search protocol and examples.
 
 ## Typical Workflow
 
-1. Download appropriate pre-trained model
-2. Generate embeddings for query sequences
-3. Search against pre-built databases (CATH or Swiss-Prot) OR
-4. Build custom database from target sequences
-5. Perform fast vector similarity search using FAISS
-6. Filter hits by similarity threshold
+1. Pin the maintained TM-Vec fork and model/cache paths.
+2. Build or obtain a versioned database.
+3. Search queries with `tmvec search`.
+4. Preserve the database checksum and filter thresholds with the results.

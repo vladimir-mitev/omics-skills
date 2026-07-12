@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import importlib.util
 import io
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -50,6 +51,29 @@ class ArxivQueryDetectionTests(unittest.TestCase):
         ):
             with self.subTest(query=query):
                 self.assertTrue(arxiv_search.is_raw_query(query))
+
+
+class ArxivCacheAndPacingTests(unittest.TestCase):
+    def test_expired_cache_is_refetched(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cache_dir = Path(tmp)
+            params = {"search_query": "all:test", "start": "0", "max_results": "1"}
+            query = arxiv_search.urllib.parse.urlencode(params, quote_via=arxiv_search.urllib.parse.quote)
+            url = f"{arxiv_search.API_URL}?{query}"
+            cached = arxiv_search.cache_path(cache_dir, url)
+            cached.parent.mkdir(parents=True)
+            cached.write_text("stale")
+            os.utime(cached, (1, 1))
+            with mock.patch.object(arxiv_search, "wait_for_pacing"), mock.patch.object(arxiv_search, "fetch_url_once", return_value="fresh") as fetch:
+                _, text = arxiv_search.fetch_feed(params, 20, cache_dir, False, 3.1, 0, 0, cache_ttl=60)
+            self.assertEqual(text, "fresh")
+            fetch.assert_called_once()
+
+    def test_pacing_state_is_guarded_by_cross_process_lock(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(arxiv_search.fcntl, "flock") as flock:
+            arxiv_search.wait_for_pacing(Path(tmp), 0.001)
+            self.assertEqual(flock.call_args_list[0].args[1], arxiv_search.fcntl.LOCK_EX)
+            self.assertEqual(flock.call_args_list[-1].args[1], arxiv_search.fcntl.LOCK_UN)
 
 
 class ArxivSummarizeTests(unittest.TestCase):

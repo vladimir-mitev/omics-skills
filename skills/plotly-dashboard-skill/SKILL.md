@@ -25,6 +25,8 @@ Create interactive dashboards with a single source of truth for UI and figure st
 | Palettes | See `PALETTES.md` |
 | App architecture | See `DASH_ARCHITECTURE.md` |
 | Performance | See `PERFORMANCE.md` |
+| Runnable smoke app | [Runnable app](examples/app.py) |
+| Definition of done | [QA checklist](QA_CHECKLIST.md) |
 
 ## Input Requirements
 
@@ -45,6 +47,7 @@ Create interactive dashboards with a single source of truth for UI and figure st
 - [ ] Callbacks are small and focused
 - [ ] p95 interaction latency acceptable
 - [ ] Styling is consistent across charts
+- [ ] `uv run --script examples/app.py --smoke` returns HTTP 200 and its measured pure-callback p95 is within the declared latency budget (300 ms by default).
 
 ## Examples
 

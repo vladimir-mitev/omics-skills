@@ -18,6 +18,18 @@ Run the steps in order; capture outputs and provenance at each step. Steps 0
 (database gate) and 5 (frame-aware context guard on eukaryotic DNA) are the ones
 most often skipped and most often responsible for wrong conclusions.
 
+Use the versioned evidence driver after the homology, context, and tree tools have produced their normalized TSVs:
+
+```bash
+uv run --no-project python skills/bio-interdomain-hgt/scripts/run_hgt_evidence.py \
+  forward_hits.tsv --arbiter-hits arbiter_hits.tsv --reciprocal reciprocal.tsv \
+  --context context.tsv --trees trees.tsv --sampling-depth sampling_depth.tsv \
+  --databases databases.json --hypotheses hypotheses.tsv --reflections reflections.tsv \
+  --query-domain ncldv --out results/bio-interdomain-hgt
+```
+
+The driver checksum-verifies the comprehensive arbiter, labels, and comparison collection; applies homology, reciprocal-best-hit, direction, frame-aware context, and phylogeny gates; normalizes confirmed candidates by lineage sampling depth; and requires a hypothesis reflection at every gate. Its run contract is `schemas/hgt-evidence.schema.json`.
+
 ### Step 0 — Database availability gate (DO THIS FIRST; never hardcode paths)
 
 HGT calls are only as good as the reference. Resolve the site/project DB root from
@@ -176,6 +188,8 @@ best-matches archaea (donor) can be polarized against eukaryotic and viral alter
 
 ## Quality Gates
 - [ ] Comprehensive multi-domain arbiter confirmed present (or built) and spans ALL candidate donor domains.
+- [ ] The database manifest records versions and checksums for the arbiter, lineage labels, and comparison collection; every checksum is verified before candidate scoring.
+- [ ] Each gate has a persisted reflection and candidate status is derived from the gates rather than assigned manually.
 - [ ] Forward search direction chosen by protein availability (blastp vs blastx); coverage computed against the protein length.
 - [ ] Every candidate carries id%, query+subject coverage, e-value, bitscore, and both reciprocal best hits.
 - [ ] Recipient context guard used a frame-aware method on eukaryotic DNA (NOT prokaryotic gene-calling).

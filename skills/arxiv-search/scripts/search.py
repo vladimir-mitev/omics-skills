@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import fcntl
 import hashlib
 import json
 import os
@@ -23,6 +24,7 @@ USER_AGENT = "omics-skills-arxiv-search/1.0 (+https://github.com/fmschulz/omics-
 DEFAULT_MIN_INTERVAL_SECONDS = 3.1
 DEFAULT_RETRIES = 2
 DEFAULT_RETRY_BACKOFF_SECONDS = 60.0
+DEFAULT_CACHE_TTL_SECONDS = 86_400
 RAW_QUERY_FIELD_RE = re.compile(
     r"(?<![A-Za-z0-9_])(?:ti|au|abs|co|jr|cat|rn|all|submittedDate):",
     flags=re.IGNORECASE,
@@ -105,6 +107,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Disable response-cache reads and writes; pacing still applies",
     )
+    parser.add_argument("--cache-ttl", type=float, default=DEFAULT_CACHE_TTL_SECONDS, help="Maximum response-cache age in seconds (default: 86400)")
     parser.add_argument(
         "--min-interval",
         type=float,
@@ -250,6 +253,7 @@ def fetch_results_by_ids(
     min_interval: float,
     retries: int,
     retry_backoff: float,
+    cache_ttl: float = DEFAULT_CACHE_TTL_SECONDS,
 ) -> tuple[str, dict[str, object]]:
     unique_ids = []
     seen = set()
@@ -278,6 +282,7 @@ def fetch_results_by_ids(
         min_interval=min_interval,
         retries=retries,
         retry_backoff=retry_backoff,
+        cache_ttl=cache_ttl,
     )
     return request_url, parse_feed(xml_text)
 
@@ -299,16 +304,20 @@ def wait_for_pacing(cache_dir: Path, min_interval: float) -> None:
         return
     cache_dir.mkdir(parents=True, exist_ok=True)
     state_path = cache_dir / "last_request_unix.txt"
-    now = time.time()
-    try:
-        last_request = float(state_path.read_text(encoding="utf-8").strip())
-    except (OSError, ValueError):
-        last_request = None
-    if last_request is not None:
-        delay = min_interval - (now - last_request)
-        if delay > 0:
-            time.sleep(delay)
-    state_path.write_text(f"{time.time():.6f}\n", encoding="utf-8")
+    lock_path = cache_dir / "pacing.lock"
+    with lock_path.open("a+", encoding="utf-8") as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        now = time.time()
+        try:
+            last_request = float(state_path.read_text(encoding="utf-8").strip())
+        except (OSError, ValueError):
+            last_request = None
+        if last_request is not None:
+            delay = min_interval - (now - last_request)
+            if delay > 0:
+                time.sleep(delay)
+        state_path.write_text(f"{time.time():.6f}\n", encoding="utf-8")
+        fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
 
 
 def parse_retry_after(value: str | None) -> float | None:
@@ -344,6 +353,7 @@ def fetch_feed(
     min_interval: float,
     retries: int,
     retry_backoff: float,
+    cache_ttl: float = DEFAULT_CACHE_TTL_SECONDS,
 ) -> tuple[str, str]:
     query_string = urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
     request_url = f"{API_URL}?{query_string}"
@@ -351,7 +361,9 @@ def fetch_feed(
 
     if not no_cache:
         try:
-            return request_url, response_cache_path.read_text(encoding="utf-8")
+            age = time.time() - response_cache_path.stat().st_mtime
+            if age <= cache_ttl:
+                return request_url, response_cache_path.read_text(encoding="utf-8")
         except OSError:
             pass
 
@@ -461,6 +473,8 @@ def main() -> int:
             raise ValueError("--retries must be >= 0")
         if args.retry_backoff < 0:
             raise ValueError("--retry-backoff must be >= 0")
+        if args.cache_ttl < 0:
+            raise ValueError("--cache-ttl must be >= 0")
         compiled_query = compile_search_query(args)
         params = build_params(args, compiled_query)
         request_url, xml_text = fetch_feed(
@@ -471,6 +485,7 @@ def main() -> int:
             min_interval=args.min_interval,
             retries=args.retries,
             retry_backoff=args.retry_backoff,
+            cache_ttl=args.cache_ttl,
         )
         parsed = parse_feed(xml_text)
         filtered_results, days_filter = apply_local_days_filter(parsed["results"], args.days)
@@ -510,6 +525,7 @@ def main() -> int:
         "timeout_seconds": args.timeout,
         "cache_dir": str(cache_dir),
         "cache_enabled": not args.no_cache,
+        "cache_ttl_seconds": args.cache_ttl,
         "min_interval_seconds": args.min_interval,
         "retries": args.retries,
         "retry_backoff_seconds": args.retry_backoff,

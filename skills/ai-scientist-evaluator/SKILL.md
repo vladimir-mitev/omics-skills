@@ -52,9 +52,12 @@ than a research generator. Evaluate completed outputs, not just plans.
    [`references/score_scale.md`](references/score_scale.md). Use
    [`references/category_definitions.md`](references/category_definitions.md) if
    category meaning is unclear. A score of 5 earns the full category weight.
-10. Convert the category scores to a weighted total out of 100. Apply explicit
-    penalties sparingly and explain them when they are not already captured by
-    the category scores.
+10. Convert the category scores to a weighted total out of 100. Do not trust
+    submitted `weight`, `weighted_points`, or `overall.total_score_100` values:
+    the bundled aggregator validates the review against
+    `evaluation_schema.json`, loads the selected weight profile, and recomputes
+    every weighted value before ranking. Apply explicit penalties sparingly and
+    explain them when they are not already captured by category scores.
 11. For multiple submissions, score each one independently before ranking. Use
     tie-breaks in this order:
     - fewer integrity or reproducibility problems
@@ -71,7 +74,7 @@ than a research generator. Evaluate completed outputs, not just plans.
     [`assets/evaluation_schema.json`](assets/evaluation_schema.json). Use
     [`assets/report_template.md`](assets/report_template.md) for markdown
     reports. For completed JSON reviews, you may aggregate rankings with
-    `uv run --no-project python "$HOME/.agents/skills/ai-scientist-evaluator/scripts/aggregate_reviews.py" review1.json review2.json --out_md leaderboard.md`.
+   `uv run --script "$HOME/.agents/skills/ai-scientist-evaluator/scripts/aggregate_reviews.py" review1.json review2.json --out_md leaderboard.md`.
 
 ## Quick Reference
 
@@ -89,7 +92,7 @@ than a research generator. Evaluate completed outputs, not just plans.
 | Score consistently | Read `references/score_scale.md` |
 | Draft a report | Use `assets/report_template.md` |
 | Produce structured JSON | Use `assets/evaluation_template.json` and `assets/evaluation_schema.json` |
-| Rank finished JSON reviews | Run `uv run --no-project python "$HOME/.agents/skills/ai-scientist-evaluator/scripts/aggregate_reviews.py" review1.json review2.json --out_md leaderboard.md` |
+| Rank finished JSON reviews | Run `uv run --script "$HOME/.agents/skills/ai-scientist-evaluator/scripts/aggregate_reviews.py" review1.json review2.json --out_md leaderboard.md` |
 
 ## Input Requirements
 
@@ -169,7 +172,7 @@ I would trust it.
 ### Example 3: Rank finished JSON evaluations
 
 ```bash
-uv run --no-project python \
+uv run --script \
   "$HOME/.agents/skills/ai-scientist-evaluator/scripts/aggregate_reviews.py" \
   review_a.json review_b.json --out_md leaderboard.md
 ```

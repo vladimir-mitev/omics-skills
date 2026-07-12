@@ -47,7 +47,7 @@ Skills target current stable releases as of 2026 and document GPU alternatives w
 | Domain taxonomy triage | BBTools QuickClade via `bryce911/bbtools:39.85` container (`percontig` for assemblies), then GTDB-Tk / EukCC / vConTACT3 / GVClass by domain | — |
 | Binning | QuickBin via `bryce911/bbtools:39.85` container | SemiBin2 v2.3.0 (CUDA-backed PyTorch) |
 | Bin QC | CheckM2 v1.1.0, EukCC2 v2.1.3, GUNC v1.1.1 | — |
-| Gene calling | Pyrodigal v3.7.1, pyrodigal-gv v0.3.2, BRAKER v3.0.8 | — |
+| Gene calling | Pyrodigal v3.7.1, pyrodigal-gv v0.3.2, BRAKER4 for current eukaryotic workflows; BRAKER3 v3.0.8 for legacy reproduction | — |
 | ncRNA | tRNAscan-SE v2.0.12, Infernal v1.1.5 (`cmsearch` against Rfam SSU/LSU CMs) | — |
 | Annotation | DIAMOND v2.2.1 (clusterednr preferred), eggNOG-mapper v2.1.15, InterProScan 5.77-108.0, pyhmmer, TaxonKit v0.20 | MMseqs2-GPU |
 | Phylogenetics | VeryFastTree v4 (exploratory/time-bounded trees and >2,000 taxa), IQ-TREE v3.1.2 (final ≤2,000 taxa), MAFFT, trimAl, ete4 | — |

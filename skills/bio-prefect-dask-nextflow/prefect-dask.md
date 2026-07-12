@@ -34,10 +34,17 @@ import subprocess
 from prefect import flow, task
 from prefect_dask import DaskTaskRunner
 
+def sample_name(path: Path) -> str:
+    name = path.name
+    for suffix in (".fastq.gz", ".fq.gz", ".fastq", ".fq"):
+        if name.endswith(suffix):
+            return name[:-len(suffix)]
+    return path.stem
+
 @task(retries=2, retry_delay_seconds=30)
 def fastqc(reads: Path, outdir: Path) -> Path:
     outdir.mkdir(parents=True, exist_ok=True)
-    sample_out = outdir / reads.stem
+    sample_out = outdir / sample_name(reads)
     sample_out.mkdir(exist_ok=True)
 
     cmd = ["fastqc", "-o", str(sample_out), str(reads)]

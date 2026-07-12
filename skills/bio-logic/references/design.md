@@ -10,7 +10,8 @@
 - [ ] Literature gap identified
 
 ## Design Selection
-- [ ] Matches research question (causal → experimental)
+- [ ] Matches research question; causal questions require randomization or a
+      justified quasi-experimental or natural-experiment identification strategy
 - [ ] Ethical constraints considered
 - [ ] Feasibility assessed
 - [ ] Power analysis completed (target: 80-90%)

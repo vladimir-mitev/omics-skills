@@ -16,7 +16,6 @@ from dataclasses import dataclass
 from typing import Optional, Sequence
 
 import matplotlib as mpl
-import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
@@ -187,7 +186,7 @@ def direct_label(
     y_data: Sequence[float],
     label: str,
     *,
-    color: str = TUFTE_COLORS["series_default"],
+    color: Optional[str] = None,
     offset: tuple[float, float] = (8, 0),
 ) -> Axes:
     """Label a series at its final point instead of using a legend."""
@@ -195,6 +194,7 @@ def direct_label(
     y_values = list(y_data)
     if not x_values or not y_values:
         return ax
+    color = color or str(mpl.rcParams["text.color"])
     ax.annotate(
         label,
         xy=(x_values[-1], y_values[-1]),
@@ -213,10 +213,11 @@ def annotate_point(
     y: float,
     text: str,
     *,
-    color: str = "#333333",
+    color: Optional[str] = None,
     offset: tuple[float, float] = (0, 24),
 ) -> Axes:
     """Annotate one notable point with a restrained leader line."""
+    color = color or str(mpl.rcParams["text.color"])
     ax.annotate(
         text,
         xy=(x, y),
@@ -235,11 +236,12 @@ def sparkline(
     ax: Axes,
     values: Sequence[float],
     *,
-    color: str = TUFTE_COLORS["series_default"],
+    color: Optional[str] = None,
     mark_min_max: bool = True,
     mark_endpoint: bool = True,
 ) -> Axes:
     """Draw a compact trend with no axes or grid."""
+    color = color or str(mpl.rcParams["text.color"])
     data = list(values)
     if not data:
         return ax

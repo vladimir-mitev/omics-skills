@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["linkml==1.11.1"]
+# ///
 from __future__ import annotations
 
 import argparse
@@ -8,6 +12,8 @@ import json
 import re
 from pathlib import Path
 from typing import Any
+
+from linkml.validator import validate as validate_linkml
 
 
 DOI_RE = re.compile(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+\b", re.IGNORECASE)
@@ -147,6 +153,11 @@ def parse_args() -> argparse.Namespace:
             "aliases, scalar-to-list coercions, missing deterministic IDs, and inferred "
             "artifact types."
         ),
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Require TextSpan grounding on every assertion, evidence item, and evidence link.",
     )
     return parser.parse_args()
 
@@ -443,6 +454,22 @@ def validate_optional_assertion_metadata(extraction: dict, errors: list[str]) ->
             )
 
 
+def validate_strict_grounding(extraction: dict, errors: list[str]) -> None:
+    for collection in ("assertions", "evidence_items", "evidence_links"):
+        for item in extraction.get(collection, []) or []:
+            if isinstance(item, dict):
+                expect(
+                    has_text_spans(item),
+                    issue(
+                        item.get("id"),
+                        f"{collection}[].text_spans",
+                        "missing strict text grounding",
+                        "Attach at least one TextSpan that resolves to exact source text.",
+                    ),
+                    errors,
+                )
+
+
 def validate_cross_references(extraction: dict, ids_by_key: dict[str, set[str]], errors: list[str]) -> None:
     assertion_ids = ids_by_key.get("assertions", set())
     evidence_ids = ids_by_key.get("evidence_items", set())
@@ -726,6 +753,18 @@ def main() -> int:
     if errors:
         return write_report(args.report_out, extraction_path, False, errors, warnings, {}, profile, repair_actions)
 
+    schema_path = Path(__file__).resolve().parents[1] / "assets" / "csag.yaml"
+    schema_report = validate_linkml(extraction, schema_path, "PaperExtraction")
+    for result in schema_report.results:
+        errors.append(
+            issue(
+                extraction.get("id"),
+                "paper_extraction",
+                f"LinkML schema validation failed: {result.message}",
+                "Conform the JSON instance to assets/csag.yaml before semantic validation.",
+            )
+        )
+
     root_id = extraction.get("id") or "(paper extraction)"
     expect(bool(extraction.get("id")), issue(root_id, "id", "missing top-level id", "Set the PaperExtraction document ID."), errors)
     expect(bool(extraction.get("title")), issue(root_id, "title", "missing top-level title", "Set the manuscript title."), errors)
@@ -770,6 +809,8 @@ def main() -> int:
     validate_optional_assertion_metadata(extraction, errors)
     validate_semantic_field_placement(extraction, errors)
     validate_cross_references(extraction, ids_by_key, errors)
+    if args.strict:
+        validate_strict_grounding(extraction, errors)
     if profile == "promoted_claim":
         validate_promoted_claim_profile(extraction, ids_by_key, errors)
     if profile == "benchmark_key":

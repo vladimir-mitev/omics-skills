@@ -19,7 +19,13 @@ Use authoritative sources to report taxonomy changes with explicit versions, dat
    - Eukaryota -> run EukCC for eukaryotic MAG/genome QC and taxonomy context.
    - Mixed, low-confidence, or conflicting domains -> split or flag contigs for manual review before domain-specific classification.
 6. Normalize IDs and taxonomy strings across tools.
+   Convert QuickClade machine output with
+   `scripts/quickclade_to_routing.py` so every downstream decision uses the
+   documented `domain_routing.tsv` schema.
 7. Deliver a versioned report with conflicts flagged.
+8. Submit GTDB-Tk, EukCC, vConTACT3, and GVClass work through
+   `scripts/submit_taxonomy.sh`; do not run these compute-heavy commands on a
+   login node.
 
 ## Quick Reference
 
@@ -31,6 +37,8 @@ Use authoritative sources to report taxonomy changes with explicit versions, dat
 | Report template | See `reference/report-template.md` |
 | QA checklist | See `reference/qa-checklist.md` |
 | Environment | Use the project's pinned Pixi environment and record its lockfile |
+| Normalize QuickClade | `uv run --no-project python scripts/quickclade_to_routing.py quickclade.tsv --sample-id S1 --output domain_routing.tsv` |
+| Submit downstream classification | `SLURM_ACCOUNT=... scripts/submit_taxonomy.sh gtdbtk bins results/taxonomy/gtdbtk` |
 
 ## Domain Triage Contract
 
@@ -76,6 +84,7 @@ Minimum `domain_routing.tsv` columns:
 - [ ] Bacteria/Archaea routes include GTDB-Tk outputs and the GTDB reference release; missing GTDB-Tk databases were installed or explicitly reported as blockers.
 - [ ] Viral routes distinguish phage/prokaryotic viruses from giant-virus/Nucleocytoviricota candidates before choosing vConTACT3 or GVClass.
 - [ ] Eukaryotic routes use EukCC rather than prokaryotic QC/taxonomy tools.
+- [ ] GTDB-Tk, EukCC, vConTACT3, and GVClass were submitted through the scheduler, with post-run non-empty output checks.
 
 ## Examples
 

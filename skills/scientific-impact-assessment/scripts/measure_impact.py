@@ -3,10 +3,13 @@ from __future__ import annotations
 
 import argparse
 import csv
+import fcntl
+import hashlib
 import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -17,6 +20,8 @@ from typing import Any
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_JOURNAL_METRICS = SKILL_ROOT / "references" / "journal_metrics_2024.tsv"
 DOI_PATTERN = re.compile(r"^10\.\d{4,}/\S+$", re.IGNORECASE)
+DEFAULT_CACHE_TTL = 86_400.0
+DEFAULT_MIN_INTERVAL = 0.1
 
 
 def normalize_doi(raw_doi: str) -> str:
@@ -57,6 +62,36 @@ def fetch_json(url: str, headers: dict[str, str] | None = None) -> dict[str, Any
         return json.load(response)
 
 
+def default_cache_dir() -> Path:
+    return Path(os.environ.get("OPENALEX_CACHE_DIR", Path.home() / ".cache" / "omics-skills" / "openalex"))
+
+
+def fetch_openalex_cached(url: str, *, cache_dir: Path, cache_ttl: float, min_interval: float) -> dict[str, Any]:
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache = cache_dir / "responses" / f"{hashlib.sha256(url.encode()).hexdigest()}.json"
+    try:
+        if time.time() - cache.stat().st_mtime <= cache_ttl:
+            return json.loads(cache.read_text(encoding="utf-8"))
+    except OSError:
+        pass
+    lock_path = cache_dir / "pacing.lock"
+    state_path = cache_dir / "last_request_unix.txt"
+    with lock_path.open("a+", encoding="utf-8") as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        try:
+            last = float(state_path.read_text().strip())
+        except (OSError, ValueError):
+            last = None
+        if last is not None and min_interval > 0:
+            time.sleep(max(0, min_interval - (time.time() - last)))
+        payload = fetch_json(url)
+        state_path.write_text(f"{time.time():.6f}\n")
+        fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    cache.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+    return payload
+
+
 def openalex_url_from_args(doi: str | None, openalex_id: str | None, mailto: str | None) -> str:
     base = "https://api.openalex.org/works"
     if doi:
@@ -70,8 +105,8 @@ def openalex_url_from_args(doi: str | None, openalex_id: str | None, mailto: str
     return url
 
 
-def fetch_openalex_work(doi: str | None, openalex_id: str | None, mailto: str | None) -> dict[str, Any]:
-    return fetch_json(openalex_url_from_args(doi=doi, openalex_id=openalex_id, mailto=mailto))
+def fetch_openalex_work(doi: str | None, openalex_id: str | None, mailto: str | None, *, cache_dir: Path | None = None, cache_ttl: float = DEFAULT_CACHE_TTL, min_interval: float = DEFAULT_MIN_INTERVAL) -> dict[str, Any]:
+    return fetch_openalex_cached(openalex_url_from_args(doi=doi, openalex_id=openalex_id, mailto=mailto), cache_dir=cache_dir or default_cache_dir(), cache_ttl=cache_ttl, min_interval=min_interval)
 
 
 def parse_openalex_work(payload: dict[str, Any]) -> dict[str, Any]:
@@ -183,7 +218,10 @@ def build_live_report(args: argparse.Namespace) -> dict[str, Any]:
     doi = normalize_doi(args.doi) if args.doi else None
     openalex_id = normalize_openalex_id(args.openalex_id) if args.openalex_id else None
     journal_metrics = load_journal_metrics(Path(args.journal_metrics))
-    openalex_payload = fetch_openalex_work(doi=doi, openalex_id=openalex_id, mailto=args.mailto)
+    cache_dir = Path(getattr(args, "cache_dir", None) or default_cache_dir())
+    cache_ttl = getattr(args, "cache_ttl", DEFAULT_CACHE_TTL)
+    min_interval = getattr(args, "min_interval", DEFAULT_MIN_INTERVAL)
+    openalex_payload = fetch_openalex_work(doi=doi, openalex_id=openalex_id, mailto=args.mailto, cache_dir=cache_dir, cache_ttl=cache_ttl, min_interval=min_interval)
     openalex_summary = parse_openalex_work(openalex_payload)
     # An OpenAlex-ID lookup can still resolve a DOI. Use the canonical DOI from
     # the returned work for Altmetric instead of treating ID-based input as
@@ -198,6 +236,7 @@ def build_live_report(args: argparse.Namespace) -> dict[str, Any]:
         "openalex": openalex_summary,
         "altmetric": altmetric_summary,
         "journal_metric": journal_metric,
+        "request_policy": {"cache_dir": str(cache_dir), "cache_ttl_seconds": cache_ttl, "min_interval_seconds": min_interval},
     }
 
 
@@ -236,6 +275,9 @@ def build_parser() -> argparse.ArgumentParser:
         default=os.environ.get("OPENALEX_MAILTO"),
         help="Email for OpenAlex polite-pool usage",
     )
+    parser.add_argument("--cache-dir", help="OpenAlex response cache directory")
+    parser.add_argument("--cache-ttl", type=float, default=DEFAULT_CACHE_TTL, help="Maximum cached response age in seconds")
+    parser.add_argument("--min-interval", type=float, default=DEFAULT_MIN_INTERVAL, help="Minimum seconds between OpenAlex requests across processes")
     parser.add_argument(
         "--altmetric-api-key",
         default=os.environ.get("ALTMETRIC_API_KEY"),

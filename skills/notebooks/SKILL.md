@@ -74,6 +74,7 @@ A notebook is not "done" until it has been executed end-to-end on a fresh kernel
    - Be reproducible from a clean clone: a new environment built from the PEP 723 header (marimo) or `pixi install` + `jupyter nbconvert --to notebook --execute` (Jupyter) must reproduce the same notebook end-to-end.
 
 9. **Convert between marimo and Jupyter** when the user asks for it:
+   - Use `scripts/convert_notebook.py` for a pinned conversion path. The fixtures under `fixtures/` exercise both directions. Replace `<PROJECT_NAME>` and `<PIXI_PROJECT_KERNEL>` in copied Jupyter templates with the actual Pixi kernel before execution.
    - `.ipynb` → marimo `.py`: `uvx marimo convert <notebook.ipynb> -o <notebook.py>`, then `uvx marimo check --strict <notebook.py>`, then clean up Jupyter artifacts (`display()` calls, `%magic`s, indented final expressions, ipywidget usage). See `references/widgets.md` and `references/latex.md` for ipywidget→marimo and MathJax→KaTeX mappings.
    - marimo `.py` → `.ipynb`: `uvx marimo export ipynb <notebook.py> -o <notebook.ipynb> --include-outputs --sandbox -f`.
    - After conversion, re-run step 6 (check/execute), step 7 (inspect plots), and step 8 (deliver pre-executed).
@@ -96,6 +97,7 @@ A notebook is not "done" until it has been executed end-to-end on a fresh kernel
 | Plot style | `references/plot_style.md` |
 | Templates | `templates/marimo_notebook_template.py`, `templates/jupyter_kiss_template.py` |
 | Headless executor | `scripts/execute_notebook.py` |
+| Pinned converter | `uv run --script "$NOTEBOOKS_SKILL/scripts/convert_notebook.py" --help` |
 
 ## Input Requirements
 
@@ -122,6 +124,8 @@ A notebook is not "done" until it has been executed end-to-end on a fresh kernel
 - [ ] Delivered notebook has every cell pre-executed with figures embedded; users do not have to run the notebook to see the plots.
 - [ ] For marimo: `uvx marimo check --strict <notebook.py>` passes before and after export.
 - [ ] For marimo: no malformed markdown cells, quoted-string fragments inside `mo.md(...)`, trailing empty cells, or `return`-only placeholder cells remain.
+- [ ] Template dependencies use bounded versions and no delivered notebook retains the literal `<PIXI_PROJECT_KERNEL>` placeholder.
+- [ ] Jupyter-to-marimo and marimo-to-Jupyter conversions both pass the fixture gate.
 
 ## Examples
 

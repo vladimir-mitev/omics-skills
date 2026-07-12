@@ -13,8 +13,20 @@ Use structured frameworks to evaluate scientific claims, methodology, and eviden
 2. For project work, maintain a hypothesis register with at least 5 distinct active hypotheses until the project is no longer exploratory.
 3. After each major intermediate result, reflect on what changed, revise hypothesis status, and identify the next discriminating check.
 4. When findings need context, pair this reasoning with a literature-search skill such as `/polars-dovmed`, then revise hypotheses against the literature.
-5. Apply the relevant checklist below.
+5. Select the study-type profile before applying a checklist. Do not grade a
+   computational benchmark, phylogenetic analysis, or evolutionary inference
+   as if it were an intervention trial.
 6. Structure output using the provided format.
+
+### Study-Type Profiles
+
+| Profile | Main evidence checks | Rating language |
+|---|---|---|
+| Intervention | allocation, controls, adherence, attrition, estimand, harms | GRADE when the review question and evidence synthesis support it |
+| Observational or quasi-experimental | identification assumptions, temporality, confounding, negative controls, sensitivity analyses | risk-of-bias plus causal-confidence statement |
+| Computational or machine learning | data provenance, leakage, splits, baselines, calibration, external validation, reproducibility | computational evidence confidence |
+| Evolutionary or comparative genomics | orthology, taxon/reference sampling, model fit, support, contamination, topology sensitivity | phylogenetic/comparative evidence confidence |
+| Descriptive or exploratory omics | sampling, measurement, multiple testing, effect sizes, replication, alternative explanations | descriptive confidence; avoid causal labels |
 
 ### Project Hypothesis Loop
 
@@ -49,7 +61,9 @@ Use relevant sections based on the review scope. Skip items not applicable to th
 ## Interpretation
 - [ ] Conclusions match evidence strength
 - [ ] Limitations acknowledged
-- [ ] Causal claims only from experimental designs
+- [ ] Causal claims require an identified causal design: randomized evidence or
+      a justified quasi-experimental/natural-experiment strategy with its
+      assumptions and sensitivity checks
 - [ ] No cherry-picking or overgeneralization
 
 ## Red Flags
@@ -69,7 +83,7 @@ Use relevant sections based on the review scope. Skip items not applicable to th
 **Claim strength ladder**:
 | Language | Requires |
 |----------|----------|
-| "Proves" / "Demonstrates" | Strong experimental evidence |
+| "Demonstrates" | Strong evidence under a design that identifies the target claim |
 | "Suggests" / "Indicates" | Observational with controlled confounds |
 | "Associated with" | Observational, no causal claim |
 | "May" / "Might" | Preliminary or hypothesis-generating |
@@ -94,7 +108,8 @@ Use relevant sections based on the review scope. Skip items not applicable to th
 - [Issue]
 
 ## Evidence Rating
-[GRADE level: High/Moderate/Low/Very Low with justification]
+[Framework appropriate to the study profile, rating, and justification. Use
+GRADE only when it applies to the review question.]
 
 ## Bottom Line
 [What can/cannot be concluded from this evidence]
@@ -156,6 +171,8 @@ Use relevant sections based on the review scope. Skip items not applicable to th
 - [ ] Claim type matches evidence type
 - [ ] Key methodological risks are identified
 - [ ] Evidence rating is justified with concrete issues
+- [ ] The evidence framework matches the study type; computational and
+      evolutionary work is not forced into intervention-centric GRADE rules
 - [ ] Exploratory project work includes at least 5 active hypotheses or explains why fewer are plausible
 - [ ] Discovery work includes a literature-derived analysis playbook before selecting analyses
 - [ ] Intermediate results update hypothesis status before the next workflow step

@@ -30,7 +30,7 @@ Search arXiv through its official API for discovery, shortlisting, recent-prepri
 10. If the user needs massive bulk harvesting rather than interactive search, the arXiv docs recommend OAI-PMH rather than large search result slices.
 11. Use `scripts/summarize` when the user wants stable local notes for specific arXiv IDs. This writes Markdown files containing paper metadata, abstract, links, and a blank `## Notes` section for follow-up annotation.
 12. Do not rely on server-side `submittedDate:[...]` queries for user-facing workflows. As observed on March 18, 2026 UTC, official arXiv API requests using `submittedDate` returned `HTTP 500` even for the example pattern shown in the arXiv API manual. The bundled CLI therefore applies `--days` as a local filter on returned `published` timestamps instead of sending `submittedDate` to the API.
-13. Respect arXiv API pacing. The bundled CLI caches identical requests, coordinates a default 3.1-second minimum interval between API calls through a local state file, and retries `HTTP 429` responses with backoff. For broad discovery, still prefer one scoped query over many small queries.
+13. Respect arXiv API pacing. The bundled CLI caches identical requests for a bounded TTL, coordinates a default 3.1-second minimum interval across processes with a file lock, and retries `HTTP 429` responses with backoff. For broad discovery, still prefer one scoped query over many small queries.
 
 ## Quick Reference
 
@@ -49,7 +49,7 @@ Search arXiv through its official API for discovery, shortlisting, recent-prepri
 | ID lookup | `--ids 2501.01234,2406.00001` |
 | Write local notes | `skills/arxiv-search/scripts/summarize 2501.01234 --output-dir arxiv-summaries` |
 | Network timeout | `--timeout 20` |
-| Pacing/cache | default `--min-interval 3.1`, `--retries 2`, `--retry-backoff 60`, cache under `~/.cache/omics-skills/arxiv-search` |
+| Pacing/cache | default `--cache-ttl 86400`, `--min-interval 3.1`, `--retries 2`, `--retry-backoff 60`, cache under `~/.cache/omics-skills/arxiv-search` |
 | Help | `skills/arxiv-search/scripts/search --help` |
 
 ## Input Requirements

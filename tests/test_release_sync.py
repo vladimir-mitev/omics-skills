@@ -20,7 +20,7 @@ class ReleaseSyncTests(unittest.TestCase):
     def test_release_candidate_matches_manifest_notes_and_head(self) -> None:
         errors = check_release_sync.release_errors(
             REPO_ROOT,
-            "v1.4.0",
+            "v1.5.0",
             "HEAD",
         )
         self.assertEqual(errors, [])
@@ -34,18 +34,33 @@ class ReleaseSyncTests(unittest.TestCase):
         self.assertTrue(any("does not match manifest version" in error for error in errors))
 
     def test_missing_annotated_tag_is_rejected_before_release(self) -> None:
-        errors = check_release_sync.release_errors(
-            REPO_ROOT,
-            "v1.4.0",
-            "HEAD",
-            require_annotated_tag=True,
-        )
+        original = check_release_sync.git_output
+
+        def missing_tag_git_output(repo: Path, *args: str) -> str | None:
+            if args in {
+                ("cat-file", "-t", "v1.5.0"),
+                ("rev-parse", "v1.5.0^{commit}"),
+            }:
+                return None
+            return original(repo, *args)
+
+        with patch.object(
+            check_release_sync,
+            "git_output",
+            side_effect=missing_tag_git_output,
+        ):
+            errors = check_release_sync.release_errors(
+                REPO_ROOT,
+                "v1.5.0",
+                "HEAD",
+                require_annotated_tag=True,
+            )
         self.assertTrue(any("must be annotated" in error for error in errors))
 
     def test_unknown_main_ref_is_rejected(self) -> None:
         errors = check_release_sync.release_errors(
             REPO_ROOT,
-            "v1.4.0",
+            "v1.5.0",
             "refs/remotes/origin/not-a-real-branch",
         )
         self.assertTrue(any("cannot resolve main ref" in error for error in errors))
@@ -63,7 +78,7 @@ class ReleaseSyncTests(unittest.TestCase):
         with patch.object(check_release_sync, "git_output", side_effect=mismatched_git_output):
             errors = check_release_sync.release_errors(
                 REPO_ROOT,
-                "v1.4.0",
+                "v1.5.0",
                 "main",
             )
 

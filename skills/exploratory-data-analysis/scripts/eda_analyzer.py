@@ -290,6 +290,10 @@ def analyze_file(filepath):
             analysis['data_analysis'] = analyze_bioinformatics(filepath, extension)
         elif category == 'microscopy_imaging':
             analysis['data_analysis'] = analyze_imaging(filepath, extension)
+        elif category == 'chemistry_molecular':
+            analysis['data_analysis'] = analyze_chemistry(filepath, extension)
+        elif category in {'spectroscopy_analytical', 'proteomics_metabolomics'}:
+            analysis['data_analysis'] = analyze_spectrometry(filepath, extension)
     except Exception as e:
         analysis['data_analysis']['error'] = str(e)
 
@@ -309,8 +313,9 @@ def analyze_general_scientific(filepath, extension):
     try:
         if extension in ['npy']:
             import numpy as np
-            data = np.load(filepath)
+            data = np.load(filepath, mmap_mode='r')
             results = {
+                'analysis_scope': 'memory_mapped',
                 'shape': data.shape,
                 'dtype': str(data.dtype),
                 'size': data.size,
@@ -404,17 +409,29 @@ def analyze_bioinformatics(filepath, extension):
     try:
         if logical_extension in ['fasta', 'fa', 'fna']:
             from Bio import SeqIO
+            sequence_count = 0
+            total_length = 0
+            min_length = None
+            max_length = 0
+            sequence_ids = []
             with open_text(filepath, 'rt') as source:
-                sequences = list(SeqIO.parse(source, 'fasta'))
-            lengths = [len(seq) for seq in sequences]
+                for sequence in SeqIO.parse(source, 'fasta'):
+                    length = len(sequence)
+                    sequence_count += 1
+                    total_length += length
+                    min_length = length if min_length is None else min(min_length, length)
+                    max_length = max(max_length, length)
+                    if len(sequence_ids) < 10:
+                        sequence_ids.append(sequence.id)
 
             results = {
-                'sequence_count': len(sequences),
-                'total_length': sum(lengths),
-                'mean_length': sum(lengths) / len(lengths) if lengths else 0,
-                'min_length': min(lengths) if lengths else 0,
-                'max_length': max(lengths) if lengths else 0,
-                'sequence_ids': [seq.id for seq in sequences[:10]]  # First 10
+                'analysis_scope': 'streaming_full_file',
+                'sequence_count': sequence_count,
+                'total_length': total_length,
+                'mean_length': total_length / sequence_count if sequence_count else 0,
+                'min_length': min_length or 0,
+                'max_length': max_length,
+                'sequence_ids': sequence_ids,
             }
 
         elif logical_extension in ['fastq', 'fq']:
@@ -430,6 +447,8 @@ def analyze_bioinformatics(filepath, extension):
             qualities = [sum(seq.letter_annotations['phred_quality']) / len(seq) for seq in sequences]
 
             results = {
+                'analysis_scope': 'streaming_sample',
+                'sampling': {'method': 'first_records', 'record_limit': 10_000},
                 'read_count_sampled': len(sequences),
                 'mean_length': sum(lengths) / len(lengths) if lengths else 0,
                 'mean_quality': sum(qualities) / len(qualities) if qualities else 0,
@@ -443,6 +462,75 @@ def analyze_bioinformatics(filepath, extension):
         results['error'] = f"Analysis error: {e}"
 
     return results
+
+
+def analyze_chemistry(filepath, extension):
+    """Analyze bounded text structure formats without loading full trajectories."""
+    if extension == 'pdb':
+        atoms = heteroatoms = models = residues = 0
+        residue_ids = set()
+        with open(filepath, 'rt', errors='replace') as handle:
+            for line in handle:
+                record = line[:6].strip()
+                if record == 'ATOM':
+                    atoms += 1
+                elif record == 'HETATM':
+                    heteroatoms += 1
+                elif record == 'MODEL':
+                    models += 1
+                if record in {'ATOM', 'HETATM'}:
+                    residue_ids.add((line[21:22], line[22:26].strip(), line[26:27]))
+        residues = len(residue_ids)
+        return {'analysis_scope': 'streaming_full_file', 'atom_records': atoms, 'heteroatom_records': heteroatoms, 'models': models or 1, 'residue_positions': residues}
+    if extension in {'sdf', 'mol'}:
+        records = 0
+        with open(filepath, 'rt', errors='replace') as handle:
+            for line in handle:
+                records += line.rstrip() == '$$$$'
+        return {'analysis_scope': 'streaming_full_file', 'molecule_records': records or 1}
+    if extension in {'smi', 'smiles', 'xyz'}:
+        with open(filepath, 'rt', errors='replace') as handle:
+            lines = sum(bool(line.strip()) for line in handle)
+        return {'analysis_scope': 'streaming_full_file', 'nonempty_lines': lines}
+    return {}
+
+
+def analyze_spectrometry(filepath, extension):
+    """Analyze representative open text/XML mass-spectrometry formats."""
+    logical = extension.lower()
+    if logical == 'mgf':
+        spectra = peaks = 0
+        in_spectrum = False
+        with open(filepath, 'rt', errors='replace') as handle:
+            for line in handle:
+                stripped = line.strip()
+                if stripped == 'BEGIN IONS':
+                    spectra += 1
+                    in_spectrum = True
+                elif stripped == 'END IONS':
+                    in_spectrum = False
+                elif in_spectrum and stripped and stripped[0].isdigit() and '=' not in stripped:
+                    peaks += 1
+        return {'analysis_scope': 'streaming_full_file', 'spectra': spectra, 'peak_rows': peaks}
+    if logical == 'mztab':
+        counts = {'metadata_rows': 0, 'protein_rows': 0, 'peptide_rows': 0, 'psm_rows': 0, 'small_molecule_rows': 0}
+        prefixes = {'MTD': 'metadata_rows', 'PRT': 'protein_rows', 'PEP': 'peptide_rows', 'PSM': 'psm_rows', 'SML': 'small_molecule_rows'}
+        with open(filepath, 'rt', errors='replace') as handle:
+            for line in handle:
+                key = prefixes.get(line[:3])
+                if key:
+                    counts[key] += 1
+        return {'analysis_scope': 'streaming_full_file', **counts}
+    if logical in {'mzml', 'mzxml'}:
+        import xml.etree.ElementTree as ET
+        spectra = chromatograms = 0
+        for _, element in ET.iterparse(filepath, events=('end',)):
+            tag = element.tag.rsplit('}', 1)[-1].lower()
+            spectra += tag in {'spectrum', 'scan'}
+            chromatograms += tag == 'chromatogram'
+            element.clear()
+        return {'analysis_scope': 'streaming_xml', 'spectra': spectra, 'chromatograms': chromatograms}
+    return {}
 
 
 def analyze_imaging(filepath, extension):

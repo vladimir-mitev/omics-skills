@@ -70,12 +70,15 @@ def main():
     ap.add_argument('--trace', required=True, type=Path, help='Nextflow trace file (e.g., trace.txt)')
     ap.add_argument('--workdir', required=True, type=Path, help='Nextflow work directory (e.g., work/)')
     ap.add_argument('--out', required=True, type=Path, help='Output manifest path (.yaml or .json)')
+    ap.add_argument('--run-id', required=True, help='Stable run identifier')
     ap.add_argument('--pipeline-name', required=True, help='Pipeline name')
     ap.add_argument('--pipeline-version', default='', help='Pipeline version (tag) if known')
     ap.add_argument('--repo-url', default='', help='Repo URL if known')
     ap.add_argument('--commit-sha', default='', help='Commit SHA if known')
     ap.add_argument('--engine-version', default='', help='Nextflow version if known')
     ap.add_argument('--launch-command', default='', help='Exact nextflow launch command (quoted)')
+    ap.add_argument('--tool-versions', required=True, type=Path, help='JSON mapping task/process names to {tool, version}')
+    ap.add_argument('--outputs-manifest', required=True, type=Path, help='One final output path per line')
 
     args = ap.parse_args()
 
@@ -83,6 +86,11 @@ def main():
     with args.trace.open(newline='', errors='ignore') as f:
         reader = csv.DictReader(f, dialect=dialect)
         rows = list(reader)
+
+    tool_versions = json.loads(args.tool_versions.read_text(encoding='utf-8'))
+    final_outputs = [line.strip() for line in args.outputs_manifest.read_text(encoding='utf-8').splitlines() if line.strip()]
+    if not final_outputs:
+        ap.error('--outputs-manifest has no output paths')
 
     steps: List[Dict[str, Any]] = []
     for i, row in enumerate(rows, start=1):
@@ -96,13 +104,31 @@ def main():
             workdir_str = str(work_task_dir)
             cmd = read_command(work_task_dir)
 
+        process_name = task_name.split(' (', 1)[0]
+        tool_record = tool_versions.get(task_name) or tool_versions.get(process_name)
+        if not tool_record or not tool_record.get('tool') or not tool_record.get('version'):
+            ap.error(f'missing tool/version evidence for task: {task_name}')
+        inputs = []
+        outputs = []
+        if work_task_dir:
+            for filename, target in (('.command.in', inputs), ('.command.out', outputs)):
+                evidence_path = work_task_dir / filename
+                if evidence_path.is_file():
+                    target.extend(line.strip() for line in evidence_path.read_text(encoding='utf-8').splitlines() if line.strip())
+        if not cmd or not inputs or not outputs:
+            ap.error(f'incomplete command/input/output evidence for task: {task_name}')
+
         steps.append({
             'step_id': f'nf-task-{i}',
             'name': task_name,
             'status': (row.get('status') or '').strip(),
             'exit_code': (row.get('exit') or '').strip(),
             'workdir': workdir_str,
-            'command': cmd or 'NOT CAPTURED',
+            'tool': tool_record['tool'],
+            'tool_version': tool_record['version'],
+            'command': cmd,
+            'inputs': inputs,
+            'outputs': outputs,
             'resources': {
                 'duration': row.get('duration'),
                 'realtime': row.get('realtime'),
@@ -113,8 +139,8 @@ def main():
         })
 
     manifest: Dict[str, Any] = {
-        'run_id': 'NOT CAPTURED',
-        'workflow_summary': '',
+        'run_id': args.run_id,
+        'workflow_summary': f"Evidence-derived Nextflow run for {args.pipeline_name}.",
         'workflow': {
             'engine': 'nextflow',
             'engine_version': args.engine_version,
@@ -130,8 +156,8 @@ def main():
             }
         },
         'steps': steps,
-        'outputs': [],
-        'evidence': [str(args.trace), str(args.workdir)]
+        'outputs': final_outputs,
+        'evidence': [str(args.trace), str(args.workdir), str(args.tool_versions), str(args.outputs_manifest)]
     }
 
     if args.out.suffix.lower() in {'.yml', '.yaml'}:

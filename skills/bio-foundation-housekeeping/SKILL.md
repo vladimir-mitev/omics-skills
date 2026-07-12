@@ -16,6 +16,7 @@ Add validated metadata models and a queryable catalog to an existing bioinformat
 5. Check unique identifiers and foreign keys across record collections before writing outputs. At minimum, verify run-to-sample, file-to-run, result-to-input/output-file, and provenance-to-result links.
 6. Normalize validated records into one Parquet table per record class plus bridge tables for multivalued relationships. Register the tables and their relative paths, row counts, and SHA-256 values in DuckDB.
 7. Exercise the full boundary with `scripts/build_metadata_catalog.py` and the bundled valid, model-invalid, and foreign-key-invalid fixtures. Use `scripts/build_sample_catalog.py` only for the smaller sample-only smoke path.
+8. Before adopting a project-specific extension or migrating stored records, run `scripts/check_schema_compatibility.py`. Optional slots and new classes are compatible; required additions and constraint changes are reported as breaking. Keep a versioned input/expected migration fixture like `fixtures/schema-migration-v1-to-v1.1.json` for every supported transition.
 
 ## Quick Reference
 
@@ -27,6 +28,7 @@ Add validated metadata models and a queryable catalog to an existing bioinformat
 | Normalize linked metadata | Run `scripts/build_metadata_catalog.py` with the schema and a JSON bundle. |
 | Sample-only smoke test | Run `scripts/build_sample_catalog.py` with the JSONL fixtures. |
 | Build catalog | Register validated Parquet only, then verify counts, hashes, and foreign keys. |
+| Check an extension | Run `check_schema_compatibility.py` and review its machine-readable report before regenerating models. |
 | Tool docs | See `docs/README.md`. |
 
 ## Input Requirements
@@ -61,6 +63,7 @@ Inputs:
 - [ ] Verify project root exists and is writable.
 - [ ] Validate generated schemas against expected fields.
 - [ ] The valid fixture produces six verified Parquet tables and a non-empty DuckDB catalog; invalid fixtures exit non-zero without publishing schema, model, Parquet, or DuckDB artifacts.
+- [ ] Project-specific schema extensions have a compatibility report, and each supported schema-version transition has an input/expected migration fixture.
 
 ## Examples
 

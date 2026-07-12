@@ -9,6 +9,7 @@ import json
 import re
 import shlex
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -81,6 +82,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=30,
         help="Network timeout in seconds (default: 30)",
     )
+    parser.add_argument("--retries", type=int, default=3, help="Retries for HTTP 429 and transient 5xx responses")
+    parser.add_argument("--retry-backoff", type=float, default=1.0, help="Base seconds for exponential retry backoff")
     return parser
 
 
@@ -200,15 +203,35 @@ def expand_author_variants(author_filters: list[str]) -> list[str]:
     return sorted(variants)
 
 
-def fetch_json(url: str, timeout: int) -> dict[str, object]:
+def fetch_json(url: str, timeout: int, retries: int = 3, retry_backoff: float = 1.0) -> dict[str, object]:
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            charset = response.headers.get_content_charset() or "utf-8"
-            return json.loads(response.read().decode(charset))
-    except urllib.error.HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"HTTP {exc.code} from bioRxiv API: {body}") from exc
+    for attempt in range(retries + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                charset = response.headers.get_content_charset() or "utf-8"
+                return json.loads(response.read().decode(charset))
+        except urllib.error.HTTPError as exc:
+            retryable = exc.code == 429 or 500 <= exc.code < 600
+            if retryable and attempt < retries:
+                retry_after = exc.headers.get("Retry-After") if exc.headers else None
+                try:
+                    delay = float(retry_after) if retry_after is not None else retry_backoff * (2**attempt)
+                except ValueError:
+                    delay = retry_backoff * (2**attempt)
+                time.sleep(max(0, delay))
+                continue
+            body = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"HTTP {exc.code} from bioRxiv API: {body}") from exc
+    raise RuntimeError("bioRxiv API request failed after retry loop")
+
+
+def build_author_match_groups(records: list[dict[str, object]], requested: list[str]) -> list[dict[str, object]]:
+    groups = []
+    for author in requested:
+        variants = expand_author_variants([author])
+        dois = [record.get("doi") for record in records if matches_author_filters(str(record.get("authors_text") or ""), variants)]
+        groups.append({"requested_form": author, "expanded_variants": variants, "result_dois": dois, "ambiguous_initial_form": bool(re.match(r"^[A-Za-z]\.\s", author.strip()))})
+    return groups
 
 
 def build_url(args: argparse.Namespace, interval: str, cursor: int) -> str:
@@ -378,6 +401,8 @@ def main() -> int:
             raise ValueError("--scan-limit must be >= 1")
         if args.timeout < 1:
             raise ValueError("--timeout must be >= 1")
+        if args.retries < 0 or args.retry_backoff < 0:
+            raise ValueError("--retries and --retry-backoff must be >= 0")
 
         fields = parse_fields(args.fields)
         query_groups = parse_query_groups(args.query, args.phrase)
@@ -397,7 +422,7 @@ def main() -> int:
         if args.doi:
             url = build_url(args, "", 0)
             request_urls.append(url)
-            data = fetch_json(url, args.timeout)
+            data = fetch_json(url, args.timeout, args.retries, args.retry_backoff)
             pages_fetched = 1
             collection = data.get("collection", [])
             if not isinstance(collection, list):
@@ -415,7 +440,7 @@ def main() -> int:
             while records_scanned < args.scan_limit:
                 url = build_url(args, interval, cursor)
                 request_urls.append(url)
-                data = fetch_json(url, args.timeout)
+                data = fetch_json(url, args.timeout, args.retries, args.retry_backoff)
                 pages_fetched += 1
 
                 messages = data.get("messages", [])
@@ -486,6 +511,8 @@ def main() -> int:
                 "scan_limit": args.scan_limit,
                 "all_versions": args.all_versions,
                 "timeout": args.timeout,
+                "retries": args.retries,
+                "retry_backoff": args.retry_backoff,
             },
             "api": {
                 "base_url": API_BASE,
@@ -499,10 +526,12 @@ def main() -> int:
                 "matched_records_after_dedup": len(deduped),
                 "returned": len(results),
                 "versions_collapsed": versions_collapsed,
+                "version_policy": "all_versions" if args.all_versions else "latest_numeric_version_per_doi_then_latest_date",
                 "reached_scan_limit": reached_scan_limit,
             },
             "warnings": warnings,
             "results": results,
+            "author_match_groups": build_author_match_groups(results, args.author),
         }
 
         if reached_scan_limit:

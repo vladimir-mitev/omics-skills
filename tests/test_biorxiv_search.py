@@ -4,6 +4,7 @@ import io
 import json
 import sys
 import unittest
+import urllib.error
 from pathlib import Path
 from unittest import mock
 
@@ -36,7 +37,7 @@ class BioRxivPaginationTests(unittest.TestCase):
         ]
         requested_cursors = []
 
-        def fake_fetch(url, _timeout):
+        def fake_fetch(url, _timeout, *_retry):
             cursor = int(url.rsplit("/", 2)[-2])
             requested_cursors.append(cursor)
             page = records[cursor : cursor + 30]
@@ -66,6 +67,35 @@ class BioRxivPaginationTests(unittest.TestCase):
         self.assertEqual(payload["api"]["records_scanned"], 65)
         self.assertEqual(payload["api"]["total_available"], 65)
         self.assertFalse(payload["result_summary"]["reached_scan_limit"])
+
+    def test_retry_backoff_covers_429_and_transient_5xx(self):
+        module = load_search_module()
+        errors = [
+            urllib.error.HTTPError("https://example", 429, "rate", {"Retry-After": "0"}, io.BytesIO(b"rate")),
+            urllib.error.HTTPError("https://example", 503, "busy", {}, io.BytesIO(b"busy")),
+        ]
+
+        class Response:
+            headers = mock.Mock(get_content_charset=mock.Mock(return_value="utf-8"))
+            def __enter__(self): return self
+            def __exit__(self, *_): return False
+            def read(self): return b'{"collection": []}'
+
+        with mock.patch.object(module.urllib.request, "urlopen", side_effect=[*errors, Response()]), mock.patch.object(module.time, "sleep") as sleep:
+            payload = module.fetch_json("https://example", 5, retries=2, retry_backoff=0)
+        self.assertEqual(payload, {"collection": []})
+        self.assertEqual(sleep.call_count, 2)
+
+    def test_author_groups_and_latest_version_policy_are_explicit(self):
+        module = load_search_module()
+        records = [
+            {"doi": "10.1/a", "authors_text": "Peter Nugent; A. Author"},
+            {"doi": "10.1/b", "authors_text": "P. Nugent; B. Author"},
+        ]
+        groups = module.build_author_match_groups(records, ["Peter Nugent", "P. Nugent"])
+        self.assertEqual([group["requested_form"] for group in groups], ["Peter Nugent", "P. Nugent"])
+        self.assertFalse(groups[0]["ambiguous_initial_form"])
+        self.assertTrue(groups[1]["ambiguous_initial_form"])
 
 
 if __name__ == "__main__":

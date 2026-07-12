@@ -21,6 +21,9 @@ Perform metagenomic binning, refinement, and QC with completeness/contamination 
    - CheckM2 v1.1.0+ for bacterial and archaeal bins (v1.1.0 is a breaking upgrade: update the pinned Pixi environment and refresh the DIAMOND v3 database from Zenodo DOI 10.5281/zenodo.14897628).
    - EukCC v2.1.3+ for eukaryotic bins.
    - GUNC v1.0.6+ for bacterial and archaeal bins only; treat it as a complement to CheckM2 for chimerism detection. Do not apply GUNC to eukaryotic bins.
+6. Normalize routed outputs with `scripts/build_bin_qc_tables.py`. The join
+   rejects GUNC rows for non-prokaryotic routes and refuses prokaryotic or
+   eukaryotic bins that lack their domain-specific QC/taxonomy outputs.
 
 ## Quick Reference
 
@@ -30,6 +33,7 @@ Perform metagenomic binning, refinement, and QC with completeness/contamination 
 | Validate inputs | Confirm required inputs and reference data exist. |
 | Review outputs | Inspect reports and QC gates before proceeding. |
 | Tool docs | See `docs/README.md`. |
+| Build normalized tables | `uv run --no-project python scripts/build_bin_qc_tables.py --routing domain_routing.tsv --checkm2 checkm2.tsv --gunc gunc.tsv --eukcc eukcc.tsv --gtdbtk gtdbtk.tsv --out-dir results/bio-binning-qc` |
 
 ## Input Requirements
 
@@ -63,6 +67,7 @@ Inputs:
 - [ ] Bacterial and archaeal bins have GTDB-Tk taxonomy with the database release recorded.
 - [ ] Viral/virus-like bins are routed to `/bio-viromics` instead of reported as MAGs.
 - [ ] Mixed-domain bins are flagged as possible contamination/chimeras with per-contig evidence.
+- [ ] Normalized `bin_metrics.tsv` and `gtdbtk_taxonomy.tsv` cover every routed bin, including explicit viral/manual-review rows.
 
 ## Examples
 

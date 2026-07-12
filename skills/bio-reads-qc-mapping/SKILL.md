@@ -9,7 +9,17 @@ Ingest, QC, and map reads with reproducible outputs. Use for raw read processing
 
 ## Instructions
 
-1. Parse sample sheet and validate inputs.
+1. Parse and validate `sample_sheet.tsv` against `schemas/sample-sheet.schema.json`. Use the executable driver for both planning and restartable execution:
+
+   ```bash
+   uv run --no-project python skills/bio-reads-qc-mapping/scripts/run_reads_qc_mapping.py \
+     sample_sheet.tsv --out results/bio-reads-qc-mapping
+   # Inspect run_manifest.json, then execute the same plan:
+   uv run --no-project python skills/bio-reads-qc-mapping/scripts/run_reads_qc_mapping.py \
+     sample_sheet.tsv --out results/bio-reads-qc-mapping --execute
+   ```
+
+   `read_type` must be `paired_short`, `single_short`, or `long`. Mapping is scheduled only for rows with a non-empty `reference`; a missing reference is not a mapping failure.
 2. For short reads: run QC and adapter/quality trimming with `bbduk` or `fastp` v1.3.3+.
 3. For long reads: use current basecaller-aware QC first. For ONT, prefer Dorado summaries/trimming during basecalling or demultiplexing when starting from signal/BAM; for FASTQ-only filtering use `chopper` for quality/length/end trimming or `filtlong` v0.2.1 when selecting reads for assembly. Use `Pychopper` for full-length cDNA. Treat `Porechop_ABI` as a targeted legacy/fallback adapter-discovery tool, and record why it is needed.
    - For very large ONT FASTQ inputs, do not burn the first full read pass on raw `gzip -t` or raw `seqkit stats` preflight unless the user explicitly asks for it. Record raw `stat` metadata and, if needed, a small sampled sanity check; let the first full pass be the actual filtering/orientation step, then run `seqkit stats` on produced outputs.
@@ -53,6 +63,7 @@ Inputs:
 - [ ] Mapping rate meets project thresholds.
 - [ ] On failure: retry with alternative parameters; if still failing, record in report and exit non-zero.
 - [ ] Validate sample sheet schema and FASTQ integrity.
+- [ ] The plan covers every sheet row exactly once, and mapping gates are applied only to rows that supplied a reference.
 - [ ] For long-read QC, record whether trimming happened in the basecaller/demultiplexer, `chopper`, `filtlong`, `Pychopper`, or a documented Porechop_ABI fallback.
 - [ ] For huge ONT inputs, avoid redundant full-file raw preflights; document raw file size/mtime and make the first full pass productive.
 - [ ] For `Pychopper` outputs, verify actual file type by content, not suffix. Plain FASTQ with a `.gz` suffix must be renamed or explicitly compressed before downstream tools that expect gzip.
@@ -67,6 +78,8 @@ sample_sheet.tsv
 reads/*.fastq.gz
 reference.fasta (optional)
 ```
+
+The runnable fixture at `fixtures/sample_sheet.tsv` covers paired-end, single-end, and long reads.
 
 ## Troubleshooting
 

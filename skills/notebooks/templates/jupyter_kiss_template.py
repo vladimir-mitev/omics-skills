@@ -3,9 +3,9 @@
 #   jupytext:
 #     formats: ipynb,py:percent
 #   kernelspec:
-#     display_name: Pixi - Python (ipykernel)
+#     display_name: Pixi - <PROJECT_NAME>
 #     language: python
-#     name: python
+#     name: <PIXI_PROJECT_KERNEL>
 # ---
 
 # %% [markdown]
@@ -35,6 +35,7 @@ import random
 
 import numpy as np
 import pandas as pd
+from IPython.display import display
 
 # Optional: DuckDB for SQL analytics
 import duckdb

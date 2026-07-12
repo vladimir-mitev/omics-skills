@@ -121,7 +121,8 @@ foldseek easy-search query.pdb target.pdb results.tsv tmp -s 12.0 -c 0.8
 
 ### GPU-accelerated search
 ```bash
-foldseek easy-search query.pdb target_pad.pdb results.tsv tmp --gpu 1
+foldseek makepaddedseqdb targetDB targetDB_pad
+foldseek easy-search query.pdb targetDB_pad results.tsv tmp --gpu 1
 ```
 
 ### Custom output with alignments

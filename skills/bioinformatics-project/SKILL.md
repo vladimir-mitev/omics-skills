@@ -178,6 +178,7 @@ Every project carries a `README.md` (study description, setup, how to reproduce)
 | Start a simple project | Run `scripts/scaffold_project.py` with the default canonical layout, resolve `pixi.lock`, then replace the hypothesis placeholders. |
 | Start a multi-track project | Add `--layout numbered`; use numbered, named roots for shared preprocessing, analyses, publication outputs, code, tests, logs, and scratch. |
 | Add the first experiment | Add `--first-experiment YYYY-MM-DD_topic` to create a README and refusing `runall` template without overwriting project-owned files. |
+| Add publication metadata | Opt in with `--license MIT --author "Name or organization" --copyright-year YYYY`; all three explicit values are required. |
 | Repair a messy project | Inventory paths first, create the target scaffold, migrate with temporary compatibility links, and verify consumers before removing old paths. |
 | Run an experiment | Copy `examples/runall.sh`, pin inputs and parameters, write atomically, and record versions and seeds. |
 | Add structured metadata | Use `bio-foundation-housekeeping` as a separate follow-up only when schemas or a catalog are requested. |
@@ -210,6 +211,7 @@ Every project carries a `README.md` (study description, setup, how to reproduce)
 - [ ] No secrets, credentials, large generated outputs, or private data are staged for Git.
 - [ ] `scripts/scaffold_project.py <project> --objective "..." --check` passes, and a second identical scaffold run reports no created files.
 - [ ] When `--first-experiment` is used, its ISO date is valid and the generated `runall` exits non-zero until adapted.
+- [ ] Scaffolding never guesses a license or author; LICENSE/CITATION generation occurs only when license, author, and year are supplied together.
 
 ## Examples
 

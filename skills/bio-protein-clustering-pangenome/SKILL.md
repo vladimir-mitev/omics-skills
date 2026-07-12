@@ -9,25 +9,35 @@ Cluster proteins into orthogroups and derive pangenome matrices.
 
 ## Instructions
 
-1. Cluster proteins. Choose the tool by dataset size and goal:
+1. After clustering, build and validate the complete small-to-large comparison bundle with:
+
+   ```bash
+   uv run --script skills/bio-protein-clustering-pangenome/scripts/build_pangenome_artifacts.py \
+     orthogroups.tsv --genomes genomes.tsv --marker-catalog marker_catalog.tsv \
+     --marker-hits marker_hits.tsv --ncrna ncRNA_census.tsv \
+     --out results/bio-protein-clustering-pangenome
+   ```
+
+   The driver requires globally unique protein IDs, at least two reference genomes for a defensible median, and a fresh output directory. It persists marker and ncRNA censuses alongside copy-number, presence/absence, family-comparison, genome-frontier, and conserved-neighborhood artifacts. `fixtures/` is a runnable three-genome contract test.
+2. Cluster proteins. Choose the tool by dataset size and goal:
    - Default for orthology inference up to a few hundred genomes: **OrthoFinder v3.1.5** (supports MSA-based gene trees; supersedes OrthoFinder v2 and OrthoMCL workflows).
    - Very large pangenomes where OrthoFinder is too RAM-heavy: **ProteinOrtho v6.3.6**.
    - Sequence clustering (not strict orthology) and similarity-search backbones: **MMseqs2 v18-8cc5c**. GPU search requires MMseqs2 v16 or newer plus a GPU-enabled build on CUDA Turing-or-newer hardware; full-speed kernels require Ampere or newer. Enable `--gpu` only for commands that expose it and record the CPU/GPU build used.
-2. Build presence/absence matrix AND an integer copy-number matrix (orthogroup × genome) covering the query AND the close relatives produced by `/bio-phylogenomics`.
-3. Compute core/accessory/cloud/singleton partitions.
-4. Identify single-copy orthologs for phylogenetic analysis.
-5. Discriminate paralogs from orthologs in multi-copy gene families.
-6. Calculate pangenome statistics (completeness, orthogroup occupancy).
-7. When a query genome or genome set is under study, use the literature-derived analysis playbook to choose an appropriate comparison baseline: closest relatives, a broader clade, environmental references, or a negative/control set.
-8. **Genome-property frontier table** — produce `relative_genome_metrics.tsv` with one row per (query + relative) and columns for genome size, contig count, N50, gene count, coding density, GC, tRNA count, rRNA count, and any group-relevant property. Add a column that places the query in the relative distribution (percentile, min/median/max, "record-class" tag) and a column citing the literature reference defining the group's known range.
-9. **Synteny / conserved neighborhoods** — for each pair (query, relative) compute conserved gene neighborhoods (e.g., ≥2 collinear orthologs). Tool selection:
+3. Build presence/absence matrix AND an integer copy-number matrix (orthogroup × genome) covering the query AND the close relatives produced by `/bio-phylogenomics`.
+4. Compute core/accessory/cloud/singleton partitions.
+5. Identify single-copy orthologs for phylogenetic analysis.
+6. Discriminate paralogs from orthologs in multi-copy gene families.
+7. Calculate pangenome statistics (completeness, orthogroup occupancy).
+8. When a query genome or genome set is under study, use the literature-derived analysis playbook to choose an appropriate comparison baseline: closest relatives, a broader clade, environmental references, or a negative/control set.
+9. **Genome-property frontier table** — produce `relative_genome_metrics.tsv` with one row per (query + relative) and columns for genome size, contig count, N50, gene count, coding density, GC, tRNA count, rRNA count, and any group-relevant property. Add a column that places the query in the relative distribution (percentile, min/median/max, "record-class" tag) and a column citing the literature reference defining the group's known range.
+10. **Synteny / conserved neighborhoods** — for each pair (query, relative) compute conserved gene neighborhoods (e.g., ≥2 collinear orthologs). Tool selection:
    - Pairwise / classical: MCScanX (*Nature Protocols* 2024 updated protocol).
    - Multi-genome at scale (>2 assemblies, up to >3 Gbp, >15% divergence): **ntSynt** (*BMC Biology* 2025, DOI: 10.1186/s12915-025-02455-w) — alignment-free minimizer-graph approach; does not detect duplications.
    - Strain-level work where duplication detection matters: SibeliaZ.
    Save results as `conserved_neighborhoods.tsv` with columns: query_block_id, relative, relative_block_id, members (ortholog IDs), intergenic_spacing_query, intergenic_spacing_relative, spacing_ratio, notes. Flag conserved gene pairs and unusual spacing/expansions.
-10. Identify discovery-relevant differences defined by the playbook, including query-specific families, missing expected families, expansions/contractions, unusual sharing patterns, and high-value unknowns. Persist as `family_copy_number_comparison.tsv` (query vs relative-median fold change per family) — coordinated with `bio-annotation`'s family matrix.
-11. Annotate candidate orthogroups with `/bio-annotation`; for high-value unknowns, route representatives to `/bio-structure-annotation` when structure-based inference is appropriate.
-12. Produce a comparison summary that separates conserved lineage features from unusual or query-specific features and states the baseline used. The summary must report ALL of: genome-property frontier, marker-category presence/copy, family expansions/contractions, synteny conservation/breakage, and ncRNA counts side-by-side with relatives.
+11. Identify discovery-relevant differences defined by the playbook, including query-specific families, missing expected families, expansions/contractions, unusual sharing patterns, and high-value unknowns. Persist as `family_copy_number_comparison.tsv` (query vs relative-median fold change per family) — coordinated with `bio-annotation`'s family matrix.
+12. Annotate candidate orthogroups with `/bio-annotation`; for high-value unknowns, route representatives to `/bio-structure-annotation` when structure-based inference is appropriate.
+13. Produce a comparison summary that separates conserved lineage features from unusual or query-specific features and states the baseline used. The summary must report ALL of: genome-property frontier, marker-category presence/copy, family expansions/contractions, synteny conservation/breakage, and ncRNA counts side-by-side with relatives.
 
 ## Quick Reference
 
@@ -66,6 +76,7 @@ Inputs:
 
 - [ ] Cluster size distributions meet project thresholds.
 - [ ] Matrix completeness meets project thresholds.
+- [ ] The tested artifact bundle contains marker-gene and ncRNA censuses alongside copy-number and synteny matrices for the same genome set.
 - [ ] On failure: retry with alternative parameters; if still failing, record in report and exit non-zero.
 - [ ] Verify every per-genome FASTA is non-empty, amino-acid encoded, and has protein IDs unique across the full dataset.
 - [ ] Verify the genome manifest covers every FASTA exactly once; if proteins were concatenated for MMseqs2, verify every clustered protein maps to exactly one genome.

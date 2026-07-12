@@ -18,13 +18,15 @@
         "science-writer"
       ],
       "sections": [
-        "Proposal & AI-Output Review"
+        "Proposal, AI-Generated Notebook & Output Review"
       ],
       "task_patterns": [
         "AI scientist",
+        "AI-generated Jupyter notebook",
         "AI-generated analysis",
         "AI-generated analysis notebook",
         "AI-generated notebook",
+        "audit AI-generated Jupyter notebook",
         "evaluate agent output",
         "rank AI scientists",
         "score AI output"
@@ -150,7 +152,7 @@
       ],
       "reference_contexts": {
         "tracking-taxonomy-updates": [
-          "2. When a nucleotide assembly, MAG, genome, or contig FASTA is available, run `/tracking-taxonomy-updates` first for the BBTools-container QuickClade `percontig` domain screen. Use that routing table to choose the right taxonomy/QC path before interpreting protein annotations."
+          "3. When a nucleotide assembly, MAG, genome, or contig FASTA is available, run `/tracking-taxonomy-updates` first for the BBTools-container QuickClade `percontig` domain screen. Use that routing table to choose the right taxonomy/QC path before interpreting protein annotations."
         ],
         "bio-viromics": [
           "- Viral/phage -> route to `/bio-viromics`; use PHROG/NCVOG markers and vConTACT3 only for phage/prokaryotic-virus contexts.",
@@ -192,7 +194,7 @@
           "- For very large ONT/metagenome FASTQs, use `/bio-reads-qc-mapping` guidance for filtering and avoid redundant full-file raw-read preflights before filtering. Record raw file metadata (`stat` path, size, mtime), optionally run a small sampled check, and write `seqkit stats` after each produced read set."
         ],
         "tracking-taxonomy-updates": [
-          "4. For every produced `contigs.fasta`, invoke `/tracking-taxonomy-updates` to run the BBTools-container QuickClade `percontig` domain screen before choosing downstream genome/MAG/viral/eukaryotic workflows."
+          "5. For every produced `contigs.fasta`, invoke `/tracking-taxonomy-updates` to run the BBTools-container QuickClade `percontig` domain screen before choosing downstream genome/MAG/viral/eukaryotic workflows."
         ],
         "bio-gene-calling": [
           "- Bacteria/Archaea -> `/bio-gene-calling`, `/bio-annotation`, and GTDB-Tk taxonomy assignment."
@@ -320,12 +322,17 @@
         "predict genes"
       ],
       "internal_references": [
-        "bio-reads-qc-mapping"
+        "bio-reads-qc-mapping",
+        "results"
       ],
       "reference_contexts": {
         "bio-reads-qc-mapping": [
           "- Orient/filter full-length ONT cDNA reads with the `Pychopper` guidance in `/bio-reads-qc-mapping`, including plain `.fastq` output handling and resume from existing classified reads after report-plotting failures.",
           "**Solution**: Follow `/bio-reads-qc-mapping` recovery guidance: verify/rename plain FASTQ outputs, run lightweight stats, resume mapping/StringTie/RNA-Bloom, and keep the failure plus resume command in the methods record."
+        ],
+        "results": [
+          "4. Run gene calling and produce per-assembly GFF/protein/CDS outputs. BRAKER4 emits compressed results under `output/{sample}/results/`; Pyrodigal and pyrodigal-gv emit the normalized uncompressed paths recorded in the run manifest.",
+          "- BRAKER4 `samples.csv`, `config.ini`, and compressed `output/{sample}/results/braker.{gff3,aa,codingseq}.gz` paths for eukaryotic assemblies."
         ]
       }
     },
@@ -416,7 +423,8 @@
       "task_patterns": [
         "QC result",
         "bias",
-        "causal",
+        "causal conclusions",
+        "causal reasoning",
         "causation",
         "design experiment",
         "evidence quality",
@@ -429,11 +437,13 @@
         "interpret",
         "methodological bias",
         "methodology",
-        "observational",
+        "observational dataset",
+        "observational study design",
         "reason",
         "review evidence",
         "revise hypothesis",
         "scientific critique",
+        "study design supports causal conclusions",
         "surprising",
         "unexpected",
         "why"
@@ -493,14 +503,14 @@
       ],
       "reference_contexts": {
         "genome": [
-          "16. **Fetch and persist the close-relative genomes and proteomes** that downstream comparative analyses will use. Save under `results/bio-phylogenomics/relatives/{accession}/genome.fna` and `proteins.faa`, plus `relatives_manifest.tsv` recording accession, source DB, taxonomy, genome size, gene count, and the reason for inclusion. If a relative cannot be downloaded, record the failure explicitly. Without this artifact, the comparative axes downstream cannot run.",
+          "9. **Fetch and persist the close-relative genomes and proteomes** that downstream comparative analyses will use. Save under `results/bio-phylogenomics/relatives/{accession}/genome.fna` and `proteins.faa`, plus `relatives_manifest.tsv` recording accession, source DB, taxonomy, genome size, gene count, and the reason for inclusion. If a relative cannot be downloaded, record the failure explicitly. Without this artifact, the comparative axes downstream cannot run.",
           "- results/bio-phylogenomics/relatives/{accession}/genome.fna"
         ],
         "bio-protein-clustering-pangenome": [
-          "17. Use well-supported relatives or a documented broader comparison set to guide downstream comparative analysis with `/bio-protein-clustering-pangenome` and `/bio-annotation`."
+          "10. Use well-supported relatives or a documented broader comparison set to guide downstream comparative analysis with `/bio-protein-clustering-pangenome` and `/bio-annotation`."
         ],
         "bio-annotation": [
-          "17. Use well-supported relatives or a documented broader comparison set to guide downstream comparative analysis with `/bio-protein-clustering-pangenome` and `/bio-annotation`."
+          "10. Use well-supported relatives or a documented broader comparison set to guide downstream comparative analysis with `/bio-protein-clustering-pangenome` and `/bio-annotation`."
         ],
         "proteins": [
           "- results/bio-phylogenomics/relatives/{accession}/proteins.faa"
@@ -558,13 +568,13 @@
       ],
       "reference_contexts": {
         "bio-phylogenomics": [
-          "2. Build presence/absence matrix AND an integer copy-number matrix (orthogroup \u00d7 genome) covering the query AND the close relatives produced by `/bio-phylogenomics`."
+          "3. Build presence/absence matrix AND an integer copy-number matrix (orthogroup \u00d7 genome) covering the query AND the close relatives produced by `/bio-phylogenomics`."
         ],
         "bio-annotation": [
-          "11. Annotate candidate orthogroups with `/bio-annotation`; for high-value unknowns, route representatives to `/bio-structure-annotation` when structure-based inference is appropriate."
+          "12. Annotate candidate orthogroups with `/bio-annotation`; for high-value unknowns, route representatives to `/bio-structure-annotation` when structure-based inference is appropriate."
         ],
         "bio-structure-annotation": [
-          "11. Annotate candidate orthogroups with `/bio-annotation`; for high-value unknowns, route representatives to `/bio-structure-annotation` when structure-based inference is appropriate."
+          "12. Annotate candidate orthogroups with `/bio-annotation`; for high-value unknowns, route representatives to `/bio-structure-annotation` when structure-based inference is appropriate."
         ]
       }
     },
@@ -685,7 +695,7 @@
       ],
       "reference_contexts": {
         "tracking-taxonomy-updates": [
-          "1. Start from `/tracking-taxonomy-updates` QuickClade domain routing when assemblies, MAGs, genomes, or contigs have not already been screened. Viral, virus-like, mixed, or low-confidence contigs enter this skill; bacterial/archaeal and eukaryotic rows stay on their domain-specific routes unless later evidence contradicts the triage."
+          "2. Start from `/tracking-taxonomy-updates` QuickClade domain routing when assemblies, MAGs, genomes, or contigs have not already been screened. Viral, virus-like, mixed, or low-confidence contigs enter this skill; bacterial/archaeal and eukaryotic rows stay on their domain-specific routes unless later evidence contradicts the triage."
         ]
       }
     },
@@ -929,7 +939,7 @@
     {
       "name": "manuscript-review-council",
       "title": "Manuscript Review Council",
-      "description": "Run a multi-agent manuscript review with specialist reports, disagreement checks, and an editor synthesis. Use when reviewing a scientific paper, preprint, revision, or rebuttal.",
+      "description": "Run a multi-agent manuscript critique with specialist reports, disagreement checks, and editor synthesis. Use for scientific review, revision assessment, or judging whether an author response resolves prior concerns.",
       "path": "skills/manuscript-review-council/SKILL.md",
       "platforms": [
         "claude",
@@ -942,16 +952,15 @@
         "Manuscript Review"
       ],
       "task_patterns": [
+        "assess whether the author response resolves",
         "critique manuscript",
         "decision letter",
         "major revision",
         "manuscript review",
         "multi-reviewer",
         "peer review",
-        "rebuttal",
         "review council",
-        "review this manuscript",
-        "reviewer comments"
+        "review this manuscript"
       ],
       "internal_references": [
         "ai-scientist-evaluator",
@@ -969,6 +978,7 @@
         ],
         "scientific-writing": [
           "14. If the user wants polished review prose, a rebuttal outline, or a cleaned-up decision letter, use `/scientific-writing` after the council establishes the factual review skeleton.",
+          "- Requests to rewrite manuscript prose or draft an author rebuttal/response letter route directly to `/scientific-writing`; do not start a council unless the user also asks for scientific critique or resolution assessment.",
           "- `/scientific-writing` \u2014 apply the reviewer feedback to the manuscript"
         ],
         "ai-scientist-evaluator": [
@@ -1155,7 +1165,7 @@
         "science-writer"
       ],
       "sections": [
-        "Proposal & AI-Output Review"
+        "Proposal, AI-Generated Notebook & Output Review"
       ],
       "task_patterns": [
         "funding proposal",
@@ -1235,9 +1245,11 @@
       "task_patterns": [
         "Abstract",
         "Methods",
+        "author rebuttal",
         "draft manuscript",
         "manuscript",
         "response letter",
+        "reviewer comments",
         "rewrite scientific prose"
       ],
       "internal_references": [
@@ -1247,20 +1259,22 @@
         "proposal-review"
       ],
       "reference_contexts": {
+        "bio-logic": [
+          "- Use `/bio-logic` when the main question is whether a method, design, causal",
+          "- `/bio-logic` \u2014 evaluate evidence quality and rigor during revision"
+        ],
+        "manuscript-review-council": [
+          "- Use `/manuscript-review-council` for journal-style peer review or a",
+          "- `/manuscript-review-council` \u2014 run a multi-reviewer critique before revision"
+        ],
         "crossref-lookup": [
           "9. Validate citations before finalizing. Use `/crossref-lookup` when DOI or title checks are needed.",
           "| Validate citations | `/crossref-lookup` |",
           "Use `/crossref-lookup` for DOI validation, title matching, and bibliography audits before finalizing the manuscript.",
           "- `/crossref-lookup` \u2014 validate every cited DOI"
         ],
-        "manuscript-review-council": [
-          "- `/manuscript-review-council` \u2014 run a multi-reviewer critique before revision"
-        ],
         "proposal-review": [
           "- `/proposal-review` \u2014 switch here for funding-proposal critique"
-        ],
-        "bio-logic": [
-          "- `/bio-logic` \u2014 evaluate evidence quality and rigor during revision"
         ]
       }
     },
@@ -1713,8 +1727,8 @@
             "experimental design",
             "reason",
             "causation",
-            "causal",
-            "observational",
+            "causal reasoning",
+            "observational dataset",
             "follow-up experiments"
           ]
         },
@@ -2005,7 +2019,7 @@
         "Methods Documentation": [
           "bio-workflow-methods-docwriter"
         ],
-        "Proposal & AI-Output Review": [
+        "Proposal, AI-Generated Notebook & Output Review": [
           "ai-scientist-evaluator",
           "proposal-review"
         ],
@@ -2027,7 +2041,10 @@
             "scientific critique",
             "methodological bias",
             "evidence quality",
-            "review evidence"
+            "review evidence",
+            "observational study design",
+            "study design supports causal conclusions",
+            "causal conclusions"
           ]
         },
         {
@@ -2037,8 +2054,7 @@
             "review this manuscript",
             "major revision",
             "decision letter",
-            "rebuttal",
-            "reviewer comments",
+            "assess whether the author response resolves",
             "multi-reviewer",
             "review council",
             "critique manuscript",
@@ -2059,6 +2075,8 @@
           "phrases": [
             "AI scientist",
             "AI-generated notebook",
+            "AI-generated Jupyter notebook",
+            "audit AI-generated Jupyter notebook",
             "AI-generated analysis",
             "AI-generated analysis notebook",
             "evaluate agent output",
@@ -2074,7 +2092,9 @@
             "manuscript",
             "Abstract",
             "Methods",
-            "response letter"
+            "author rebuttal",
+            "response letter",
+            "reviewer comments"
           ]
         },
         {
@@ -2211,7 +2231,7 @@
         "skill_body_reference"
       ],
       "evidence": [
-        "2. When a nucleotide assembly, MAG, genome, or contig FASTA is available, run `/tracking-taxonomy-updates` first for the BBTools-container QuickClade `percontig` domain screen. Use that routing table to choose the right taxonomy/QC path before interpreting protein annotations."
+        "3. When a nucleotide assembly, MAG, genome, or contig FASTA is available, run `/tracking-taxonomy-updates` first for the BBTools-container QuickClade `percontig` domain screen. Use that routing table to choose the right taxonomy/QC path before interpreting protein annotations."
       ]
     },
     {
@@ -2337,7 +2357,7 @@
         "skill_body_reference"
       ],
       "evidence": [
-        "4. For every produced `contigs.fasta`, invoke `/tracking-taxonomy-updates` to run the BBTools-container QuickClade `percontig` domain screen before choosing downstream genome/MAG/viral/eukaryotic workflows."
+        "5. For every produced `contigs.fasta`, invoke `/tracking-taxonomy-updates` to run the BBTools-container QuickClade `percontig` domain screen before choosing downstream genome/MAG/viral/eukaryotic workflows."
       ]
     },
     {
@@ -2775,7 +2795,7 @@
         "skill_body_reference"
       ],
       "evidence": [
-        "17. Use well-supported relatives or a documented broader comparison set to guide downstream comparative analysis with `/bio-protein-clustering-pangenome` and `/bio-annotation`."
+        "10. Use well-supported relatives or a documented broader comparison set to guide downstream comparative analysis with `/bio-protein-clustering-pangenome` and `/bio-annotation`."
       ]
     },
     {
@@ -2789,7 +2809,7 @@
         "skill_body_reference"
       ],
       "evidence": [
-        "17. Use well-supported relatives or a documented broader comparison set to guide downstream comparative analysis with `/bio-protein-clustering-pangenome` and `/bio-annotation`."
+        "10. Use well-supported relatives or a documented broader comparison set to guide downstream comparative analysis with `/bio-protein-clustering-pangenome` and `/bio-annotation`."
       ]
     },
     {
@@ -2859,7 +2879,7 @@
         "skill_body_reference"
       ],
       "evidence": [
-        "11. Annotate candidate orthogroups with `/bio-annotation`; for high-value unknowns, route representatives to `/bio-structure-annotation` when structure-based inference is appropriate."
+        "12. Annotate candidate orthogroups with `/bio-annotation`; for high-value unknowns, route representatives to `/bio-structure-annotation` when structure-based inference is appropriate."
       ]
     },
     {
@@ -2873,7 +2893,7 @@
         "skill_body_reference"
       ],
       "evidence": [
-        "2. Build presence/absence matrix AND an integer copy-number matrix (orthogroup \u00d7 genome) covering the query AND the close relatives produced by `/bio-phylogenomics`."
+        "3. Build presence/absence matrix AND an integer copy-number matrix (orthogroup \u00d7 genome) covering the query AND the close relatives produced by `/bio-phylogenomics`."
       ]
     },
     {
@@ -2887,7 +2907,7 @@
         "skill_body_reference"
       ],
       "evidence": [
-        "11. Annotate candidate orthogroups with `/bio-annotation`; for high-value unknowns, route representatives to `/bio-structure-annotation` when structure-based inference is appropriate."
+        "12. Annotate candidate orthogroups with `/bio-annotation`; for high-value unknowns, route representatives to `/bio-structure-annotation` when structure-based inference is appropriate."
       ]
     },
     {
@@ -3041,7 +3061,7 @@
         "skill_body_reference"
       ],
       "evidence": [
-        "1. Start from `/tracking-taxonomy-updates` QuickClade domain routing when assemblies, MAGs, genomes, or contigs have not already been screened. Viral, virus-like, mixed, or low-confidence contigs enter this skill; bacterial/archaeal and eukaryotic rows stay on their domain-specific routes unless later evidence contradicts the triage."
+        "2. Start from `/tracking-taxonomy-updates` QuickClade domain routing when assemblies, MAGs, genomes, or contigs have not already been screened. Viral, virus-like, mixed, or low-confidence contigs enter this skill; bacterial/archaeal and eukaryotic rows stay on their domain-specific routes unless later evidence contradicts the triage."
       ]
     },
     {
@@ -3393,6 +3413,7 @@
       ],
       "evidence": [
         "14. If the user wants polished review prose, a rebuttal outline, or a cleaned-up decision letter, use `/scientific-writing` after the council establishes the factual review skeleton.",
+        "- Requests to rewrite manuscript prose or draft an author rebuttal/response letter route directly to `/scientific-writing`; do not start a council unless the user also asks for scientific critique or resolution assessment.",
         "- `/scientific-writing` \u2014 apply the reviewer feedback to the manuscript"
       ]
     },
@@ -3992,11 +4013,12 @@
       "type": "compose_with",
       "source_type": "skill",
       "target_type": "skill",
-      "confidence": 0.6,
+      "confidence": 0.75,
       "provenance": [
         "skill_body_reference"
       ],
       "evidence": [
+        "- Use `/bio-logic` when the main question is whether a method, design, causal",
         "- `/bio-logic` \u2014 evaluate evidence quality and rigor during revision"
       ]
     },
@@ -4028,6 +4050,7 @@
         "skill_body_reference"
       ],
       "evidence": [
+        "- Use `/manuscript-review-council` for journal-style peer review or a",
         "- `/manuscript-review-council` \u2014 run a multi-reviewer critique before revision"
       ]
     },

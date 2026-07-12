@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["polars==1.37.1"]
+# ///
 """Small helper for grouped polars-dovmed literature queries."""
 
 import argparse
@@ -251,6 +255,7 @@ def parse_args():
         "--local-output-dir",
         help="Optional output directory for local dovmed scan results.",
     )
+    parser.add_argument("--corpus-revision", default=os.environ.get("DOVMED_CORPUS_REVISION"), help="Upstream corpus snapshot/revision identifier recorded in local results")
     parser.add_argument("--save-payload")
     parser.add_argument("--save-response")
     parser.add_argument("--save-discovery-payload")
@@ -692,6 +697,16 @@ def read_flattened_papers(path, max_results):
     return papers
 
 
+def read_processed_papers(path, max_results):
+    """Fallback to the upstream processed Parquet when flattened.csv is absent."""
+    if not path.exists():
+        return []
+    import polars as pl
+
+    rows = pl.read_parquet(path).head(max_results).to_dicts()
+    return [compact_local_paper(row) for row in rows]
+
+
 def execute_local_scan(args):
     if args.query or args.details:
         raise SystemExit(
@@ -768,6 +783,10 @@ def execute_local_scan(args):
     readable_processed_path = processed_path if processed_path.exists() else legacy_processed_path
     flattened_path = output_dir / "flattened.csv"
     papers = read_flattened_papers(flattened_path, args.max_results)
+    source_artifact = "flattened_csv" if papers else None
+    if not papers and readable_processed_path.exists():
+        papers = read_processed_papers(readable_processed_path, args.max_results)
+        source_artifact = "processed_parquet" if papers else None
 
     response = {
         "execution_mode": "local",
@@ -785,6 +804,8 @@ def execute_local_scan(args):
         "flattened_csv": str(flattened_path)
         if flattened_path.exists()
         else None,
+        "paper_source_artifact": source_artifact,
+        "corpus_revision": getattr(args, "corpus_revision", None) or "unrecorded",
         "papers": papers,
     }
     maybe_save_json(args.save_response, response)

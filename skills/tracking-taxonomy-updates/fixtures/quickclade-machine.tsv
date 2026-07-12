@@ -1,0 +1,5 @@
+query	contig	domain	taxonomy	confidence
+bin_01	contig_1	Bacteria	d__Bacteria;p__Pseudomonadota	0.98
+bin_02	contig_2	Eukaryota	d__Eukaryota;k__Fungi	0.87
+bin_03	contig_3	Nucleocytoviricota	d__Viruses;p__Nucleocytoviricota	0.91
+bin_04	contig_4	Mixed	unresolved	0.42

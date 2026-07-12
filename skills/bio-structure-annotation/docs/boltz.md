@@ -51,7 +51,7 @@ boltz predict --help
 | Flag | Description | Example |
 |------|-------------|---------|
 | `input_path` | Single YAML file or directory of YAML files | `boltz predict structures.yaml` |
-| `--output` | Output directory path | `--output results/` |
+| `--out_dir` | Output directory path | `--out_dir results/` |
 | `--use_msa_server` | Use MSA generation server | `--use_msa_server` |
 
 ### MSA Server Authentication
@@ -69,17 +69,17 @@ YAML files describing biomolecular systems and prediction tasks.
 
 Example structure (refer to official documentation for detailed specifications):
 ```yaml
-# Protein-ligand complex prediction with affinity
+version: 1
 sequences:
-  - id: protein1
-    type: protein
-    sequence: MKTAYIAKQRQISFVKSHFSRQ...
-  - id: ligand1
-    type: small_molecule
-    smiles: CC(C)CC1=CC=C(C=C1)C(C)C(=O)O
-
-prediction:
-  affinity: true
+  - protein:
+      id: A
+      sequence: MKTAYIAKQRQISFVKSHFSRQ
+  - ligand:
+      id: B
+      smiles: "CCO"
+properties:
+  - affinity:
+      binder: B
 ```
 
 See project prediction instructions for complete YAML schema.
@@ -113,7 +113,7 @@ boltz predict complex_with_affinity.yaml --use_msa_server
 ### Batch Prediction
 ```bash
 # Process all YAML files in directory
-boltz predict input_configs/ --use_msa_server --output predictions/
+boltz predict input_configs/ --use_msa_server --out_dir predictions/
 ```
 
 ### Without MSA Server

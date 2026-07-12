@@ -50,6 +50,7 @@ def _args(tmp: Path, **overrides):
         "skip_details_rerank": False,
         "force_details_rerank": False,
         "timeout": None,
+        "corpus_revision": "pmc-fixture-2026-07",
     }
     values.update(overrides)
     return SimpleNamespace(**values)
@@ -125,6 +126,30 @@ class PolarsDovmedLocalTests(unittest.TestCase):
 
         self.assertEqual(response["papers"][0]["pmc_id"], "PMC1")
         self.assertEqual(response["papers"][0]["year"], 2025)
+        self.assertEqual(response["paper_source_artifact"], "flattened_csv")
+        self.assertEqual(response["corpus_revision"], "pmc-fixture-2026-07")
+
+    def test_local_scan_falls_back_to_processed_parquet(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            args = _args(tmp)
+            output_dir = Path(args.local_output_dir)
+            output_dir.mkdir(parents=True)
+            (output_dir / "processed.parquet").write_bytes(b"fixture parquet sentinel")
+
+            class Frame:
+                def head(self, _limit): return self
+                def to_dicts(self):
+                    return [{"pmc_id": "PMC2", "doi": "10.1/processed", "title": "Processed paper", "journal": "Fixture", "publication_date": "2024-03-04", "source": "pmc", "total_matches": 2}]
+
+            fake_polars = SimpleNamespace(read_parquet=lambda _path: Frame())
+            with patch.dict(sys.modules, {"polars": fake_polars}), patch.object(query_literature, "resolve_pixi_executable", return_value="/usr/bin/pixi"), patch.object(query_literature.subprocess, "run") as run:
+                run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
+                response = query_literature.execute_local_scan(args)
+
+        self.assertEqual(response["papers"][0]["pmc_id"], "PMC2")
+        self.assertEqual(response["paper_source_artifact"], "processed_parquet")
+        self.assertEqual(response["corpus_revision"], "pmc-fixture-2026-07")
 
     def test_local_scan_enforces_subprocess_timeout(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_name:

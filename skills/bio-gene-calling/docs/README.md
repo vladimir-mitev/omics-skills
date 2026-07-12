@@ -27,7 +27,7 @@ This directory contains practical usage guides for gene calling and RNA-feature 
 
 ### Eukaryotic gene calling
 
-- **BRAKER4** - current upstream eukaryotic annotation workflow; pin the tested release and container digest from <https://github.com/Gaius-Augustus/BRAKER4>
+- **BRAKER4** - current upstream Snakemake workflow; pin the repository commit, Snakefile checksum, and container lock from <https://github.com/Gaius-Augustus/BRAKER4>
 - **[braker.md](braker.md)** - legacy BRAKER3 v3.0.8 reproduction guide
   - Combines GeneMark-ETP and AUGUSTUS internally (AUGUSTUS is not run as a standalone tool)
   - RNA-seq and protein evidence integration
@@ -54,11 +54,12 @@ This directory contains practical usage guides for gene calling and RNA-feature 
 |------|-----------------|---------------|------|------------------|
 | pyrodigal | 3.7.1 | Bacteria, archaea | Meta / single | Fast prokaryotic gene calling |
 | pyrodigal-gv | 0.3.2 | Viruses (including giants) | Meta by default in CLI | Viral genomes |
+| BRAKER4 | pinned commit | Eukaryotes | Snakemake ES/ET/EP/ETP | Current evidence-aware eukaryotic annotation |
 | BRAKER3 | 3.0.8 | Eukaryotes | Evidence-based | High-quality eukaryotic annotation |
 | tRNAscan-SE | 2.0.12 | All domains | Domain-specific | tRNA detection |
 | Infernal `cmsearch` | 1.1.5 | All domains | Rfam covariance models | rRNA (SSU/LSU/5S/5.8S) and other ncRNA |
 
-> **Retired from this workflow:** AUGUSTUS as a standalone tool (now invoked only through BRAKER3); standalone `prodigal-gv` (use pyrodigal-gv); `barrnap` (replaced by Infernal `cmsearch` against domain-specific Rfam models).
+> **Retired from this workflow:** AUGUSTUS as a standalone tool (invoke it through BRAKER4 or a documented BRAKER3 reproduction); standalone `prodigal-gv` (use pyrodigal-gv); `barrnap` (replaced by Infernal `cmsearch` against domain-specific Rfam models).
 
 ## Documentation Format
 

@@ -194,6 +194,32 @@
   expected_agent: science-writer
   expected_primary_skills: [ai-scientist-evaluator]
 
+- task: "audit this AI-generated Jupyter notebook and rank its scientific validity and reproducibility"
+  platform: codex
+  expected_agent: science-writer
+  expected_primary_skills: [ai-scientist-evaluator]
+
+- task: "rewrite this Discussion for clarity while preserving every scientific claim and number"
+  platform: codex
+  expected_agent: science-writer
+  expected_primary_skills: [scientific-writing]
+
+- task: "draft a polished author rebuttal and response letter to these reviewer comments"
+  platform: codex
+  expected_agent: science-writer
+  expected_primary_skills: [scientific-writing]
+  forbidden_skills: [manuscript-review-council]
+
+- task: "assess whether this author rebuttal resolves each decision-driving manuscript concern"
+  platform: codex
+  expected_agent: science-writer
+  expected_primary_skills: [manuscript-review-council]
+
+- task: "critique whether this observational study design supports its causal conclusions"
+  platform: codex
+  expected_agent: science-writer
+  expected_primary_skills: [bio-logic]
+
 - task: "generate reproducible methods documentation from a Nextflow pipeline run"
   platform: codex
   expected_agent: omics-scientist
@@ -249,6 +275,16 @@
 
 - task: "find recent physics preprints about quantum sensing"
   platform: generic
+  expected_agent: literature-expert
+  expected_primary_skills: [arxiv-search]
+
+- task: "search arxiv for recent computer science preprints on distributed systems"
+  platform: generic
+  expected_agent: literature-expert
+  expected_primary_skills: [arxiv-search]
+
+- task: "resolve arxiv IDs 2501.01234 and 2406.00001 and summarize their metadata"
+  platform: codex
   expected_agent: literature-expert
   expected_primary_skills: [arxiv-search]
 

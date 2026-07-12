@@ -35,6 +35,7 @@ Search bioRxiv through its official API for recent-preprint discovery, date-rang
 10. Treat the API output as discovery metadata.
    - If exact citation details or the latest abstract-page presentation matter, verify the shortlisted candidates on bioRxiv or the DOI landing page before finalizing the answer.
 11. If the user wants peer-reviewed biomedical literature or PMC full text rather than bioRxiv preprints, use `polars-dovmed` instead.
+12. The CLI retries `HTTP 429` and transient `5xx` responses with bounded exponential backoff. Output records the retry policy, the exact latest-version rule, and separate match groups for every requested author form; initial-only groups remain explicitly ambiguous.
 
 ## Quick Reference
 
@@ -125,6 +126,7 @@ Search bioRxiv through its official API for recent-preprint discovery, date-rang
 - [ ] The final answer keeps abbreviated-name matches separate and labels them as potentially ambiguous
 - [ ] The answer does not overstate recall for a broad historical search
 - [ ] Final candidate metadata is verified on bioRxiv when exact citation/version details matter
+- [ ] Output states the latest-version policy, keeps requested author forms in separate match groups, and uses bounded retry/backoff for 429 and transient 5xx responses.
 
 ## Examples
 

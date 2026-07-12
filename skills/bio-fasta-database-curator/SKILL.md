@@ -72,8 +72,14 @@ new: ">seq1|Virus|protein"
 | Standardize headers | Define deterministic transformation rules and preserve original-to-new ID mapping. |
 | Merge or deduplicate | Decide whether duplicates are removed by ID, sequence, or both, then report what changed. |
 | Validate output | Re-count records, verify FASTA syntax, and write database statistics. |
+| Run the bundled curator | `uv run --no-project python scripts/curate_fasta.py input.fasta --output curated.fasta --prefix REF --deduplicate both` |
 
 ## Instructions
+
+Use `scripts/curate_fasta.py` for routine FASTA curation. It parses raw headers
+before any library can truncate them, uses SHA-256 sequence digests, refuses
+empty inputs and existing outputs, and writes both a header mapping and a JSON
+deduplication report. Keep the snippets below for custom transformations only.
 
 ### Step 1: Analyze Input Database
 
@@ -112,6 +118,7 @@ rules = {
 
 ```python
 from Bio import SeqIO
+import hashlib
 import re
 
 def standardize_header(header: str, rules: dict) -> str:
@@ -150,7 +157,7 @@ def deduplicate_by_sequence(input_path: str, output_path: str):
     seen_seqs = set()
     with open(output_path, 'w') as out:
         for record in SeqIO.parse(input_path, "fasta"):
-            seq_hash = hash(str(record.seq).upper())
+            seq_hash = hashlib.sha256(str(record.seq).upper().encode("ascii")).hexdigest()
             if seq_hash not in seen_seqs:
                 seen_seqs.add(seq_hash)
                 out.write(f">{record.description}\n{str(record.seq)}\n")
@@ -223,6 +230,8 @@ def generate_stats(input_path: str) -> dict:
 
     # Calculate summary statistics
     lengths = stats["lengths"]
+    if not lengths:
+        raise ValueError("database contains no FASTA records")
     stats["min_length"] = min(lengths)
     stats["max_length"] = max(lengths)
     stats["mean_length"] = sum(lengths) / len(lengths)
@@ -369,6 +378,14 @@ Keep a log of all transformations applied to the database.
 Always verify the output database matches expectations.
 
 ## Examples
+
+```bash
+uv run --no-project python scripts/curate_fasta.py \
+  fixtures/mixed-headers.fasta \
+  --output curated.fasta \
+  --prefix REF \
+  --deduplicate both
+```
 
 ```
 User: "Standardize the headers in virophage_raw.fasta and remove duplicates"

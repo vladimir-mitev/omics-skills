@@ -24,6 +24,9 @@ Use this skill for citation metadata work backed by the Crossref REST API.
 6. Treat Crossref as citation metadata, not full text.
    - If exact abstract-page wording, final pagination, or publisher formatting matters, verify the shortlisted record on the publisher or DOI landing page.
 7. When title search returns multiple plausible records, keep the ambiguity explicit instead of selecting a match silently.
+8. Use `--strict` for audits that must fail on malformed, missing, or unresolved
+   records. Exit code 2 denotes a transient service/network failure; exit code 1
+   denotes invalid, missing, or other audit failures.
 
 ## Quick Reference
 
@@ -36,10 +39,11 @@ Use this skill for citation metadata work backed by the Crossref REST API.
 | Citation style | `--style apa|vancouver|ama|ieee|chicago` |
 | Write to file | `--output crossref-report.txt` |
 | Polite-pool email | `--email you@example.org` |
+| Strict audit | `--strict` returns nonzero for unresolved records |
 
 ## Input Requirements
 
-- Python 3 with network access
+- `uv` and network access; the bundled PEP 723 script installs its pinned HTTP dependency
 - One of:
   - a DOI via `--doi`
   - a title via `--title`
@@ -55,7 +59,8 @@ Use this skill for citation metadata work backed by the Crossref REST API.
 - DOI validation status and normalized DOI when `--doi` is used
 - title, journal, year, and formatted citation when metadata is found
 - ranked title-search candidates for `--title`
-- summary counts plus invalid/error entries for file validation and bibliography audits
+- summary counts that distinguish invalid DOI syntax, Crossref 404 records,
+  transient 429/5xx/network failures, and other HTTP errors
 - optional output file if `--output` is set
 
 ## Quality Gates

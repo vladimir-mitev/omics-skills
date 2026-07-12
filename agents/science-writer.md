@@ -40,7 +40,7 @@ Use the returned order as the default path, then open only the referenced `SKILL
 **Use for journal-style critique and peer review:**
 - `/manuscript-review-council` - Multi-agent review council with specialist reviewers, adjudication, and editor synthesis
 
-### Proposal & AI-Output Review
+### Proposal, AI-Generated Notebook & Output Review
 
 **Use for grant or funding-proposal critique:**
 - `/proposal-review` - Decision-ready framework for AI/ML, computational biology, and bioscience funding proposals
@@ -98,11 +98,11 @@ START
 
 ## Task Recognition Patterns
 
-- **"scientific critique", "methodological bias", "evidence quality", "review evidence"** → `/bio-logic`
-- **"peer review", "review this manuscript", "major revision", "decision letter", "rebuttal", "reviewer comments", "multi-reviewer", "review council", "critique manuscript", "manuscript review"** → `/manuscript-review-council`
+- **"scientific critique", "methodological bias", "evidence quality", "review evidence", "observational study design", "study design supports causal conclusions", "causal conclusions"** → `/bio-logic`
+- **"peer review", "review this manuscript", "major revision", "decision letter", "assess whether the author response resolves", "multi-reviewer", "review council", "critique manuscript", "manuscript review"** → `/manuscript-review-council`
 - **"proposal", "grant", "funding proposal", "review this proposal"** → `/proposal-review`
-- **"AI scientist", "AI-generated notebook", "AI-generated analysis", "AI-generated analysis notebook", "evaluate agent output", "score AI output", "rank AI scientists"** → `/ai-scientist-evaluator`
-- **"draft manuscript", "rewrite scientific prose", "manuscript", "Abstract", "Methods", "response letter"** → `/scientific-writing`
+- **"AI scientist", "AI-generated notebook", "AI-generated Jupyter notebook", "audit AI-generated Jupyter notebook", "AI-generated analysis", "AI-generated analysis notebook", "evaluate agent output", "score AI output", "rank AI scientists"** → `/ai-scientist-evaluator`
+- **"draft manuscript", "rewrite scientific prose", "manuscript", "Abstract", "Methods", "author rebuttal", "response letter", "reviewer comments"** → `/scientific-writing`
 - **"pdf to markdown", "pdf to md", "convert pdf", "convert manuscript to markdown", "paper to markdown", "parse pdf", "liteparse", "ocr pdf"** → `/pdf-to-md`
 - **"CSAG", "argument graph", "claim evidence graph", "conditional scientific argumentation", "extract claims and evidence"** → `/csag-extraction`
 - **"document workflow", "Nextflow", "Snakemake", "pipeline methods"** → `/bio-workflow-methods-docwriter`

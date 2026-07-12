@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#   "jsonschema==4.26.0",
+#   "PyYAML==6.0.3",
+# ]
+# ///
 """Aggregate and rank AI scientist evaluation JSON files.
 
 Usage:
@@ -12,11 +19,70 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+import yaml
+from jsonschema import Draft202012Validator
+
+
+SKILL_ROOT = Path(__file__).resolve().parents[1]
+SCHEMA_PATH = SKILL_ROOT / "assets" / "evaluation_schema.json"
+WEIGHTS_PATH = SKILL_ROOT / "assets" / "default_weight_profiles.yaml"
+
+
+def load_weight_profiles() -> dict[str, dict[str, float]]:
+    profiles = yaml.safe_load(WEIGHTS_PATH.read_text(encoding="utf-8"))
+    if not isinstance(profiles, dict):
+        raise ValueError(f"{WEIGHTS_PATH} does not contain a profile mapping")
+    normalized: dict[str, dict[str, float]] = {}
+    for name, weights in profiles.items():
+        if not isinstance(name, str) or not isinstance(weights, dict):
+            raise ValueError(f"invalid weight profile: {name!r}")
+        parsed = {str(category): float(weight) for category, weight in weights.items()}
+        if abs(sum(parsed.values()) - 100.0) > 1e-9:
+            raise ValueError(f"weight profile {name!r} does not total 100")
+        normalized[name] = parsed
+    return normalized
+
 
 def load_review(path: Path) -> Dict[str, Any]:
     data = json.loads(path.read_text(encoding="utf-8"))
-    if "overall" not in data or "total_score_100" not in data["overall"]:
-        raise ValueError(f"{path} is missing overall.total_score_100")
+    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    validation_errors = sorted(
+        Draft202012Validator(schema).iter_errors(data),
+        key=lambda error: tuple(str(part) for part in error.absolute_path),
+    )
+    if validation_errors:
+        details = "; ".join(
+            f"{'.'.join(str(part) for part in error.absolute_path) or '<root>'}: {error.message}"
+            for error in validation_errors
+        )
+        raise ValueError(f"{path} failed evaluation_schema.json: {details}")
+
+    profiles = load_weight_profiles()
+    profile_name = data["profile"]
+    if profile_name not in profiles:
+        raise ValueError(f"{path} uses unknown weight profile {profile_name!r}")
+    expected_weights = profiles[profile_name]
+    score_items = data["scores"]
+    categories = [item["category"] for item in score_items]
+    duplicate_categories = sorted(
+        category for category in set(categories) if categories.count(category) > 1
+    )
+    missing_categories = sorted(set(expected_weights) - set(categories))
+    extra_categories = sorted(set(categories) - set(expected_weights))
+    if duplicate_categories or missing_categories or extra_categories:
+        raise ValueError(
+            f"{path} score categories do not match profile {profile_name!r}: "
+            f"duplicates={duplicate_categories}, missing={missing_categories}, extra={extra_categories}"
+        )
+
+    total = 0.0
+    for item in score_items:
+        weight = expected_weights[item["category"]]
+        points = float(item["score_0_to_5"]) / 5.0 * weight
+        item["weight"] = weight
+        item["weighted_points"] = round(points, 10)
+        total += points
+    data["overall"]["total_score_100"] = round(total, 10)
     return data
 
 
@@ -74,7 +140,7 @@ def format_markdown(reviews: List[Tuple[Path, Dict[str, Any]]]) -> str:
     return "\n".join(lines)
 
 
-def main() -> None:
+def main() -> int:
     parser = argparse.ArgumentParser(description="Aggregate and rank AI scientist evaluation JSON files")
     parser.add_argument("reviews", nargs="+", help="Paths to evaluation JSON files")
     parser.add_argument("--out_md", help="Optional markdown output path")
@@ -83,7 +149,10 @@ def main() -> None:
     loaded: List[Tuple[Path, Dict[str, Any]]] = []
     for review_path in args.reviews:
         path = Path(review_path)
-        loaded.append((path, load_review(path)))
+        try:
+            loaded.append((path, load_review(path)))
+        except (OSError, json.JSONDecodeError, ValueError) as error:
+            parser.error(str(error))
 
     loaded.sort(key=lambda item: sort_key(item[1]), reverse=True)
     markdown = format_markdown(loaded)
@@ -91,7 +160,8 @@ def main() -> None:
 
     if args.out_md:
         Path(args.out_md).write_text(markdown, encoding="utf-8")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

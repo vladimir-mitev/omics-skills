@@ -14,6 +14,11 @@ Aggregate results, train ML models, and produce reports with validated reference
    - CPU baseline: scikit-learn v1.5+ for linear/tree/clustering baselines; XGBoost v2.1.4+ for gradient boosting.
    - GPU node available (CUDA): set `device="cuda"` on XGBoost (native since v2.0) by default. For sklearn-compatible estimators (random forest, k-means, PCA, UMAP), use **RAPIDS cuML** as a drop-in replacement and record the device in the run log.
 3. Generate reports and validate references.
+   - Validate the prediction table with
+     `scripts/validate_predictions.py`. Keep group identifiers and confounder
+     labels in the table so the gate can detect sample/group leakage, class
+     imbalance, calibration failure, batch-outcome imbalance, and performance
+     that does not beat the majority-class null.
 4. For exploratory omics projects, aggregate discovery evidence across the literature-derived analysis playbook, annotation, phylogenomics, viromics, and comparative-genomics outputs.
 5. **Comparative-axes rollup** — join the per-axis comparison artifacts produced by upstream skills into a single `comparative_axes_summary.tsv`. The rollup must have one row per (query genome, axis) and include:
    - `genome-property frontier` (size, gene count, etc. — link to `relative_genome_metrics.tsv` and `genome_size_frontier.tsv`)
@@ -37,6 +42,7 @@ Aggregate results, train ML models, and produce reports with validated reference
 | Validate inputs | Confirm required inputs and reference data exist. |
 | Review outputs | Inspect reports and QC gates before proceeding. |
 | Tool docs | See `docs/README.md`. |
+| Validate predictions | `uv run --no-project python scripts/validate_predictions.py predictions.tsv --report validation.json --require-beats-null` |
 
 ## Input Requirements
 
@@ -55,6 +61,7 @@ Inputs:
 - results/bio-stats-ml-reporting/discovery_summary.tsv
 - results/bio-stats-ml-reporting/report.md
 - results/bio-stats-ml-reporting/logs/
+- results/bio-stats-ml-reporting/prediction_validation.json
 
 ## Quality Gates
 
@@ -65,6 +72,9 @@ Inputs:
 - [ ] Discovery summary joins candidate genes/features to annotation evidence, comparison baseline, literature context, and confidence.
 - [ ] `comparative_axes_summary.tsv` covers all five mandatory axes (genome-property frontier, marker-gene census, family copy-number, synteny/neighborhoods, ncRNA census) for every query genome, with rows for axes that produced negative findings.
 - [ ] Final report states what is interesting, what is conserved/expected, what is likely artifact, and what should be tested next.
+- [ ] Grouped splits have no sample or group overlap, calibration is reported,
+      confounding and imbalance are quantified, and the model is compared with
+      a declared null baseline.
 
 ## Examples
 

@@ -93,6 +93,11 @@ Run:
 - Slurm:  `nextflow run main.nf -profile slurm --reads '/path/*.fastq.gz'`
 - Resume: `nextflow run main.nf -profile slurm -resume --reads '/path/*.fastq.gz'`
 
+For a scheduler-submitted launch job, use
+`scripts/submit_nextflow.sh`. It requires `SLURM_ACCOUNT`, submits the launch
+through `sbatch`, enables trace/report/timeline artifacts, and rejects a run
+whose trace or declared result directory is missing or empty.
+
 ## Resuming and caching (agent guidance)
 - Use `-resume` to reuse cached task results.
 - Preserve the work directory and `.nextflow/` cache for resumability.

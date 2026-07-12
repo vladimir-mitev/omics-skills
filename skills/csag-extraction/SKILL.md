@@ -70,7 +70,7 @@ wrong enum labels, and missing artifact/dataset metadata.
 Use the validator as a feedback loop:
 
 ```bash
-uv run python skills/csag-extraction/scripts/validate_paper_extraction.py \
+uv run --script skills/csag-extraction/scripts/validate_paper_extraction.py \
   work/STEM/paper_extraction.json \
   --source-markdown work/STEM/STEM.md \
   --article-json work/STEM/STEM.article.json \
@@ -81,7 +81,7 @@ For mechanical cleanup before curation, write a repaired candidate and inspect
 the `repair_actions` in the validation report:
 
 ```bash
-uv run python skills/csag-extraction/scripts/validate_paper_extraction.py \
+uv run --script skills/csag-extraction/scripts/validate_paper_extraction.py \
   work/STEM/paper_extraction.raw.json \
   --source-markdown work/STEM/STEM.md \
   --article-json work/STEM/STEM.article.json \
@@ -183,7 +183,7 @@ For higher-stakes use, run validation with `--profile promoted_claim` or `--prof
 Before finalizing the extraction, run:
 
 ```bash
-uv run python skills/csag-extraction/scripts/validate_paper_extraction.py \
+uv run --script skills/csag-extraction/scripts/validate_paper_extraction.py \
   ABS_PATH/paper_extraction.json \
   --source-markdown ABS_PATH/STEM.md \
   --article-json ABS_PATH/STEM.article.json \
@@ -191,6 +191,11 @@ uv run python skills/csag-extraction/scripts/validate_paper_extraction.py \
 ```
 
 Use `--profile promoted_claim` for curated claims and `--profile benchmark_key` for scoring keys. Do not stop until the validator returns `OK`.
+
+Use JSON for `PaperExtraction` instances and validation reports. YAML is
+reserved for the authoritative LinkML schema and QA templates. Add `--strict`
+when every assertion, evidence item, and evidence link must carry a TextSpan;
+missing grounding then exits nonzero.
 
 Then run the quality report and review how complete the artifact is, what is missing or weak, and the field-level information quality:
 
@@ -243,7 +248,7 @@ For edge cases and scoring guidance, see `references/CSAG_PLAYBOOK.md`.
 ## Examples
 
 ```bash
-uv run python skills/csag-extraction/scripts/validate_paper_extraction.py \
+uv run --script skills/csag-extraction/scripts/validate_paper_extraction.py \
   work/paper/paper_extraction.json \
   --source-markdown work/paper/paper.md \
   --article-json work/paper/paper.article.json \

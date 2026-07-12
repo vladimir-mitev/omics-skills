@@ -31,6 +31,11 @@ Produce a rigorous, decision-ready review for AI/ML, computational biology, and 
 7. Default weights: strategic fit and novelty 15%, technical rigor 25%, feasibility and resources 20%, team and execution 15%, risk, ethics, and compliance 15%, budget and schedule 10%.
 8. Map the default weighted mean to `Strong Accept` (>=4.5), `Accept` (>=3.7), `Borderline` (>=2.8), or `Reject` (<2.8). A documented fatal flaw may override the numeric band.
 9. Keep the review concrete and action-oriented. Reference proposal details when available and name fatal flaws plainly.
+10. For a machine-checked scorecard, run
+    `uv run --no-project python scripts/score_proposal.py scorecard.json`. The
+    helper rejects weights that do not total 100%, category mismatches, and
+    scores outside 1–5. Sponsor rubrics must provide both weights and their own
+    recommendation bands, so defaults are never mixed into a sponsor rubric.
 
 ## Quick Reference
 
@@ -43,6 +48,7 @@ Produce a rigorous, decision-ready review for AI/ML, computational biology, and 
 | Review risk | Build a risk register with likelihood, impact, warning signs, and mitigations |
 | Make a decision | Give a final recommendation plus concrete funding conditions or rejection reasons |
 | Use a sponsor rubric | Preserve its categories, weights, thresholds, and recommendation labels |
+| Validate a scorecard | `uv run --no-project python scripts/score_proposal.py scorecard.json` |
 
 ## Input Requirements
 
@@ -63,6 +69,7 @@ Produce a rigorous, decision-ready review for AI/ML, computational biology, and 
 - [ ] The review covers novelty, rigor, feasibility, risks, team, ethics, and budget
 - [ ] At least six concrete risks are documented with mitigations
 - [ ] The final recommendation is explicit and consistent with the evidence
+- [ ] Scorecard weights total 100%, all rubric categories are scored, and the recommendation follows the selected rubric's bands
 
 ## Examples
 

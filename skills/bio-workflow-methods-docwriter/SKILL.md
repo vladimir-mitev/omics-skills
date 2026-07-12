@@ -28,6 +28,8 @@ METHODS_SKILL="${METHODS_SKILL:-$HOME/.agents/skills/bio-workflow-methods-docwri
 | Evidence checklist | See `reference/evidence-checklist.md` |
 | Manifest schema | `schemas/run-manifest.schema.json` |
 | Extract a Nextflow draft | `uv run "$METHODS_SKILL/scripts/extract_nextflow_run.py" --help` |
+| Extract Snakemake evidence | `uv run --script "$METHODS_SKILL/scripts/extract_snakemake_run.py" --help` |
+| Extract CWL evidence | `uv run --script "$METHODS_SKILL/scripts/extract_cwl_run.py" --help` |
 | Validate manifest | `uv run "$METHODS_SKILL/scripts/validate_run_manifest.py" run_manifest.yaml` |
 | Examples | See `examples/` |
 
@@ -49,6 +51,7 @@ METHODS_SKILL="${METHODS_SKILL:-$HOME/.agents/skills/bio-workflow-methods-docwri
 - [ ] Commands were sourced from task scripts, not environment-bearing wrappers, and contain no credentials
 - [ ] No `NOT CAPTURED`, `UNKNOWN`, or `TBD` placeholder remains in a required field
 - [ ] Workflow summary appears at top of `METHODS.md`
+- [ ] The engine-specific extractor output passes `validate_run_manifest.py`; the fixture-backed Nextflow path proves trace, task script, input, output, version, and final-output evidence end to end.
 
 ## Examples
 

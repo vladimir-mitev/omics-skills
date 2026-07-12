@@ -18,6 +18,11 @@ Strongest to weakest for intervention effects:
 
 ## GRADE System
 
+Use GRADE for appropriate intervention, diagnostic, prognostic, or evidence-
+synthesis questions. Do not assign a GRADE level to a single phylogeny,
+computational benchmark, genome comparison, or exploratory omics analysis.
+For those studies, report confidence from domain-relevant validity checks.
+
 Rate evidence: **High → Moderate → Low → Very Low**
 
 ### Starting Point

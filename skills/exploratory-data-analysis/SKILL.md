@@ -16,6 +16,7 @@ The six reference files contain 239 format entries. Some entries describe the sa
 - FASTA and FASTQ, including common gzip-compressed suffixes
 - TIFF/OME-TIFF, PNG, and JPEG raster images
 - Reference-only metadata for every other recognized suffix
+- Representative streaming analyzers for PDB/SDF/SMILES, MGF/mzML/mzXML, and mzTab families; proprietary binary formats remain reference-only unless their project environment supplies a reader.
 
 ## When to Use This Skill
 
@@ -258,6 +259,7 @@ Each format entry includes:
 - [ ] Missing values, malformed records, parser failures, or unreadable sections are reported explicitly.
 - [ ] Large-file sampling is labeled as sampling and does not imply full-file statistics.
 - [ ] Suggested downstream analyses match the detected format and available metadata.
+- [ ] NumPy `.npy` inspection uses memory mapping, FASTA uses full-file streaming, FASTQ is an explicitly bounded streaming sample, and each implemented format family has a fixture.
 
 ## Best Practices
 
