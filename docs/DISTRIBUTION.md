@@ -322,16 +322,18 @@ For each release:
 1. Choose a semantic version tag such as `v1.0.0`.
 2. Add human-written release notes at `.github/releases/vX.Y.Z.md`.
 3. Commit and push the release-ready docs, skills, agents, catalog, and tests.
-4. Create an annotated tag from the pushed commit.
-5. Push the tag. `.github/workflows/release.yml` publishes the GitHub Release
+4. Wait for CI and Docs to pass on `main`, then run `scripts/check_release_sync.py --tag vX.Y.Z --main-ref origin/main`.
+5. Create an annotated tag from the verified `main` commit.
+6. Push the tag. `.github/workflows/release.yml` verifies the tag, both manifests, release notes, and `origin/main` before publishing the GitHub Release
    from `.github/releases/<tag>.md`.
+7. Verify the GitHub Release, source archives, installed plugin version, and documentation site.
 
 Release notes should cover:
    - major user-facing changes
    - agent and skill coverage
    - installation or compatibility notes
    - validation commands run before release
-6. Keep the README version badge pointed at the repository releases page.
+Keep the README version badge pointed at the repository releases page.
 
 ### Pull Request Template (for Anthropic/OpenAI repos)
 

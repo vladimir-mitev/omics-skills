@@ -175,7 +175,9 @@ Every project carries a `README.md` (study description, setup, how to reproduce)
 
 | Need | Action |
 |---|---|
-| Start a project | Run `scripts/scaffold_project.py`, resolve `pixi.lock`, then replace the hypothesis placeholders before analysis. |
+| Start a simple project | Run `scripts/scaffold_project.py` with the default canonical layout, resolve `pixi.lock`, then replace the hypothesis placeholders. |
+| Start a multi-track project | Add `--layout numbered`; use numbered, named roots for shared preprocessing, analyses, publication outputs, code, tests, logs, and scratch. |
+| Add the first experiment | Add `--first-experiment YYYY-MM-DD_topic` to create a README and refusing `runall` template without overwriting project-owned files. |
 | Repair a messy project | Inventory paths first, create the target scaffold, migrate with temporary compatibility links, and verify consumers before removing old paths. |
 | Run an experiment | Copy `examples/runall.sh`, pin inputs and parameters, write atomically, and record versions and seeds. |
 | Add structured metadata | Use `bio-foundation-housekeeping` as a separate follow-up only when schemas or a catalog are requested. |
@@ -207,6 +209,7 @@ Every project carries a `README.md` (study description, setup, how to reproduce)
 - [ ] A fresh checkout plus documented external inputs can reproduce the analysis.
 - [ ] No secrets, credentials, large generated outputs, or private data are staged for Git.
 - [ ] `scripts/scaffold_project.py <project> --objective "..." --check` passes, and a second identical scaffold run reports no created files.
+- [ ] When `--first-experiment` is used, its ISO date is valid and the generated `runall` exits non-zero until adapted.
 
 ## Examples
 
@@ -224,6 +227,17 @@ uv run --no-project python ~/.agents/skills/bioinformatics-project/scripts/scaff
   --name "Coastal metagenomes" \
   --objective "Recover and compare metagenome-assembled genomes." \
   --check
+```
+
+For a multi-track project with an initial experiment:
+
+```bash
+uv run --no-project python ~/.agents/skills/bioinformatics-project/scripts/scaffold_project.py \
+  ./coastal-metagenomes \
+  --name "Coastal metagenomes" \
+  --objective "Recover and compare metagenome-assembled genomes." \
+  --layout numbered \
+  --first-experiment 2026-07-11_read-qc
 ```
 
 - `examples/project-tree.txt` for a concrete project tree.
@@ -244,6 +258,8 @@ uv run --no-project python ~/.agents/skills/bioinformatics-project/scripts/scaff
 **The repository needs schemas and a queryable catalog:** Use `bio-foundation-housekeeping` after this skill establishes the project structure.
 
 **A scaffold file already contains different content:** The command exits before writing anything and lists the conflicting paths. Reconcile those files manually; the scaffold does not overwrite project-owned content.
+
+**A first-experiment value is rejected:** Use a real ISO calendar date plus a lowercase topic, for example `2026-07-11_read-qc`. Slashes, `..`, uppercase topics, and impossible dates are rejected before the project directory is created.
 
 ## Reference files
 

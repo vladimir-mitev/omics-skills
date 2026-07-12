@@ -9,7 +9,7 @@ The table below is a reader-facing map. The source `SKILL.md` files are still ca
 | Skill | Use when | Main result |
 |---|---|---|
 | `bioinformatics-project` | Starting, reorganizing, or reproducibility-hardening a bioinformatics project. | Project layout, pinned environment, task records, hypothesis register, restartable drivers, provenance, and sharing metadata. |
-| `bio-foundation-housekeeping` | Defining metadata schemas or adding a queryable data catalog. | LinkML/Pydantic models, normalized Parquet tables, validation fixtures, and a DuckDB catalog. |
+| `bio-foundation-housekeeping` | Defining metadata schemas or adding a queryable data catalog. | Generated LinkML/Pydantic models, cross-record validation, normalized Parquet tables, fixtures, and a DuckDB catalog. |
 | `exploratory-data-analysis` | Inspecting an unfamiliar scientific data file before choosing a workflow. | A Markdown report covering file type, structure, quality issues, and downstream analysis options. |
 | `bio-reads-qc-mapping` | Ingesting raw reads, trimming or filtering them, and mapping reads to references or assemblies. | QC reports, cleaned reads, alignments, and coverage summaries. |
 | `bio-assembly-qc` | Building genome, metagenome, or long-read assemblies. | Assemblies with QC metrics and assembly-level interpretation. |

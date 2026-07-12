@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Resolve tag and notes
         id: release
@@ -41,6 +43,14 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "notes=$notes" >> "$GITHUB_OUTPUT"
 
+      - name: Verify tag, manifests, and main are synchronized
+        run: |
+          git fetch origin main --no-tags
+          python3 scripts/check_release_sync.py \
+            --tag "${{ steps.release.outputs.tag }}" \
+            --main-ref origin/main \
+            --require-annotated-tag
+
       - name: Create GitHub release
         run: |
           gh release create "${{ steps.release.outputs.tag }}" \
@@ -49,4 +59,3 @@ jobs:
             --verify-tag
         env:
           GH_TOKEN: ${{ github.token }}
-

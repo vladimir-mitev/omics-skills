@@ -133,10 +133,10 @@ Skills are also invocable individually as `/<skill-name>` in Claude Code or `$<s
 
 | Agent | Focus | Skills |
 |---|---|---:|
-| `omics-scientist` | Project reproducibility, sequencing reads, assembly, binning, annotation, phylogenomics, interdomain HGT, MAG recovery, JGI access | 23 |
-| `literature-expert` | PMC full text, arXiv and bioRxiv preprints, DOI metadata, citation impact, API docs | 12 |
-| `science-writer` | Manuscript drafting, multi-reviewer critique, proposal review, AI-output evaluation | 11 |
-| `dataviz-artist` | marimo and Jupyter notebooks (executed end-to-end), scientific data inspection, matplotlib/seaborn figures, Plotly Dash dashboards | 7 |
+| `omics-scientist` | Project reproducibility, sequencing reads, assembly, binning, annotation, phylogenomics, interdomain HGT, MAG recovery, JGI access | 21 |
+| `literature-expert` | PMC full text, arXiv and bioRxiv preprints, DOI metadata, and citation impact | 8 |
+| `science-writer` | Manuscript drafting, multi-reviewer critique, proposal review, and AI-output evaluation | 8 |
+| `dataviz-artist` | marimo and Jupyter notebooks, scientific data inspection, matplotlib/seaborn figures, and Plotly Dash dashboards | 4 |
 
 Run `python3 scripts/skill_index.py route --agent <agent> "<task>"` to see how a specific agent routes a given task.
 

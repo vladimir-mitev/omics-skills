@@ -1,20 +1,22 @@
 # LinkML Usage Guide
 
-Last verified: 2026-05-30
+Last verified: 2026-07-11
 Tool version/release checked: LinkML v1.11.1
 Official docs/manual: https://linkml.io/linkml/
 Release/source: https://github.com/linkml/linkml/releases/tag/v1.11.1
 
 ## Installation
 
-### Python Package
+### Project environment
 ```bash
-pip install linkml
+pixi add --pypi linkml==1.11.1 pydantic==2.13.4
+pixi install
 ```
 
-### With Docker
+### One command with uv
 ```bash
-docker pull linkml/linkml
+uv run --with linkml==1.11.1 linkml generate pydantic \
+  --extra-fields forbid schema.yaml > models.py
 ```
 
 ## Key Command-Line Flags
@@ -29,6 +31,7 @@ linkml generate <format> [OPTIONS] YAMLFILE
 linkml generate pydantic schema.yaml > models.py
 linkml generate pydantic --black schema.yaml > models.py      # Format with black
 linkml generate pydantic --extra-fields allow schema.yaml     # Allow extra fields
+linkml generate pydantic --extra-fields forbid schema.yaml    # Reject unknown fields
 linkml generate pydantic --no-metadata schema.yaml            # Exclude metadata
 linkml generate pydantic --mergeimports schema.yaml           # Merge imports
 ```
@@ -76,6 +79,8 @@ linkml convert --schema schema.yaml --target-class Sample data.yaml
 ```
 
 ## Common Usage for Bioinformatics Metadata Schemas
+
+The bundled `scripts/generate_models.py` pins LinkML and Pydantic, removes build-machine paths from generated source, imports the result, and refuses to replace a changed model. Use it for project scaffolds instead of redirecting an unpinned command.
 
 ### 1. Define Sample Metadata Schema
 ```yaml

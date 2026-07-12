@@ -1,6 +1,6 @@
 # Tool Documentation
 
-Last verified: 2026-05-30
+Last verified: 2026-07-11
 Tool version/release checked: Pixi v0.69.0; LinkML v1.11.1; Pydantic v2.13.4; DuckDB v1.5.3
 Official docs/manual: See linked per-tool guides in this directory.
 Release/source: See linked per-tool guides in this directory.
@@ -24,14 +24,16 @@ pixi install
 
 ### [LinkML](linkml.md)
 **Version checked**: v1.11.1
-**Purpose**: Flexible modeling language for authoring schemas in YAML
+**Purpose**: Schema language for typed records authored in YAML
 **Key Use**: Defining metadata schemas and generating Pydantic models
 
 **Quick Start**:
 ```bash
-pip install linkml
-linkml generate pydantic --black schema.yaml > models.py
-linkml validate --schema schema.yaml data.yaml
+SKILL_ROOT=~/.agents/skills/bio-foundation-housekeeping
+uv run --script "$SKILL_ROOT/scripts/generate_models.py" \
+  --schema "$SKILL_ROOT/schemas/project-metadata.yaml" \
+  --output ./schemas/generated/project_metadata.py \
+  --expect-class MetadataBundle
 ```
 
 ### [Pydantic](pydantic.md)
@@ -79,10 +81,10 @@ Each tool guide includes:
 
 These tools work together in the skill workflow:
 
-1. **Pixi**: Sets up reproducible environment with all dependencies
-2. **LinkML**: Defines metadata schemas for samples, runs, etc.
-3. **Pydantic**: Validates data at runtime using generated models
-4. **DuckDB**: Catalogs validated Parquet files for efficient querying
+1. **Pixi**: Resolves the project environment and lockfile.
+2. **LinkML**: Defines sample, run, file, result, and provenance records.
+3. **Pydantic**: Validates runtime data with the generated models.
+4. **DuckDB**: Catalogs validated Parquet tables and their checksums.
 
 The default pattern is schema-first. Define records in LinkML, validate incoming metadata, parse/coerce values through Pydantic models, write normalized Parquet, and then register those Parquet files in DuckDB. Avoid loading raw CSV/JSON directly into the catalog unless the raw table is clearly marked as staging and excluded from downstream analysis.
 
@@ -100,9 +102,6 @@ The default pattern is schema-first. Define records in LinkML, validate incoming
 - Pydantic: https://github.com/pydantic/pydantic/releases/tag/v2.13.4
 - DuckDB: https://github.com/duckdb/duckdb/releases/tag/v1.5.3
 
-## Notes
+## Fixture workflow
 
-- All guides focus on practical bioinformatics use cases
-- Examples emphasize reproducibility and data validation
-- Performance tips are tailored for typical genomics workflows
-- Documentation will be updated as tool versions evolve
+Run `../scripts/build_metadata_catalog.py` with `../schemas/project-metadata.yaml` and the bundled JSON fixtures. The driver validates record fields, identifiers, and foreign keys before publishing generated models, Parquet tables, or DuckDB.

@@ -9,7 +9,7 @@ The repository is deliberately simple. Agents are Markdown system prompts. Skill
 | Area | What the repository provides |
 |---|---|
 | Omics analysis | Read QC, mapping, assembly, binning, annotation, taxonomy triage, phylogenomics, viromics, pangenomes, structure annotation, and reporting. |
-| Literature and metadata | PMC and bioRxiv search, arXiv search, DOI lookup, citation metadata, impact checks, and API documentation retrieval. |
+| Literature and metadata | PMC and bioRxiv search, arXiv search, DOI lookup, citation metadata, and impact checks. |
 | Writing and review | Manuscript drafting, response letters, proposal review, methods documentation, and rigorous review of AI scientist outputs. |
 | Visualization | Reproducible notebooks, matplotlib/seaborn figures, and Plotly Dash dashboards. |
 

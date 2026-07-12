@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import re
 import stat
+from datetime import date
 from pathlib import Path
 
 
@@ -20,7 +21,7 @@ def pixi_name(value: str) -> str:
     return normalized
 
 
-def scaffold_files(project_name: str, objective: str) -> dict[Path, tuple[str, bool]]:
+def canonical_scaffold_files(project_name: str, objective: str) -> dict[Path, tuple[str, bool]]:
     pixi_project_name = pixi_name(project_name)
     return {
         Path("README.md"): (
@@ -94,13 +95,171 @@ def scaffold_files(project_name: str, objective: str) -> dict[Path, tuple[str, b
     }
 
 
+def numbered_gitignore() -> str:
+    return (
+        "# Immutable inputs and generated work\n"
+        "00_data/00_raw/*\n"
+        "!00_data/00_raw/.gitkeep\n"
+        "02_analyses/*/*/*\n"
+        "!02_analyses/*/*/README.md\n"
+        "!02_analyses/*/*/runall\n"
+        "90_logs/*\n"
+        "!90_logs/.gitkeep\n"
+        "99_scratch/*\n"
+        "!99_scratch/.gitkeep\n"
+        "*.fastq\n"
+        "*.fastq.gz\n"
+        "*.fq.gz\n"
+        "*.bam\n"
+        "*.bai\n"
+        "*.cram\n\n"
+        "# Environments and caches\n"
+        ".pixi/\n"
+        ".venv/\n"
+        "__pycache__/\n"
+        "*.pyc\n"
+    )
+
+
+def numbered_scaffold_files(project_name: str, objective: str) -> dict[Path, tuple[str, bool]]:
+    pixi_project_name = pixi_name(project_name)
+    return {
+        Path("README.md"): (
+            f"# {project_name}\n\n"
+            f"## Objective\n\n{objective}\n\n"
+            "## Reproduce\n\n"
+            "1. Put immutable inputs under `00_data/00_raw/` and metadata under `00_data/01_metadata/`.\n"
+            "2. Resolve the environment with `pixi install` and commit `pixi.lock`.\n"
+            "3. Fill `tasks/hypotheses.md` before exploratory analysis.\n"
+            "4. Put shared preprocessing under `01_shared_preprocessing/` and analysis tracks under `02_analyses/`.\n",
+            False,
+        ),
+        Path("SUMMARY.md"): (
+            "# Project status\n\n"
+            "No analysis has run. Record current counts, passed QC gates, and deliverables here.\n",
+            False,
+        ),
+        Path("pixi.toml"): (
+            "[workspace]\n"
+            'channels = ["conda-forge", "bioconda"]\n'
+            f'name = "{pixi_project_name}"\n'
+            'platforms = ["linux-64"]\n'
+            'version = "0.1.0"\n\n'
+            "[tasks]\n\n"
+            "[dependencies]\n",
+            False,
+        ),
+        Path(".gitignore"): (numbered_gitignore(), False),
+        Path("tasks/todo.md"): (
+            "# Tasks\n\n- [ ] Define the first verifiable analysis outcome and its proof.\n",
+            False,
+        ),
+        Path("tasks/METHODS.md"): (
+            "# Methods\n\nRecord exact commands, versions, parameters, seeds, databases, checksums, and job IDs.\n",
+            False,
+        ),
+        Path("tasks/lessons.md"): ("# Lessons\n\n", False),
+        Path("tasks/hypotheses.md"): (
+            "# Hypothesis register\n\n"
+            "Replace each placeholder before exploratory analysis and keep ruled-out entries visible.\n\n"
+            "| ID | Type | Working explanation | Status | Discriminating check |\n"
+            "|---|---|---|---|---|\n"
+            "| H1 | biological | Define a biological mechanism. | unresolved | Define a test. |\n"
+            "| H2 | technical | Define a pipeline or measurement artifact. | unresolved | Define a control. |\n"
+            "| H3 | null | Define the no-effect explanation. | unresolved | Define a null comparison. |\n"
+            "| H4 | sampling | Define a sampling or batch explanation. | unresolved | Define a stratified check. |\n"
+            "| H5 | database | Define a reference/database explanation. | unresolved | Define a database comparison. |\n",
+            False,
+        ),
+        Path("00_data/README.md"): (
+            "# Data provenance\n\n"
+            "For each input, record its source, version, retrieval command, checksum, and license.\n",
+            False,
+        ),
+        Path("00_data/00_raw/.gitkeep"): ("", False),
+        Path("00_data/01_metadata/samples.tsv"): ("sample_id\tinput_path\n", False),
+        Path("01_shared_preprocessing/README.md"): (
+            "# Shared preprocessing\n\nRecord shared manifests, QC, mappings, and catalogs here.\n",
+            False,
+        ),
+        Path("02_analyses/README.md"): (
+            "# Analysis tracks\n\nUse numbered, named tracks and restartable drivers.\n",
+            False,
+        ),
+        Path("03_publication_outputs/README.md"): (
+            "# Publication outputs\n\nKeep manuscript-ready figures, tables, and reports here.\n",
+            False,
+        ),
+        Path("04_code/00_shared/.gitkeep"): ("", False),
+        Path("05_tests/.gitkeep"): ("", False),
+        Path("90_logs/.gitkeep"): ("", False),
+        Path("99_scratch/.gitkeep"): ("", False),
+    }
+
+
+def parse_experiment(value: str) -> tuple[str, str]:
+    match = re.fullmatch(r"(\d{4}-\d{2}-\d{2})_([a-z0-9][a-z0-9-]*)", value)
+    if match is None:
+        raise ValueError("first experiment must use YYYY-MM-DD_topic with a lowercase topic")
+    try:
+        date.fromisoformat(match.group(1))
+    except ValueError as exc:
+        raise ValueError("first experiment contains an invalid calendar date") from exc
+    return match.group(1), match.group(2)
+
+
+def experiment_files(layout: str, value: str) -> dict[Path, tuple[str, bool]]:
+    experiment_date, topic = parse_experiment(value)
+    if layout == "canonical":
+        experiment_root = Path("results") / value
+    else:
+        experiment_root = Path("02_analyses") / f"00_{topic}" / f"00_{value}"
+    return {
+        experiment_root / "README.md": (
+            f"# {topic.replace('-', ' ').title()}\n\n"
+            f"Date: {experiment_date}.\n\n"
+            "## Goal\n\nDefine the question and expected output before adapting `runall`.\n\n"
+            "## Validation\n\nRecord the QC gate, expected files, and failure criteria.\n",
+            False,
+        ),
+        experiment_root / "runall": (
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n\n"
+            'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"\n'
+            'cd "$SCRIPT_DIR"\n\n'
+            'printf "Adapt this experiment driver before running it.\\n" >&2\n'
+            "exit 1\n",
+            True,
+        ),
+    }
+
+
+def scaffold_files(
+    project_name: str,
+    objective: str,
+    layout: str = "canonical",
+    first_experiment: str | None = None,
+) -> dict[Path, tuple[str, bool]]:
+    if layout == "canonical":
+        files = canonical_scaffold_files(project_name, objective)
+    elif layout == "numbered":
+        files = numbered_scaffold_files(project_name, objective)
+    else:
+        raise ValueError(f"unsupported layout: {layout}")
+    if first_experiment is not None:
+        files.update(experiment_files(layout, first_experiment))
+    return files
+
+
 def conflicts(project_root: Path, files: dict[Path, tuple[str, bool]]) -> list[Path]:
-    return [
-        relative
-        for relative, (content, _) in files.items()
-        if (project_root / relative).exists()
-        and (project_root / relative).read_text(encoding="utf-8") != content
-    ]
+    mismatches: list[Path] = []
+    for relative, (content, _) in files.items():
+        target = project_root / relative
+        if not target.exists():
+            continue
+        if not target.is_file() or target.read_text(encoding="utf-8") != content:
+            mismatches.append(relative)
+    return mismatches
 
 
 def apply_scaffold(project_root: Path, files: dict[Path, tuple[str, bool]]) -> tuple[int, int]:
@@ -124,13 +283,29 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("project_dir", type=Path)
     parser.add_argument("--name", help="Project display name; defaults to the directory name")
     parser.add_argument("--objective", required=True, help="One-sentence project objective")
+    parser.add_argument(
+        "--layout",
+        choices=("canonical", "numbered"),
+        default="canonical",
+        help="Root directory layout",
+    )
+    parser.add_argument(
+        "--first-experiment",
+        metavar="YYYY-MM-DD_TOPIC",
+        help="Add one dated experiment README and refusing runall template",
+    )
     parser.add_argument("--check", action="store_true", help="Verify the scaffold without writing")
     args = parser.parse_args(argv)
 
     project_root = args.project_dir.expanduser().resolve()
     project_name = args.name or project_root.name
     try:
-        files = scaffold_files(project_name, args.objective.strip())
+        files = scaffold_files(
+            project_name,
+            args.objective.strip(),
+            layout=args.layout,
+            first_experiment=args.first_experiment,
+        )
     except ValueError as exc:
         parser.error(str(exc))
 

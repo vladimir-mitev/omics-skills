@@ -10,21 +10,23 @@ Add validated metadata models and a queryable catalog to an existing bioinformat
 ## Instructions
 
 1. Confirm `bioinformatics-project` has established input/output boundaries, project records, and a pinned environment. Do not create a competing project layout.
-2. Add LinkML schemas for the sample, run, file, result, and provenance records the project actually needs.
-3. Generate or hand-write Pydantic models from the LinkML schema. Put fields referenced by field validators before the validated field, or use a model validator when order should not matter.
-4. Validate and normalize raw records through LinkML/Pydantic before writing Parquet. Reject unexpected fields unless the schema explicitly permits them.
-5. Register validated Parquet tables in DuckDB. Keep raw CSV, TSV, JSON, and YAML as immutable inputs or clearly marked staging tables that downstream queries cannot mistake for normalized data.
-6. Add a fixture that proves one valid record loads and representative invalid records fail before catalog ingestion.
-7. Start from `scripts/build_sample_catalog.py` and the bundled JSONL fixtures when implementing a project-specific record model. Keep validation ahead of every Parquet or DuckDB write.
+2. Adapt `schemas/project-metadata.yaml` for the sample, run, file, result, and provenance records the project needs. Keep identifiers stable and declare types, required fields, enumerations, and patterns in the schema.
+3. Generate Pydantic models with `scripts/generate_models.py`. The command pins LinkML and Pydantic, rejects changed outputs, imports the generated module, and can assert that expected classes exist.
+4. Validate the complete metadata bundle with the generated `MetadataBundle` model. Reject unexpected fields and malformed types before checking relationships.
+5. Check unique identifiers and foreign keys across record collections before writing outputs. At minimum, verify run-to-sample, file-to-run, result-to-input/output-file, and provenance-to-result links.
+6. Normalize validated records into one Parquet table per record class plus bridge tables for multivalued relationships. Register the tables and their relative paths, row counts, and SHA-256 values in DuckDB.
+7. Exercise the full boundary with `scripts/build_metadata_catalog.py` and the bundled valid, model-invalid, and foreign-key-invalid fixtures. Use `scripts/build_sample_catalog.py` only for the smaller sample-only smoke path.
 
 ## Quick Reference
 
 | Task | Action |
 |------|--------|
 | Project structure is missing | Stop catalog work and run `bioinformatics-project` as a separate setup task. |
-| Define records | Author LinkML schemas and generate or maintain Pydantic models. |
-| Normalize metadata | Adapt and run `scripts/build_sample_catalog.py` through `uv run --script`. |
-| Build catalog | Register validated Parquet only, then run integrity queries. |
+| Define records | Adapt `schemas/project-metadata.yaml` without changing identifier semantics silently. |
+| Generate models | Run `scripts/generate_models.py` through `uv run --script`. |
+| Normalize linked metadata | Run `scripts/build_metadata_catalog.py` with the schema and a JSON bundle. |
+| Sample-only smoke test | Run `scripts/build_sample_catalog.py` with the JSONL fixtures. |
+| Build catalog | Register validated Parquet only, then verify counts, hashes, and foreign keys. |
 | Tool docs | See `docs/README.md`. |
 
 ## Input Requirements
@@ -34,42 +36,59 @@ Prerequisites:
 - Target project root is writable.
 Inputs:
 - A project root already organized by `bioinformatics-project`.
-- Representative valid and invalid metadata records.
+- Representative valid, model-invalid, duplicate-ID, and broken-foreign-key metadata records.
 - Required identifiers, fields, types, enumerations, and cross-record constraints.
 
 ## Output
 
-- schemas/
+- schemas/project-metadata.yaml
+- schemas/generated/project_metadata.py
 - data/catalog.duckdb
-- data/normalized/*.parquet validated against schemas/
-- tests/metadata/ fixtures and validation checks
+- data/normalized/{samples,runs,files,results,result_inputs,provenance}.parquet
 - results/bio-foundation-housekeeping/report.md
 - results/bio-foundation-housekeeping/logs/
 
 ## Quality Gates
 
 - [ ] Schema generation succeeds and models are importable.
+- [ ] Generated model source contains no build-machine absolute paths.
 - [ ] Raw metadata validates against LinkML and Pydantic before DuckDB ingestion.
+- [ ] Duplicate identifiers and broken foreign keys fail before artifact publication.
 - [ ] The existing `pixi.lock` includes the schema/catalog dependencies.
 - [ ] DuckDB catalog is readable and points at validated Parquet tables.
 - [ ] Invalid fixtures fail before Parquet or DuckDB ingestion.
-- [ ] On failure: record the rejected record and validation error without exposing private values, then exit non-zero.
+- [ ] On failure: record the field location and validation error without copying rejected values, then exit non-zero.
 - [ ] Verify project root exists and is writable.
 - [ ] Validate generated schemas against expected fields.
-- [ ] The valid fixture produces non-empty Parquet and DuckDB files; the invalid fixture exits non-zero with neither artifact present.
+- [ ] The valid fixture produces six verified Parquet tables and a non-empty DuckDB catalog; invalid fixtures exit non-zero without publishing schema, model, Parquet, or DuckDB artifacts.
 
 ## Examples
 
-### Example 1: Expected input layout
+### Example 1: Generate and check Pydantic models
 
-```text
-project root: ./coastal-metagenomes
-records: sample, sequencing_run, file, provenance
-identifiers: sample_id and run_id
-normalized output: data/normalized/
+```bash
+SKILL_ROOT=~/.agents/skills/bio-foundation-housekeeping
+
+uv run --script "$SKILL_ROOT/scripts/generate_models.py" \
+  --schema "$SKILL_ROOT/schemas/project-metadata.yaml" \
+  --output ./coastal-metagenomes/schemas/generated/project_metadata.py \
+  --expect-class MetadataBundle
 ```
 
-### Example 2: Exercise the validation boundary
+Run the same command with `--check` in CI. The generator exits non-zero if the output is missing or differs from the schema-derived model.
+
+### Example 2: Build the linked metadata catalog
+
+```bash
+uv run --script "$SKILL_ROOT/scripts/build_metadata_catalog.py" \
+  --schema "$SKILL_ROOT/schemas/project-metadata.yaml" \
+  --input "$SKILL_ROOT/fixtures/valid-project-metadata.json" \
+  --project-root ./coastal-metagenomes
+```
+
+The bundled driver generates and imports the model in a temporary directory, validates every field and cross-record relationship, then publishes schema, model, Parquet, and DuckDB artifacts. Adapt the schema and fixtures together for project-specific records.
+
+### Example 3: Exercise the sample-only boundary
 
 ```bash
 SKILL_ROOT=~/.agents/skills/bio-foundation-housekeeping
@@ -79,7 +98,7 @@ uv run --script "$SKILL_ROOT/scripts/build_sample_catalog.py" \
   --project-root ./coastal-metagenomes
 ```
 
-Adapt the Pydantic model and fixture fields to the project schema before using the helper with study metadata. The bundled invalid fixture demonstrates that malformed dates, invalid ranges, empty required fields, and unexpected keys fail before ingestion.
+The bundled invalid fixtures demonstrate that malformed types, unexpected keys, duplicate identifiers, and missing foreign keys fail before ingestion. Rejection reports record locations and error classes, not rejected values.
 
 ## Troubleshooting
 
@@ -91,3 +110,12 @@ Adapt the Pydantic model and fixture fields to the project schema before using t
 
 **Issue**: A constructed model is accepted without validation
 **Solution**: Do not use `model_construct()` for external input. Parse raw records with `model_validate()`, or configure `revalidate_instances="always"` when existing model instances must be checked again.
+
+**Issue**: LinkML generation passes but the bundle has missing references
+**Solution**: Schema validation checks record shape, while foreign keys span collections. Run the cross-record checks before creating output directories or opening DuckDB.
+
+**Issue**: A generated model already exists and differs from the schema
+**Solution**: Review the schema and model diff. Remove or relocate the generated file only after confirming it is disposable; the generator does not overwrite changed files.
+
+**Issue**: A killed process leaves some generated targets but no catalog
+**Solution**: Treat `data/catalog.duckdb` as the completion marker. Compare the remaining target paths with the run log and remove only artifacts from the interrupted run after confirming they are not project-owned; the next run refuses partial targets instead of guessing.
