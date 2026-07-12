@@ -73,7 +73,7 @@ class RoutingBenchmarkTests(unittest.TestCase):
             "  forbidden_skills: []\n"
             "- task: \"null agent allowed\"\n"
             "  expected_agent: null\n"
-            "  expected_primary_skills: [get-api-docs]\n"
+            "  expected_primary_skills: [bio-logic]\n"
         )
         parsed = routing_benchmark._parse_minimal_yaml(text)
         self.assertEqual(len(parsed), 2)

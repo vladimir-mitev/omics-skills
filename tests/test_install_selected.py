@@ -219,6 +219,104 @@ class InstallSelectedIntegrationTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("not-a-real-skill not found", result.stdout)
 
+    def test_install_prunes_retired_symlink_from_previous_catalog(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir)
+            catalog_dir = home / ".agents" / "omics-skills"
+            skills_dir = home / ".agents" / "skills"
+            catalog_dir.mkdir(parents=True)
+            skills_dir.mkdir(parents=True)
+            (catalog_dir / "catalog.json").write_text("not json\n", encoding="utf-8")
+            retired = skills_dir / "get-api-docs"
+            retired.symlink_to(REPO_ROOT / "skills" / "get-api-docs")
+
+            self.run_make(
+                home,
+                "install-skills",
+                "SELECTED_SKILL_DIRS=bio-logic",
+            )
+
+            self.assertFalse(retired.exists())
+            self.assertFalse(retired.is_symlink())
+            self.assertTrue((skills_dir / "bio-logic").exists())
+
+    def test_install_archives_retired_copy_outside_active_skills(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir)
+            catalog_dir = home / ".agents" / "omics-skills"
+            skills_dir = home / ".agents" / "skills"
+            retired = skills_dir / "get-api-docs"
+            catalog_dir.mkdir(parents=True)
+            retired.mkdir(parents=True)
+            (catalog_dir / "catalog.json").write_text(
+                json.dumps({"skills": [{"name": "bio-logic"}]}) + "\n",
+                encoding="utf-8",
+            )
+            (retired / "SKILL.md").write_text(
+                "---\nname: get-api-docs\ndescription: retired fixture\n---\n",
+                encoding="utf-8",
+            )
+
+            self.run_make(
+                home,
+                "install-skills",
+                "SELECTED_SKILL_DIRS=bio-logic",
+            )
+
+            self.assertFalse(retired.exists())
+            archived = catalog_dir / "retired-skills" / "get-api-docs"
+            self.assertTrue((archived / "SKILL.md").is_file())
+
+    def test_install_leaves_foreign_retired_symlink_untouched(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir)
+            catalog_dir = home / ".agents" / "omics-skills"
+            skills_dir = home / ".agents" / "skills"
+            foreign_dir = home / "foreign"
+            catalog_dir.mkdir(parents=True)
+            skills_dir.mkdir(parents=True)
+            foreign_dir.mkdir()
+            (catalog_dir / "catalog.json").write_text(
+                json.dumps({"skills": [{"name": "bio-logic"}]}) + "\n",
+                encoding="utf-8",
+            )
+            retired = skills_dir / "get-api-docs"
+            retired.symlink_to(foreign_dir / "get-api-docs")
+
+            result = self.run_make(
+                home,
+                "install-skills",
+                "SELECTED_SKILL_DIRS=bio-logic",
+            )
+
+            self.assertTrue(retired.is_symlink())
+            self.assertIn("left unexpected symlink untouched", result.stdout)
+
+    def test_install_leaves_name_mismatched_directory_untouched(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir)
+            catalog_dir = home / ".agents" / "omics-skills"
+            retired = home / ".agents" / "skills" / "get-api-docs"
+            catalog_dir.mkdir(parents=True)
+            retired.mkdir(parents=True)
+            (catalog_dir / "catalog.json").write_text(
+                json.dumps({"skills": [{"name": "bio-logic"}]}) + "\n",
+                encoding="utf-8",
+            )
+            (retired / "SKILL.md").write_text(
+                "---\nname: user-owned-skill\ndescription: keep\n---\n",
+                encoding="utf-8",
+            )
+
+            result = self.run_make(
+                home,
+                "install-skills",
+                "SELECTED_SKILL_DIRS=bio-logic",
+            )
+
+            self.assertTrue((retired / "SKILL.md").is_file())
+            self.assertIn("left unrecognized directory untouched", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

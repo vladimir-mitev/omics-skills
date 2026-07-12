@@ -175,7 +175,7 @@ Every project carries a `README.md` (study description, setup, how to reproduce)
 
 | Need | Action |
 |---|---|
-| Start a project | Create the canonical layout, `tasks/` records, hypothesis register, and pinned Pixi environment. |
+| Start a project | Run `scripts/scaffold_project.py`, resolve `pixi.lock`, then replace the hypothesis placeholders before analysis. |
 | Repair a messy project | Inventory paths first, create the target scaffold, migrate with temporary compatibility links, and verify consumers before removing old paths. |
 | Run an experiment | Copy `examples/runall.sh`, pin inputs and parameters, write atomically, and record versions and seeds. |
 | Add structured metadata | Use `bio-foundation-housekeeping` as a separate follow-up only when schemas or a catalog are requested. |
@@ -206,10 +206,25 @@ Every project carries a `README.md` (study description, setup, how to reproduce)
 - [ ] Exploratory work starts with at least five hypotheses and records a reflection after each major QC gate.
 - [ ] A fresh checkout plus documented external inputs can reproduce the analysis.
 - [ ] No secrets, credentials, large generated outputs, or private data are staged for Git.
+- [ ] `scripts/scaffold_project.py <project> --objective "..." --check` passes, and a second identical scaffold run reports no created files.
 
 ## Examples
 
 Use the bundled templates instead of recreating them:
+
+```bash
+uv run --no-project python ~/.agents/skills/bioinformatics-project/scripts/scaffold_project.py \
+  ./coastal-metagenomes \
+  --name "Coastal metagenomes" \
+  --objective "Recover and compare metagenome-assembled genomes."
+
+pixi install --manifest-path ./coastal-metagenomes/pixi.toml
+uv run --no-project python ~/.agents/skills/bioinformatics-project/scripts/scaffold_project.py \
+  ./coastal-metagenomes \
+  --name "Coastal metagenomes" \
+  --objective "Recover and compare metagenome-assembled genomes." \
+  --check
+```
 
 - `examples/project-tree.txt` for a concrete project tree.
 - `examples/runall.sh` for a restartable driver.
@@ -228,6 +243,8 @@ Use the bundled templates instead of recreating them:
 
 **The repository needs schemas and a queryable catalog:** Use `bio-foundation-housekeeping` after this skill establishes the project structure.
 
+**A scaffold file already contains different content:** The command exits before writing anything and lists the conflicting paths. Reconcile those files manually; the scaffold does not overwrite project-owned content.
+
 ## Reference files
 
 Load progressively as the task narrows:
@@ -239,6 +256,7 @@ Load progressively as the task narrows:
 
 ## Example artifacts
 
+- `scripts/scaffold_project.py` — create or verify the minimal project scaffold without overwriting changed files.
 - `examples/project-tree.txt` — concrete annotated tree for an arctic metagenome / MAG-recovery study.
 - `examples/runall.sh` — runnable, restartable driver script (versions, seed, idempotency, temp-then-rename).
 - `examples/lab-notebook-entry.md` — dated lab-notebook entry template.

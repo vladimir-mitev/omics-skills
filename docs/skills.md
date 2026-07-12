@@ -38,7 +38,6 @@ The table below is a reader-facing map. The source `SKILL.md` files are still ca
 | `biorxiv-search` | Searching bioRxiv preprints by keyword, date range, DOI, or author. | Filtered preprint shortlists with bioRxiv-native metadata. |
 | `crossref-lookup` | Validating DOIs or matching titles to citation metadata. | Crossref records, DOI matches, and bibliography cleanup evidence. |
 | `scientific-impact-assessment` | Comparing papers, journals, or literature shortlists by influence. | OpenAlex citation counts, optional Altmetric context, and impact summaries. |
-| `get-api-docs` | Checking current API or SDK behavior before coding against a fast-moving interface. | Fresh documentation snippets gathered through the `chub` CLI. |
 | `pdf-to-md` | Converting papers, PDFs, or office documents into analysis-ready Markdown. | Clean Markdown and, for papers, structured article and section-audit artifacts. |
 
 ## Writing, Review, and Evaluation
@@ -57,7 +56,7 @@ The table below is a reader-facing map. The source `SKILL.md` files are still ca
 |---|---|---|
 | `notebooks` | Building or converting reproducible marimo or Jupyter notebooks. | A fully executed notebook with embedded figures and clear analysis flow. |
 | `beautiful-data-viz` | Producing publication-quality matplotlib or seaborn figures. | High-data-ink static figures with readable axes, direct labels where feasible, tight layout, and appropriate palettes. |
-| `plotly-dashboard-skill` | Building interactive Plotly Dash dashboards. | A production-ready dashboard layout with themed components and performant callbacks. |
+| `plotly-dashboard-skill` | Building interactive Plotly Dash dashboards. | A themed Dash layout with callback performance guidance. |
 
 ## Skill Source Links
 

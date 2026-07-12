@@ -153,7 +153,7 @@ Use the public GitHub repository URL, `https://github.com/fmschulz/omics-skills`
 
 2. **Complete Repository Description:**
    ```
-   4 expert agents and 35 specialized skills for bioinformatics,
+   4 expert agents and 34 specialized skills for bioinformatics,
    scientific writing, and data visualization. Compatible with
    Claude Code and Codex CLI.
    ```
@@ -206,7 +206,7 @@ Marketplaces look for:
 
 **How to Share:**
 - Create announcement post
-- Highlight unique value (first comprehensive omics skills collection)
+- State the measured scope: four agents, 34 skills, routing tests, and supported installers
 - Include installation instructions
 - Request feedback
 
@@ -285,7 +285,7 @@ Marketplaces look for:
      ```
 
 3. **Blog Post/Article:**
-   - Write about creating comprehensive skill collection
+   - Explain the repository architecture, validation, and maintenance process
    - Share on Medium, Dev.to, or your blog
    - Technical walkthrough of skill development
    - Use case examples
@@ -354,7 +354,7 @@ Release notes should cover:
 This skill is part of the omics-skills collection available at:
 https://github.com/fmschulz/omics-skills
 
-The collection includes 35 specialized skills and 4 expert agents for
+The collection includes 34 specialized skills and 4 expert agents for
 computational biology workflows.
 ```
 
@@ -363,12 +363,12 @@ computational biology workflows.
 ```markdown
 Title: [Release] Omics Skills - Agent Skills for Bioinformatics with Claude Code/Codex
 
-I've created a comprehensive collection of Agent Skills for computational biology:
+Omics Skills packages Agent Skills for computational biology:
 
 **What it includes:**
 - 4 expert agents (omics-scientist, literature-expert, science-writer, dataviz-artist)
-- 35 specialized skills (reads QC, assembly, annotation, phylogenomics, literature, writing, visualization, etc.)
-- Complete installation system (one-command install)
+- 34 specialized skills (reads QC, assembly, annotation, phylogenomics, literature, writing, visualization, etc.)
+- Make and shell installation paths
 - Works with Claude Code and Codex CLI
 
 **Use cases:**
@@ -385,7 +385,7 @@ cd omics-skills
 make install
 ```
 
-Feedback and contributions welcome!
+Feedback and contributions are welcome.
 ```
 
 ---
@@ -403,29 +403,27 @@ Feedback and contributions welcome!
 - Community contributions
 
 ### Long-term (3-6 months)
-- Established as go-to bioinformatics skills collection
+- Recurring use in bioinformatics projects
 - Multiple contributors
 - Adoption in academic/research settings
 
 ---
 
-## Marketing Points
+## Facts to Cite
 
-**Unique Value Propositions:**
+Use claims that the repository can substantiate:
 
-1. **First Comprehensive Bioinformatics Collection**
-   - No other skill repository covers end-to-end omics workflows
-   - From raw reads to publication-ready figures
+1. **Bioinformatics Workflow Coverage**
+   - Covers reads, assembly, annotation, comparative analysis, literature, writing, and visualization
+   - Routes tasks through a generated catalog with a regression benchmark
 
-2. **Three Expert Agents**
-   - Not just skills - complete agent personas that orchestrate workflows
-   - Clear separation: omics-scientist, science-writer, dataviz-artist
+2. **Four Agent Definitions**
+   - Includes omics-scientist, literature-expert, science-writer, and dataviz-artist
+   - Each agent maps task patterns and workflow steps to installed skills
 
-3. **Production-Ready**
-   - Battle-tested structure
-   - Comprehensive documentation
-   - Installation system included
-   - Quality gates and validation
+3. **Repository Validation**
+   - Checks skill structure, links, catalog consistency, routing, installers, and documentation
+   - Supports Make and shell installation paths
 
 4. **Cross-Platform**
    - Claude Code

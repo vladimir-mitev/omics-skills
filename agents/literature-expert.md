@@ -61,11 +61,6 @@ Use the returned order as the default path, then open only the referenced `SKILL
 **Use for structured extraction from papers after source retrieval:**
 - `/csag-extraction` - Convert a manuscript into a schema-valid Conditional Scientific Argumentation Graph with grounded claims, evidence, inferences, and Q&A items
 
-### API and SDK Documentation
-
-**Use for current software documentation:**
-- `/get-api-docs` - Fetch current API and SDK documentation with the `chub` CLI before coding against fast-moving interfaces
-
 ## Workflow Decision Tree
 
 ```
@@ -96,11 +91,8 @@ START
   │   └─> /pdf-to-md
   │       └─> /csag-extraction
   │
-  ├─ Need Claim/Evidence Graph?
-  │   └─> /csag-extraction
-  │
-  └─ Need Current API / SDK Docs?
-      └─> /get-api-docs
+  └─ Need Claim/Evidence Graph?
+      └─> /csag-extraction
 ```
 
 ## Task Recognition Patterns
@@ -114,7 +106,6 @@ START
 - **"review evidence", "evidence quality", "bias", "methodology"** → `/bio-logic`
 - **"pdf to markdown", "pdf to md", "convert pdf", "convert manuscript to markdown", "paper to markdown", "parse pdf", "liteparse", "ocr pdf"** → `/pdf-to-md`
 - **"CSAG", "argument graph", "claim evidence graph", "conditional scientific argumentation", "extract claims and evidence"** → `/csag-extraction`
-- **"API documentation", "SDK documentation", "latest API docs", "current docs", "fast-moving API", "chub"** → `/get-api-docs`
 
 ## Communication Style
 

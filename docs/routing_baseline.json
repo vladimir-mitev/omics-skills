@@ -747,14 +747,10 @@
       "task": "fetch up-to-date Anthropic SDK API documentation before writing client code",
       "passed": true,
       "actual": {
-        "agent": "literature-expert",
-        "primary_skills": [
-          "get-api-docs"
-        ],
+        "agent": null,
+        "primary_skills": [],
         "supporting_skills": [],
-        "ordered_skills": [
-          "get-api-docs"
-        ]
+        "ordered_skills": []
       }
     },
     {
@@ -878,7 +874,7 @@
       "task": "what is the capital of France",
       "passed": true,
       "actual": {
-        "agent": "science-writer",
+        "agent": null,
         "primary_skills": [],
         "supporting_skills": [],
         "ordered_skills": []
@@ -888,7 +884,7 @@
       "task": "schedule a dentist appointment for next Tuesday",
       "passed": true,
       "actual": {
-        "agent": "dataviz-artist",
+        "agent": null,
         "primary_skills": [],
         "supporting_skills": [],
         "ordered_skills": []
@@ -898,7 +894,7 @@
       "task": "refactor this React component into smaller reusable functions",
       "passed": true,
       "actual": {
-        "agent": "science-writer",
+        "agent": null,
         "primary_skills": [],
         "supporting_skills": [],
         "ordered_skills": []
@@ -908,7 +904,7 @@
       "task": "write a README for this command-line repository",
       "passed": true,
       "actual": {
-        "agent": "dataviz-artist",
+        "agent": null,
         "primary_skills": [],
         "supporting_skills": [],
         "ordered_skills": []
@@ -918,7 +914,7 @@
       "task": "prepare a financial report from these invoices",
       "passed": true,
       "actual": {
-        "agent": "science-writer",
+        "agent": null,
         "primary_skills": [],
         "supporting_skills": [],
         "ordered_skills": []
@@ -938,7 +934,7 @@
       "task": "explain quantum entanglement to a child",
       "passed": true,
       "actual": {
-        "agent": "science-writer",
+        "agent": null,
         "primary_skills": [],
         "supporting_skills": [],
         "ordered_skills": []

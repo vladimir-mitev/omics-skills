@@ -158,6 +158,19 @@ class SkillIndexTests(unittest.TestCase):
         self.assertEqual(result["primary_skills"], [])
         self.assertEqual(result["ordered_skills"], [])
 
+    def test_api_docs_query_is_a_hard_negative(self) -> None:
+        result = skill_index.route_request(
+            task="fetch up-to-date Anthropic SDK API documentation before writing client code",
+            agent=None,
+            platform="codex",
+            top_k=4,
+            repo=str(REPO_ROOT),
+            index_root=None,
+        )
+        self.assertIsNone(result["agent"])
+        self.assertEqual(result["primary_skills"], [])
+        self.assertEqual(result["ordered_skills"], [])
+
     def test_generic_single_token_pattern_overlap_is_suppressed(self) -> None:
         query_tokens = skill_index.tokenize("perform a code review of this repository")
         self.assertEqual(
@@ -370,6 +383,7 @@ class SkillRefPatternTests(unittest.TestCase):
     def test_ignores_url_and_path_slashes(self) -> None:
         self.assertEqual(self._find("https://example.com/foo"), [])
         self.assertEqual(self._find("file:///etc/passwd"), [])
+        self.assertEqual(self._find("./coastal-metagenomes ../shared-data"), [])
         self.assertEqual(self._find("// comment with /bar-baz inside"), ["bar-baz"])
 
     def test_matches_valid_skill_refs(self) -> None:

@@ -2,7 +2,7 @@
 # Installs agents and skills for Claude Code and Codex CLI
 
 .PHONY: help install install-all install-selected install-claude install-codex \
-        install-claude-agents install-codex-agents _install-agents _install-codex-agents install-skills install-catalog \
+        install-claude-agents install-codex-agents _install-agents _install-codex-agents prune-removed-skills install-skills install-catalog \
         install-claude-skills install-codex-skills link-claude-skills link-codex-skills \
         build-catalog install-hook uninstall-hook hook-status benchmark \
         check-deps install-python-deps uninstall uninstall-all uninstall-selected \
@@ -257,7 +257,14 @@ _install-codex-agents:
 		echo "  $(GREEN)OK$(NC) $$basename.toml"; \
 	done
 
-install-skills: ## Install skills to ~/.agents/skills
+prune-removed-skills: ## Retire skills present in the previous installed catalog but absent from this checkout
+	@python3 $(SCRIPTS_DIR)/prune_removed_skills.py \
+		--skills-dir $(SKILLS_DIR) \
+		--installed-catalog $(AGENTS_CATALOG_DIR)/catalog.json \
+		--installed-skills-dir $(AGENTS_SKILLS_DIR) \
+		--backup-dir $(AGENTS_CATALOG_DIR)/retired-skills
+
+install-skills: prune-removed-skills ## Install skills to ~/.agents/skills
 	@echo "$(BLUE)Installing skills to $(AGENTS_SKILLS_DIR)...$(NC)"
 	@mkdir -p $(AGENTS_SKILLS_DIR)
 	@set -e; for skill_name in $(SELECTED_SKILL_DIRS); do \

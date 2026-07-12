@@ -15,6 +15,7 @@ Add validated metadata models and a queryable catalog to an existing bioinformat
 4. Validate and normalize raw records through LinkML/Pydantic before writing Parquet. Reject unexpected fields unless the schema explicitly permits them.
 5. Register validated Parquet tables in DuckDB. Keep raw CSV, TSV, JSON, and YAML as immutable inputs or clearly marked staging tables that downstream queries cannot mistake for normalized data.
 6. Add a fixture that proves one valid record loads and representative invalid records fail before catalog ingestion.
+7. Start from `scripts/build_sample_catalog.py` and the bundled JSONL fixtures when implementing a project-specific record model. Keep validation ahead of every Parquet or DuckDB write.
 
 ## Quick Reference
 
@@ -22,7 +23,7 @@ Add validated metadata models and a queryable catalog to an existing bioinformat
 |------|--------|
 | Project structure is missing | Stop catalog work and run `bioinformatics-project` as a separate setup task. |
 | Define records | Author LinkML schemas and generate or maintain Pydantic models. |
-| Normalize metadata | Validate raw records and write typed Parquet tables. |
+| Normalize metadata | Adapt and run `scripts/build_sample_catalog.py` through `uv run --script`. |
 | Build catalog | Register validated Parquet only, then run integrity queries. |
 | Tool docs | See `docs/README.md`. |
 
@@ -55,6 +56,7 @@ Inputs:
 - [ ] On failure: record the rejected record and validation error without exposing private values, then exit non-zero.
 - [ ] Verify project root exists and is writable.
 - [ ] Validate generated schemas against expected fields.
+- [ ] The valid fixture produces non-empty Parquet and DuckDB files; the invalid fixture exits non-zero with neither artifact present.
 
 ## Examples
 
@@ -66,6 +68,18 @@ records: sample, sequencing_run, file, provenance
 identifiers: sample_id and run_id
 normalized output: data/normalized/
 ```
+
+### Example 2: Exercise the validation boundary
+
+```bash
+SKILL_ROOT=~/.agents/skills/bio-foundation-housekeeping
+
+uv run --script "$SKILL_ROOT/scripts/build_sample_catalog.py" \
+  --input "$SKILL_ROOT/fixtures/valid-samples.jsonl" \
+  --project-root ./coastal-metagenomes
+```
+
+Adapt the Pydantic model and fixture fields to the project schema before using the helper with study metadata. The bundled invalid fixture demonstrates that malformed dates, invalid ranges, empty required fields, and unexpected keys fail before ingestion.
 
 ## Troubleshooting
 

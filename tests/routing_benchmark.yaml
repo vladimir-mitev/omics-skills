@@ -230,7 +230,8 @@
 
 - task: "fetch up-to-date Anthropic SDK API documentation before writing client code"
   platform: codex
-  expected_primary_skills: [get-api-docs]
+  expected_agent: null
+  expected_primary_skills: []
 
 # ============================================================================
 # Cross-platform + shared-skill disambiguation

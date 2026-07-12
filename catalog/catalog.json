@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "skill_count": 35,
+    "skill_count": 34,
     "agent_count": 4,
-    "edge_count": 143
+    "edge_count": 142
   },
   "skills": [
     {
@@ -294,14 +294,8 @@
         "metadata schema",
         "normalized Parquet"
       ],
-      "internal_references": [
-        "coastal-metagenomes"
-      ],
-      "reference_contexts": {
-        "coastal-metagenomes": [
-          "project root: ./coastal-metagenomes"
-        ]
-      }
+      "internal_references": [],
+      "reference_contexts": {}
     },
     {
       "name": "bio-gene-calling",
@@ -748,14 +742,8 @@
         "restartable driver",
         "runall"
       ],
-      "internal_references": [
-        "data"
-      ],
-      "reference_contexts": {
-        "data": [
-          "5. **Use relative paths** (`../../data/...`) so the project runs after checkout elsewhere."
-        ]
-      }
+      "internal_references": [],
+      "reference_contexts": {}
     },
     {
       "name": "biorxiv-search",
@@ -892,32 +880,6 @@
       "reference_contexts": {}
     },
     {
-      "name": "get-api-docs",
-      "title": "Get API Docs",
-      "description": "Fetch current API and SDK documentation with Context Hub. Use when writing or reviewing code against fast-changing external APIs and exact current interfaces matter.",
-      "path": "skills/get-api-docs/SKILL.md",
-      "platforms": [
-        "claude",
-        "codex"
-      ],
-      "agents": [
-        "literature-expert"
-      ],
-      "sections": [
-        "API and SDK Documentation"
-      ],
-      "task_patterns": [
-        "API documentation",
-        "SDK documentation",
-        "chub",
-        "current docs",
-        "fast-moving API",
-        "latest API docs"
-      ],
-      "internal_references": [],
-      "reference_contexts": {}
-    },
-    {
       "name": "jgi-lakehouse",
       "title": "JGI Lakehouse Skill",
       "description": "Query JGI Lakehouse metadata and retrieve JGI genome or read files. Use when linking GOLD, IMG, MycoCosm, Phytozome, PMO, or JAMO identifiers and datasets.",
@@ -942,7 +904,6 @@
       "internal_references": [
         "assembled",
         "clusterfs",
-        "file",
         "global"
       ],
       "reference_contexts": {
@@ -958,9 +919,6 @@
         ],
         "assembled": [
           "/clusterfs/jgi/img_merfs-ro/img_web_data_merfs/{taxon_oid}/assembled/"
-        ],
-        "file": [
-          "staged_file=/clusterfs/jgi/scratch/dsi/.../file.fastq.gz"
         ],
         "global": [
           "from the JGI filesystem (`/global/dna/dm_archive/...`).",
@@ -1421,9 +1379,6 @@
       "description": "Expert literature discovery and citation metadata agent for peer-reviewed papers, preprints, DOI lookup, and evidence-grounded search triage.",
       "path": "agents/literature-expert.md",
       "skill_sections": {
-        "API and SDK Documentation": [
-          "get-api-docs"
-        ],
         "Argument Graph Extraction": [
           "csag-extraction"
         ],
@@ -1553,17 +1508,6 @@
             "claim evidence graph",
             "conditional scientific argumentation",
             "extract claims and evidence"
-          ]
-        },
-        {
-          "skill_name": "get-api-docs",
-          "phrases": [
-            "API documentation",
-            "SDK documentation",
-            "latest API docs",
-            "current docs",
-            "fast-moving API",
-            "chub"
           ]
         }
       ]
@@ -3341,20 +3285,6 @@
     {
       "source": "literature-expert",
       "target": "csag-extraction",
-      "type": "uses",
-      "source_type": "agent",
-      "target_type": "skill",
-      "confidence": 1.0,
-      "provenance": [
-        "mandatory_skill_usage"
-      ],
-      "evidence": [
-        "agents/literature-expert.md"
-      ]
-    },
-    {
-      "source": "literature-expert",
-      "target": "get-api-docs",
       "type": "uses",
       "source_type": "agent",
       "target_type": "skill",

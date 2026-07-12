@@ -172,6 +172,14 @@ install_skills() {
     done
 }
 
+prune_removed_skills() {
+    python3 "$REPO_ROOT/scripts/prune_removed_skills.py" \
+        --skills-dir "$SKILLS_DIR" \
+        --installed-catalog "$AGENTS_CATALOG_DIR/catalog.json" \
+        --installed-skills-dir "$AGENTS_SKILLS_DIR" \
+        --backup-dir "$AGENTS_CATALOG_DIR/retired-skills"
+}
+
 build_catalog() {
     echo -e "${BLUE}Building skill catalog...${NC}"
     mkdir -p "$CATALOG_DIR"
@@ -369,6 +377,7 @@ echo ""
 # Install based on target
 build_catalog
 echo ""
+prune_removed_skills
 install_skills "$AGENTS_SKILLS_DIR" "Shared skills"
 install_catalog
 echo ""

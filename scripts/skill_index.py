@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-SKILL_REF_PATTERN = re.compile(r"(?<![\w:/])/([a-z0-9][a-z0-9-]+)")
+SKILL_REF_PATTERN = re.compile(r"(?<![\w:/.])/([a-z0-9][a-z0-9-]+)")
 QUOTED_PATTERN = re.compile(r'"([^"]+)"')
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
 
@@ -1054,7 +1054,9 @@ def route_request(
         primary_skills, skills, agents, agent, query, query_tokens, skill_scores, reasons
     )
     selected_agent = agent or (
-        max(agent_scores.items(), key=lambda item: (item[1], item[0]))[0] if agent_scores else None
+        max(agent_scores.items(), key=lambda item: (item[1], item[0]))[0]
+        if primary_skills and agent_scores
+        else None
     )
 
     dep_skills = ordered_dependencies(primary_skills, edges)
