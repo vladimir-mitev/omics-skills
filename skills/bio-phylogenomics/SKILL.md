@@ -18,7 +18,7 @@ Build marker gene alignments and phylogenetic trees.
    # Inspect run_manifest.json, then add --execute.
    ```
 
-   The driver restarts only from non-empty stage outputs and normalizes internal support values from either 0–1 or 0–100 notation to `support.tsv` on a 0–1 scale.
+   The driver restarts only from non-empty stage outputs and normalizes internal support values from either 0–1 or 0–100 notation to `support.tsv` on a 0–1 scale. IQ-TREE `SH-aLRT/UFBoot` labels are emitted as separate `sh_alrt` and `ufboot` rows; mixed scales within one support type fail validation.
 2. Extract marker genes or SSU rRNA sequences.
 3. Align with MAFFT v7.5+ and trim with trimAl v1.4 (or ClipKIT when phylogenetically-informed trimming is preferred).
 4. Build ML trees with support values. Choose by objective first, then leaf count:

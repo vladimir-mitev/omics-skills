@@ -47,14 +47,10 @@ The tests exercise small deterministic fixtures, command planning, normalization
 | `scientific-writing` | Removes generic `write` triggering and distinguishes prose drafting and revision from scientific critique and review-council work. |
 | `tracking-taxonomy-updates` | Moves GTDB-Tk, EukCC, vConTACT3, and GVClass examples behind scheduler templates and converts QuickClade results into tested domain-routing tables. |
 
-## Remaining Validation Opportunities
+## Biological Validation Status
 
-The repository-level backlog is closed for v1.5. The next improvements are evidence campaigns rather than missing implementation:
+The [biological validation reference](biological-validation.md) defines candidate truth sets and scheduler evidence for the eight core omics skills. The registry distinguishes synthetic truth, biological proxies, and empirical labels. It also records task-specific metrics because assembly, topology, orthology, annotation, viral detection, and HGT direction cannot share one accuracy threshold.
 
-1. Run the eight core omics drivers against curated biological truth sets and record sensitivity, specificity, failure modes, runtime, and peak memory.
-2. Add scheduler-backed integration fixtures for the exact container and database releases used in production.
-3. Validate comparative-discovery thresholds separately for prokaryotes, eukaryotes, phages, and Nucleocytoviricota instead of treating one toy fixture as universal.
-4. Add larger malformed-input corpora for metadata, literature clients, and document conversion to exercise recovery at realistic scale.
-5. Complete the deferred `jgi-lakehouse` mocked success path in a focused release with its own authentication and download-verification review.
+All registered datasets remain `candidate` until downloaded artifacts receive local SHA-256 values. The first scheduler pilot targets phylogenomics because it does not require a large reference database. Its job manifest remains `draft` until the low-memory cluster profile, remote paths, QfO subset, reference tree, and solved Pixi lock are fixed.
 
-These are suitable for focused future releases. They are not hidden prerequisites for the fixture-backed behaviors described above.
+Comparative-discovery thresholds still require separate prokaryote, eukaryote, phage, and Nucleocytoviricota campaigns. The deferred `jgi-lakehouse` mocked success path remains outside this validation program.

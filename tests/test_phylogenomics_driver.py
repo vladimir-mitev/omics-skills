@@ -42,6 +42,23 @@ def test_supports_are_normalized_to_zero_one(tmp_path):
     assert "95\t0.950000" in out.read_text()
 
 
+def test_iqtree_dual_support_labels_are_normalized_separately(tmp_path):
+    tree = tmp_path / "iqtree.treefile"
+    tree.write_text("((a:1,b:1)98.7/100:1,c:1)91/75;\n")
+    out = tmp_path / "support.tsv"
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), "--normalize-only", str(tree), "--out", str(out)],
+        text=True,
+        capture_output=True,
+    )
+    assert result.returncode == 0, result.stderr
+    rows = out.read_text().splitlines()
+    assert "1\tsh_alrt\t98.7\t0.987000" in rows
+    assert "1\tufboot\t100\t1.000000" in rows
+    assert "2\tsh_alrt\t91\t0.910000" in rows
+    assert "2\tufboot\t75\t0.750000" in rows
+
+
 def test_reference_checksum_mismatch_is_rejected(tmp_path):
     refs = tmp_path / "references.tsv"
     refs.write_text(f"accession\tpath\tsha256\nrelative\t{SKILL / 'fixtures' / 'reference.faa'}\tdeadbeef\n")

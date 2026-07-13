@@ -29,7 +29,7 @@ Commands:
 python3 scripts/skill_index.py build
 python3 scripts/validate-skills.py
 python3 scripts/validate-supplementary-docs.py
-uv run --no-project --with requests python -m unittest discover -s tests -v
+uv run --no-project --with pytest --with requests pytest -q
 make benchmark
 ```
 
@@ -67,7 +67,7 @@ Before opening a pull request:
 ```bash
 python3 scripts/validate-skills.py
 python3 scripts/validate-supplementary-docs.py
-uv run --no-project --with requests python -m unittest discover -s tests -v
+uv run --no-project --with pytest --with requests pytest -q
 make benchmark
 uvx --from mkdocs --with 'mkdocs-material==9.5.*' --with pymdown-extensions mkdocs build --strict
 ```

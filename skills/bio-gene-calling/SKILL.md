@@ -15,9 +15,13 @@ Call genes and annotate basic features for prokaryotes, viruses, and eukaryotes.
    uv run --no-project python skills/bio-gene-calling/scripts/run_gene_calling.py \
      assemblies.tsv --tool-manifest tool-manifest.json \
      --out results/bio-gene-calling
+   # Inspect run_manifest.json, then execute or resume the same plan:
+   uv run --no-project python skills/bio-gene-calling/scripts/run_gene_calling.py \
+     assemblies.tsv --tool-manifest tool-manifest.json \
+     --out results/bio-gene-calling --execute
    ```
 
-   The tool manifest must pin the BRAKER4 repository commit, Snakefile checksum, container-lock checksum, and every Rfam model checksum. The driver records input FASTA checksums, routes each assembly by domain, writes BRAKER4 `samples.csv` and `config.ini` files, uses absolute covariance-model paths, and materializes the required default/relaxed ncRNA census rows before execution.
+   The tool manifest must pin the BRAKER4 repository commit, Snakefile checksum, container-lock checksum, and every Rfam model checksum. The driver records input FASTA checksums, routes each assembly by domain, writes idempotent BRAKER4 `samples.csv` and `config.ini` files, uses absolute covariance-model paths, and materializes the required default/relaxed ncRNA census rows. Execution reuses only non-empty declared outputs and replaces pending ncRNA counts with parsed tRNAscan-SE and Infernal counts.
 2. Select gene caller by organism class:
    - Bacteria and Archaea: **Pyrodigal** v3.7+ with single-genome or metagenomic mode chosen from the input.
    - Viruses, including giant and alternative-code viruses: **pyrodigal-gv** v0.3+ with the appropriate viral model.
@@ -78,6 +82,7 @@ Inputs:
 - [ ] Verify contigs are non-empty and DNA alphabet.
 - [ ] Verify outputs contain expected feature types.
 - [ ] Every assembly has its own output directory and input checksum in `run_manifest.json`; no caller output is silently shared across assemblies.
+- [ ] A repeated planning run leaves identical BRAKER4 configuration unchanged, and `--execute` records every step as completed or reused.
 - [ ] Specialized inputs use a literature/tool-supported gene-calling mode or document why not.
 - [ ] Gene metrics include discovery-relevant flags for unusual ORFs, gene density, coding fraction, and tRNA/RNA features.
 - [ ] `ncRNA_census.tsv` exists and records both default-threshold and relaxed-threshold results for tRNA and rRNA, including explicit zero counts.

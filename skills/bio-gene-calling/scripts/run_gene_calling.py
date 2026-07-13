@@ -6,8 +6,11 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+import io
 import json
 import re
+import shlex
+import subprocess
 from pathlib import Path
 
 FIELDS = ("assembly_id", "domain", "mode", "fasta")
@@ -32,6 +35,14 @@ def sha256(path: Path) -> str:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def write_if_same(path: Path, content: str) -> None:
+    if path.exists():
+        if path.read_text(encoding="utf-8") != content:
+            raise ValueError(f"existing generated configuration differs: {path}")
+        return
+    path.write_text(content, encoding="utf-8")
 
 
 def load_manifest(path: Path) -> list[dict[str, str]]:
@@ -107,15 +118,16 @@ def build_plan(rows: list[dict[str, str]], out: Path, tools: dict[str, object]) 
             work = target / "braker4"
             work.mkdir(parents=True, exist_ok=True)
             samples = work / "samples.csv"
-            with samples.open("x", newline="", encoding="utf-8") as handle:
-                writer = csv.DictWriter(handle, fieldnames=BRAKER4_SAMPLE_FIELDS)
-                writer.writeheader()
-                writer.writerow({"sample_name": assembly, "genome": row["fasta"]})
+            buffer = io.StringIO(newline="")
+            writer = csv.DictWriter(buffer, fieldnames=BRAKER4_SAMPLE_FIELDS, lineterminator="\n")
+            writer.writeheader()
+            writer.writerow({"sample_name": assembly, "genome": row["fasta"]})
+            write_if_same(samples, buffer.getvalue())
             config = work / "config.ini"
-            config.write_text(
+            write_if_same(
+                config,
                 f"[paths]\nsamples_file = {samples}\naugustus_config_path = {work / 'augustus_config'}\n\n"
                 "[parameters]\nrun_ncrna = 0\n",
-                encoding="utf-8",
             )
             results = work / "output" / assembly / "results"
             common_outputs = [results / "braker.gff3.gz", results / "braker.aa.gz", results / "braker.codingseq.gz"]
@@ -137,29 +149,79 @@ def build_plan(rows: list[dict[str, str]], out: Path, tools: dict[str, object]) 
     return plan
 
 
+def complete(step: dict[str, object]) -> bool:
+    return all(Path(path).is_file() and Path(path).stat().st_size > 0 for path in step["outputs"])
+
+
+def execute(plan: list[dict[str, object]]) -> None:
+    for step in plan:
+        if complete(step):
+            step["status"] = "reused"
+            continue
+        for output in step["outputs"]:
+            Path(output).parent.mkdir(parents=True, exist_ok=True)
+        result = subprocess.run(step["command"], check=False)
+        if result.returncode or not complete(step):
+            raise RuntimeError(
+                f"{step['stage']} failed or produced an empty output: {shlex.join(step['command'])}"
+            )
+        step["status"] = "completed"
+
+
+def count_trnascan(path: Path) -> int:
+    count = 0
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        fields = line.split()
+        if len(fields) >= 9 and fields[1].isdigit():
+            count += 1
+    return count
+
+
+def count_cmsearch(path: Path) -> int:
+    return sum(
+        bool(line.strip()) and not line.startswith("#")
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines()
+    )
+
+
+def write_census(path: Path, rows: list[dict[str, str]], plan: list[dict[str, object]], executed: bool) -> None:
+    steps = {(step["assembly_id"], step["stage"], step.get("model"), step.get("threshold")): step for step in plan}
+    with path.open("w", encoding="utf-8") as handle:
+        handle.write("assembly\tclass\ttool\tmodel\tthreshold\tcount\tnotes\n")
+        for row in rows:
+            trna = steps[(row["assembly_id"], "trna", None, None)]
+            trna_count = count_trnascan(Path(trna["outputs"][0])) if executed else "NA"
+            note = "completed" if executed else "pending execution"
+            handle.write(
+                f"{row['assembly_id']}\ttRNA\ttRNAscan-SE\tall\tdefault\t{trna_count}\t{note}\n"
+            )
+            for model in RFAM[row["domain"]]:
+                for threshold in ("default", "relaxed"):
+                    rrna = steps[(row["assembly_id"], "rrna", model, threshold)]
+                    count = count_cmsearch(Path(rrna["outputs"][0])) if executed else "NA"
+                    handle.write(
+                        f"{row['assembly_id']}\trRNA\tInfernal\t{model}\t{threshold}\t{count}\t{note}\n"
+                    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("assemblies", type=Path)
     parser.add_argument("--tool-manifest", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
     try:
         rows = load_manifest(args.assemblies.resolve())
         tools = load_tools(args.tool_manifest.resolve())
-        if args.out.exists() and any(args.out.iterdir()):
-            raise ValueError(f"output directory is not empty: {args.out}")
         args.out.mkdir(parents=True, exist_ok=True)
         plan = build_plan(rows, args.out.resolve(), tools)
+        if args.execute:
+            execute(plan)
         payload = {"schema_version": "1.0", "tools": tools, "assemblies": rows, "steps": plan}
         (args.out / "run_manifest.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-        with (args.out / "ncRNA_census.tsv").open("w", encoding="utf-8") as handle:
-            handle.write("assembly\tclass\ttool\tmodel\tthreshold\tcount\tnotes\n")
-            for row in rows:
-                handle.write(f"{row['assembly_id']}\ttRNA\ttRNAscan-SE\tall\tdefault\tNA\tpending execution\n")
-                for model in RFAM[row["domain"]]:
-                    handle.write(f"{row['assembly_id']}\trRNA\tInfernal\t{model}\tdefault\tNA\tpending execution\n")
-                    handle.write(f"{row['assembly_id']}\trRNA\tInfernal\t{model}\trelaxed\tNA\tpending execution\n")
-    except (OSError, ValueError, json.JSONDecodeError) as error:
+        write_census(args.out / "ncRNA_census.tsv", rows, plan, args.execute)
+    except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as error:
         parser.error(str(error))
     return 0
 

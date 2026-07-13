@@ -32,6 +32,19 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def tree_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    files = sorted(item for item in path.rglob("*") if item.is_file())
+    if not files:
+        raise ValueError(f"database directory has no files: {path}")
+    for item in files:
+        digest.update(item.relative_to(path).as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(sha256(item).encode("ascii"))
+        digest.update(b"\n")
+    return digest.hexdigest()
+
+
 def read(path: Path, fields: tuple[str, ...]) -> list[dict[str, str]]:
     with path.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle, delimiter="\t")
@@ -53,12 +66,21 @@ def load_resources(path: Path) -> dict[str, object]:
         if name.endswith("_db"):
             db = Path(item.get("path", ""))
             db = db if db.is_absolute() else path.parent / db
-            if not db.is_file() or db.stat().st_size == 0:
-                raise ValueError(f"database resource is missing or empty: {db}")
-            actual = sha256(db)
+            kind = item.get("kind", "file")
+            if kind == "file":
+                if not db.is_file() or db.stat().st_size == 0:
+                    raise ValueError(f"database resource file is missing or empty: {db}")
+                actual = sha256(db)
+            elif kind == "directory":
+                if not db.is_dir():
+                    raise ValueError(f"database resource directory is missing: {db}")
+                actual = tree_sha256(db)
+            else:
+                raise ValueError(f"database resource kind must be file or directory: {name}")
             if actual != item["sha256"]:
                 raise ValueError(f"database checksum mismatch for {name}")
             item["path"] = str(db.resolve())
+            item["kind"] = kind
     return data
 
 

@@ -33,3 +33,29 @@ def test_unpinned_braker_revision_is_rejected(tmp_path):
     result = subprocess.run([sys.executable, str(SCRIPT), str(SKILL / "fixtures" / "assemblies.tsv"), "--tool-manifest", str(manifest), "--out", str(tmp_path / "out")], text=True, capture_output=True)
     assert result.returncode != 0
     assert "40-character Git commit" in result.stderr
+
+
+def test_plan_is_idempotent_and_execute_reuses_complete_outputs(tmp_path):
+    out = tmp_path / "out"
+    args = [sys.executable, str(SCRIPT), str(SKILL / "fixtures" / "assemblies.tsv"), "--tool-manifest", str(SKILL / "fixtures" / "tool-manifest.json"), "--out", str(out)]
+    first = subprocess.run(args, text=True, capture_output=True)
+    assert first.returncode == 0, first.stderr
+    second = subprocess.run(args, text=True, capture_output=True)
+    assert second.returncode == 0, second.stderr
+    manifest = json.loads((out / "run_manifest.json").read_text())
+    for step in manifest["steps"]:
+        for output in step["outputs"]:
+            path = Path(output)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if step["stage"] == "trna":
+                path.write_text("Sequence tRNA # Begin End Type Codon IntronBegin IntronEnd Score\nseq 1 1 70 Ala TGC 0 0 55.0\n")
+            elif step["stage"] == "rrna":
+                path.write_text("# cmsearch tblout\nseq model query cm 1 10 1 10 + no 1 0.5 0.0 42.0 1e-10 ! description\n")
+            else:
+                path.write_text("fixture output\n")
+    executed = subprocess.run([*args, "--execute"], text=True, capture_output=True)
+    assert executed.returncode == 0, executed.stderr
+    rerun = json.loads((out / "run_manifest.json").read_text())
+    assert {step["status"] for step in rerun["steps"]} == {"reused"}
+    census = (out / "ncRNA_census.tsv").read_text()
+    assert "\t1\tcompleted" in census

@@ -616,7 +616,7 @@ status: ## Show installation status
 
 test: ## Test repository structure and installation
 	@$(SCRIPTS_DIR)/test-install.sh
-	@uv run --no-project --with requests python -m unittest discover -s tests -v
+	@uv run --no-project --with pytest --with requests pytest -q
 
 ##@ Maintenance
 

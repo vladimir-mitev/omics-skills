@@ -13,7 +13,9 @@ from pathlib import Path
 
 MARKER_FIELDS = ("marker_id", "fasta", "sequence_type")
 REFERENCE_FIELDS = ("accession", "path", "sha256")
-SUPPORT_RE = re.compile(r"\)([0-9]+(?:\.[0-9]+)?)(?=[:;,])")
+SUPPORT_RE = re.compile(
+    r"\)([0-9]+(?:\.[0-9]+)?(?:/[0-9]+(?:\.[0-9]+)?)?)(?=[:;,])"
+)
 
 
 def checksum(path: Path) -> str:
@@ -45,17 +47,36 @@ def resolve_inputs(rows: list[dict[str, str]], source: Path, field: str) -> None
 
 
 def normalize_tree(tree: Path, output: Path) -> None:
-    values = [float(value) for value in SUPPORT_RE.findall(tree.read_text(encoding="utf-8"))]
-    if not values:
+    labels = SUPPORT_RE.findall(tree.read_text(encoding="utf-8"))
+    if not labels:
         raise ValueError(f"no internal support values found in {tree}")
-    if any(value < 0 or value > 100 for value in values):
+    parsed: list[tuple[int, str, float]] = []
+    for node_index, label in enumerate(labels, 1):
+        parts = [float(value) for value in label.split("/")]
+        if len(parts) == 1:
+            parsed.append((node_index, "support", parts[0]))
+        elif len(parts) == 2:
+            parsed.extend(
+                (
+                    (node_index, "sh_alrt", parts[0]),
+                    (node_index, "ufboot", parts[1]),
+                )
+            )
+        else:
+            raise ValueError(f"unsupported internal support label: {label}")
+    if any(value < 0 or value > 100 for _, _, value in parsed):
         raise ValueError("tree support values must be within 0..1 or 0..100")
-    scale = 1 if max(values) <= 1 else 100
+    scales = {}
+    for metric in {name for _, name, _ in parsed}:
+        values = [value for _, name, value in parsed if name == metric]
+        if any(value > 1 for value in values) and any(0 < value < 1 for value in values):
+            raise ValueError(f"mixed 0..1 and 0..100 support conventions for {metric}")
+        scales[metric] = 1 if max(values) <= 1 else 100
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", encoding="utf-8") as handle:
-        handle.write("node_index\traw_support\tnormalized_support\n")
-        for index, value in enumerate(values, 1):
-            handle.write(f"{index}\t{value:g}\t{value / scale:.6f}\n")
+        handle.write("node_index\tsupport_type\traw_support\tnormalized_support\n")
+        for node_index, metric, value in parsed:
+            handle.write(f"{node_index}\t{metric}\t{value:g}\t{value / scales[metric]:.6f}\n")
 
 
 def build_plan(markers: list[dict[str, str]], out: Path, tree_tool: str, seed: int) -> list[dict[str, object]]:

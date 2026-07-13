@@ -18,7 +18,7 @@ Detect, classify, and QC viral contigs.
      --out results/bio-viromics
    ```
 
-   The driver checksum-verifies geNomad, CheckV, GVClass, and vConTACT3 database resources; requires at least five hypotheses including a technical/null explanation; requires initial, intermediate, and final reflections; and persists marker, family-copy, synteny, ncRNA, and genome-frontier evidence under `schemas/evidence-bundle.schema.json`.
+   The driver checksum-verifies geNomad, CheckV, GVClass, and vConTACT3 database resources; requires at least five hypotheses including a technical/null explanation; requires initial, intermediate, and final reflections; and persists marker, family-copy, synteny, ncRNA, and genome-frontier evidence under `schemas/evidence-bundle.schema.json`. Database resources may be files or directories. Set `kind` to `directory` and record the deterministic tree SHA-256 for installed database directories.
 2. Start from `/tracking-taxonomy-updates` QuickClade domain routing when assemblies, MAGs, genomes, or contigs have not already been screened. Viral, virus-like, mixed, or low-confidence contigs enter this skill; bacterial/archaeal and eukaryotic rows stay on their domain-specific routes unless later evidence contradicts the triage.
 3. Run virus detection with geNomad v1.8+ (use as primary plasmid-and-virus classifier).
 4. Run CheckV v1.0.1 for completeness, contamination, and host-removal QC.

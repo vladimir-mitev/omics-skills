@@ -48,6 +48,7 @@ nav:
   - Agents: agents.md
   - Skills: skills.md
   - Skill Quality: skill-quality.md
+  - Biological Validation: biological-validation.md
   - Routing: routing.md
   - Development:
       - Development: development.md
