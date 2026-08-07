@@ -99,199 +99,45 @@ grep "^>" database.fasta | grep -E "[\t ]" | head -10
 awk '/^>/ {if (seq) print length(seq); seq=""} !/^>/ {seq=seq$0} END {print length(seq)}' database.fasta | sort -n | uniq -c
 ```
 
-### Step 2: Define Transformation Rules
+### Step 2: Curate with the Bundled Script
 
-Based on the source database, define rules:
+The script standardizes headers, merges multiple inputs, deduplicates, and writes the mapping and report in one pass:
 
-```python
-# Example transformation rules
-rules = {
-    "header_separator": "|",           # Use pipe as field separator
-    "prefix": "VP",                    # Add prefix to all sequences
-    "remove_whitespace": True,         # Replace spaces with underscores
-    "fields_to_keep": ["accession", "description"],
-    "taxonomy_source": "description",  # Extract taxonomy from description
-}
+```bash
+uv run --no-project python scripts/curate_fasta.py \
+  input1.fasta input2.fasta \
+  --output curated.fasta \
+  --mapping header_mapping.tsv \
+  --report dedup_report.json \
+  --prefix REF \
+  --deduplicate both        # id | sequence | both
 ```
 
-### Step 3: Process Sequences
+Write custom Biopython transformations only when a rule falls outside the script's flags, and keep the original-to-new ID mapping in that case too.
 
-```python
+### Step 3: Generate Statistics and Validate
+
+Use SeqKit (versions and more commands in [tools.md](tools.md)) for statistics, then verify parseability, alphabet, and the prefix distribution in one pass:
+
+```bash
+seqkit stats -a curated.fasta               # counts, length distribution, sequence type
+seqkit grep -nrp " " curated.fasta | head   # must return nothing: no whitespace in headers
+uv run --with biopython python3 - <<'EOF'   # parse end-to-end, flag invalid residues, count prefixes
 from Bio import SeqIO
-import hashlib
-import re
-
-def standardize_header(header: str, rules: dict) -> str:
-    """Standardize a FASTA header according to rules."""
-    # Remove > prefix
-    header = header.lstrip(">")
-
-    # Split on common separators
-    parts = re.split(r'[\s\|]+', header, maxsplit=2)
-
-    # Apply prefix
-    if rules.get("prefix"):
-        parts[0] = f"{rules['prefix']}|{parts[0]}"
-
-    # Remove whitespace from all parts
-    if rules.get("remove_whitespace"):
-        parts = [p.replace(" ", "_") for p in parts]
-
-    # Rejoin with standard separator
-    sep = rules.get("header_separator", "|")
-    return sep.join(parts)
-
-def process_database(input_path: str, output_path: str, rules: dict):
-    """Process a FASTA database with standardization rules."""
-    with open(output_path, 'w') as out:
-        for record in SeqIO.parse(input_path, "fasta"):
-            new_id = standardize_header(record.description, rules)
-            out.write(f">{new_id}\n{str(record.seq)}\n")
-```
-
-### Step 4: Remove Duplicates
-
-```python
-def deduplicate_by_sequence(input_path: str, output_path: str):
-    """Remove sequences with identical sequences, keeping first occurrence."""
-    seen_seqs = set()
-    with open(output_path, 'w') as out:
-        for record in SeqIO.parse(input_path, "fasta"):
-            seq_hash = hashlib.sha256(str(record.seq).upper().encode("ascii")).hexdigest()
-            if seq_hash not in seen_seqs:
-                seen_seqs.add(seq_hash)
-                out.write(f">{record.description}\n{str(record.seq)}\n")
-    return len(seen_seqs)
-
-def deduplicate_by_id(input_path: str, output_path: str):
-    """Remove sequences with duplicate IDs, keeping first occurrence."""
-    seen_ids = set()
-    with open(output_path, 'w') as out:
-        for record in SeqIO.parse(input_path, "fasta"):
-            if record.id not in seen_ids:
-                seen_ids.add(record.id)
-                out.write(f">{record.description}\n{str(record.seq)}\n")
-    return len(seen_ids)
-```
-
-### Step 5: Merge Databases
-
-```python
-def merge_databases(input_paths: list, output_path: str,
-                   deduplicate: bool = True):
-    """Merge multiple FASTA files into one."""
-    all_records = []
-    seen_ids = set()
-
-    for path in input_paths:
-        for record in SeqIO.parse(path, "fasta"):
-            if deduplicate and record.id in seen_ids:
-                continue
-            seen_ids.add(record.id)
-            all_records.append(record)
-
-    with open(output_path, 'w') as out:
-        for record in all_records:
-            out.write(f">{record.description}\n{str(record.seq)}\n")
-
-    return len(all_records)
-```
-
-### Step 6: Generate Statistics
-
-```python
-def generate_stats(input_path: str) -> dict:
-    """Generate comprehensive database statistics."""
-    from collections import Counter
-
-    stats = {
-        "total_sequences": 0,
-        "total_residues": 0,
-        "lengths": [],
-        "prefixes": Counter(),
-        "gc_content": [],  # For nucleotide
-    }
-
-    for record in SeqIO.parse(input_path, "fasta"):
-        stats["total_sequences"] += 1
-        seq_len = len(record.seq)
-        stats["total_residues"] += seq_len
-        stats["lengths"].append(seq_len)
-
-        # Extract prefix
-        prefix = record.id.split("|")[0] if "|" in record.id else "none"
-        stats["prefixes"][prefix] += 1
-
-        # GC content for nucleotides
-        seq_upper = str(record.seq).upper()
-        if set(seq_upper) <= set("ATGCN"):
-            gc = (seq_upper.count("G") + seq_upper.count("C")) / len(seq_upper)
-            stats["gc_content"].append(gc)
-
-    # Calculate summary statistics
-    lengths = stats["lengths"]
-    if not lengths:
-        raise ValueError("database contains no FASTA records")
-    stats["min_length"] = min(lengths)
-    stats["max_length"] = max(lengths)
-    stats["mean_length"] = sum(lengths) / len(lengths)
-    stats["median_length"] = sorted(lengths)[len(lengths)//2]
-
-    return stats
-
-def format_stats_report(stats: dict, db_name: str) -> str:
-    """Format statistics as markdown report."""
-    report = f"""# Database Statistics: {db_name}
-
-## Summary
-- **Total sequences:** {stats['total_sequences']:,}
-- **Total residues:** {stats['total_residues']:,}
-
-## Sequence Lengths
-- **Minimum:** {stats['min_length']:,}
-- **Maximum:** {stats['max_length']:,}
-- **Mean:** {stats['mean_length']:.1f}
-- **Median:** {stats['median_length']:,}
-
-## Prefix Distribution
-| Prefix | Count | Percentage |
-|--------|-------|------------|
-"""
-    total = stats['total_sequences']
-    for prefix, count in stats['prefixes'].most_common():
-        pct = count / total * 100
-        report += f"| {prefix} | {count:,} | {pct:.1f}% |\n"
-
-    return report
-```
-
-### Step 7: Validate Database
-
-```python
-def validate_database(input_path: str) -> list:
-    """Validate database and return list of issues."""
-    issues = []
-
-    for i, record in enumerate(SeqIO.parse(input_path, "fasta"), 1):
-        # Check for whitespace in header
-        if " " in record.id or "\t" in record.id:
-            issues.append(f"Line {i}: Whitespace in ID '{record.id}'")
-
-        # Check for empty sequences
-        if len(record.seq) == 0:
-            issues.append(f"Line {i}: Empty sequence for '{record.id}'")
-
-        # Check for invalid characters (protein)
-        valid_aa = set("ACDEFGHIKLMNPQRSTVWXY*-")
-        invalid = set(str(record.seq).upper()) - valid_aa
-        if invalid:
-            issues.append(f"Line {i}: Invalid characters {invalid} in '{record.id}'")
-
-        # Check header format
-        if "|" not in record.description:
-            issues.append(f"Line {i}: Non-standard header format for '{record.id}'")
-
-    return issues
+from collections import Counter
+valid = set("ACDEFGHIKLMNPQRSTVWYXBZJUO*-")  # adjust to ACGTUN*- for nucleotide databases
+prefixes, bad = Counter(), []
+n = 0
+for rec in SeqIO.parse("curated.fasta", "fasta"):
+    n += 1
+    prefixes[rec.id.split("|")[0] if "|" in rec.id else "none"] += 1
+    extra = set(str(rec.seq).upper()) - valid
+    if extra:
+        bad.append((rec.id, "".join(sorted(extra))))
+print(f"records: {n}")
+print("prefix counts:", dict(prefixes))
+print("invalid residues:", bad if bad else "none")
+EOF
 ```
 
 ## Input Requirements
@@ -334,8 +180,7 @@ def genbank_to_fasta(input_gb: str, output_fasta: str):
 ### Multi-line to Single-line FASTA
 
 ```bash
-# Using awk
-awk '/^>/ {if (seq) print seq; print; seq=""} !/^>/ {seq=seq$0} END {print seq}' multi.fasta > single.fasta
+seqkit seq -w 0 multi.fasta > single.fasta
 ```
 
 ### Extract CDS from GenBank
@@ -356,26 +201,9 @@ def extract_cds_proteins(input_gb: str, output_faa: str):
 
 ## Best Practices
 
-### 1. Always Backup Originals
-```bash
-cp original.fasta original.fasta.bak
-```
-
-### 2. Validate Before Processing
-Check header formats and sequence content before bulk operations.
-
-### 3. Use Consistent Prefixes
-Define a taxonomy prefix scheme and stick to it:
-- `VP_` for virophages
-- `PLV_` for polinton-like viruses
-- `NCLDV_` for NCLDVs
-- `MIRUS_` for Mirus viruses
-
-### 4. Document Transformations
-Keep a log of all transformations applied to the database.
-
-### 5. Generate Statistics After Processing
-Always verify the output database matches expectations.
+- Define a taxonomy prefix scheme and stick to it (e.g. `VP|` virophages, `PLV|` polinton-like viruses, `NCLDV|` NCLDVs, `MIRUS|` Mirus viruses).
+- Keep the header mapping and deduplication report with the database so every transformation stays auditable.
+- Re-run statistics after processing and compare against the pre-curation counts.
 
 ## Examples
 

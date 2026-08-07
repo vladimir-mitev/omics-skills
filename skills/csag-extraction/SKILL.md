@@ -51,7 +51,7 @@ The extraction scope is the **full manuscript**: title, abstract, introduction, 
 
 ## Instructions
 
-## Reliability pattern for model-assisted extraction
+### Reliability pattern for model-assisted extraction
 
 When a model is used to assist extraction, prefer a two-step workflow:
 

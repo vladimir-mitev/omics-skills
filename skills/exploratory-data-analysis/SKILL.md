@@ -204,39 +204,11 @@ Save the markdown report with a descriptive filename:
 - Pattern: `{original_filename}_eda_report.md`
 - Example: `experiment_data.fastq` → `experiment_data_eda_report.md`
 
+For multiple related files, write one report per file, then add a short comparison summary covering shared structure, mismatches, and how the files relate before recommending an integration path.
+
 ## Detailed Format References
 
-Each reference file contains short entries for dozens of file types. To find information about a specific format:
-
-1. Identify the category from the extension
-2. Read the appropriate reference file
-3. Search for the section heading matching the extension (e.g., "### .pdb")
-4. Extract the format information
-
-### Reference File Structure
-
-Each format entry includes:
-- **Description:** What the format is
-- **Typical Data:** What it contains
-- **Use Cases:** Common applications
-- **Python Libraries:** How to read it (with code examples)
-- **EDA Approach:** Specific analyses to perform
-
-**Example lookup:**
-```markdown
-### .pdb - Protein Data Bank
-**Description:** Standard format for 3D structures of biological macromolecules
-**Typical Data:** Atomic coordinates, residue information, secondary structure
-**Use Cases:** Protein structure analysis, molecular visualization, docking
-**Python Libraries:**
-- `Biopython`: `Bio.PDB`
-- `MDAnalysis`: `MDAnalysis.Universe('file.pdb')`
-**EDA Approach:**
-- Structure validation (bond lengths, angles)
-- B-factor distribution
-- Missing residues detection
-- Ramachandran plots
-```
+Reference files are large (10,000+ words each); do not load one whole. Search for the section heading matching the extension (e.g., grep `"### .pdb"` in `references/chemistry_molecular_formats.md`) and extract just that entry. Each entry gives the format description, typical data, use cases, Python libraries with code examples, and the recommended EDA approach. When analyzing several files of the same type, reuse the extracted entry instead of re-reading the reference.
 
 ## Input Requirements
 
@@ -261,39 +233,6 @@ Each format entry includes:
 - [ ] Suggested downstream analyses match the detected format and available metadata.
 - [ ] NumPy `.npy` inspection uses memory mapping, FASTA uses full-file streaming, FASTQ is an explicitly bounded streaming sample, and each implemented format family has a fixture.
 
-## Best Practices
-
-### Reading Reference Files
-
-Reference files are large (10,000+ words each). To efficiently use them:
-
-1. **Search by extension:** Use grep to find the specific format
-   ```python
-   import re
-   with open('references/chemistry_molecular_formats.md', 'r') as f:
-       content = f.read()
-       pattern = r'### \.pdb[^#]*?(?=###|\Z)'
-       match = re.search(pattern, content, re.IGNORECASE | re.DOTALL)
-   ```
-
-2. **Extract relevant sections:** Don't load entire reference files into context unnecessarily
-
-3. **Cache format info:** If analyzing multiple files of the same type, reuse the format information
-
-### Data Analysis
-
-1. **Sample large files:** For files with millions of records, analyze a representative sample
-2. **Handle errors gracefully:** Many scientific formats require specific libraries; provide clear installation instructions
-3. **Validate metadata:** Cross-check metadata consistency (e.g., stated dimensions vs actual data)
-4. **Consider data provenance:** Note instrument, software versions, processing steps
-
-### Report Generation
-
-1. **Cover the evidence:** Include the observations needed to choose the next analysis
-2. **Be specific:** Provide concrete recommendations based on the file type
-3. **Be actionable:** Suggest specific next steps and tools
-4. **Include code examples:** Show how to load and work with the data
-
 ## Examples
 
 ### Example 1: Analyzing a FASTQ file
@@ -317,55 +256,6 @@ sequences = list(SeqIO.parse('reads.fastq', 'fastq'))
 # Include: format description, analysis results, QC recommendations
 
 # 5. Save as: reads_eda_report.md
-```
-
-### Example 2: Analyzing a CSV dataset
-
-```python
-# User provides: "Explore experiment_results.csv"
-
-# 1. Detect: .csv → general_scientific
-
-# 2. Load reference for CSV format
-
-# 3. Analyze
-import pandas as pd
-df = pd.read_csv('experiment_results.csv')
-# Dimensions, dtypes, missing values, statistics, correlations
-
-# 4. Generate report with:
-# - Data structure
-# - Missing value patterns
-# - Statistical summaries
-# - Correlation matrix
-# - Outlier detection results
-
-# 5. Save report
-```
-
-### Example 3: Analyzing microscopy data
-
-```python
-# User provides: "Analyze cells.nd2"
-
-# 1. Detect: .nd2 → microscopy_imaging (Nikon format)
-
-# 2. Read reference for ND2 format
-# Learn: multi-dimensional (XYZCT), requires nd2reader
-
-# 3. Analyze
-from nd2reader import ND2Reader
-with ND2Reader('cells.nd2') as images:
-    # Extract: dimensions, channels, timepoints, metadata
-    # Calculate: intensity statistics, frame info
-
-# 4. Generate report with:
-# - Image dimensions (XY, Z-stacks, time, channels)
-# - Channel wavelengths
-# - Pixel size and calibration
-# - Recommendations for image analysis
-
-# 5. Save report
 ```
 
 ## Troubleshooting
@@ -405,68 +295,3 @@ For very large files:
 2. Use memory-mapped access (for HDF5, NPY)
 3. Process in chunks (for CSV, FASTQ)
 4. Provide estimates based on samples
-
-## Script Usage
-
-The `scripts/eda_analyzer.py` can be used directly:
-
-```bash
-# From this repository
-uv run skills/exploratory-data-analysis/scripts/eda_analyzer.py data.csv
-
-# From an installed skill, with an explicit output file
-uv run ~/.agents/skills/exploratory-data-analysis/scripts/eda_analyzer.py \
-  data.csv output_report.md
-
-# The script will:
-# 1. Auto-detect file type
-# 2. Load format references
-# 3. Perform appropriate analysis
-# 4. Generate markdown report
-```
-
-The script performs content analysis for NumPy, CSV/TSV, JSON, HDF5, FASTA/FASTQ, and common raster images. It emits a `reference_only` scope for recognized formats without a bundled parser.
-
-## Advanced Usage
-
-### Multi-File Analysis
-
-When analyzing multiple related files:
-1. Perform individual EDA on each file
-2. Create a summary comparison report
-3. Identify relationships and dependencies
-4. Suggest integration strategies
-
-### Quality Control
-
-For data quality assessment:
-1. Check format compliance
-2. Validate metadata consistency
-3. Assess completeness
-4. Identify outliers and anomalies
-5. Compare to expected ranges/distributions
-
-### Preprocessing Recommendations
-
-Based on data characteristics, recommend:
-1. Normalization strategies
-2. Missing value imputation
-3. Outlier handling
-4. Batch correction
-5. Format conversions
-
-## Resources
-
-### scripts/
-- `eda_analyzer.py`: Bounded analyzer for the supported common formats
-
-### references/
-- `chemistry_molecular_formats.md`: 43 chemistry/molecular reference entries
-- `bioinformatics_genomics_formats.md`: 44 bioinformatics reference entries
-- `microscopy_imaging_formats.md`: 41 imaging reference entries
-- `spectroscopy_analytical_formats.md`: 43 spectroscopy reference entries
-- `proteomics_metabolomics_formats.md`: 36 omics reference entries
-- `general_scientific_formats.md`: 32 general-data reference entries
-
-### assets/
-- `report_template.md`: Markdown template for EDA reports

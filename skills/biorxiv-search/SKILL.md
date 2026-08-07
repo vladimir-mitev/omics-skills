@@ -63,17 +63,7 @@ Search bioRxiv through its official API for recent-preprint discovery, date-rang
   - a keyword query
   - a bioRxiv DOI via `--doi`
   - a request for recent/date-bounded preprints with no keyword query
-- Optional interval controls:
-  - `--days <N>` for the most recent `N` days
-  - `--start-date YYYY-MM-DD --end-date YYYY-MM-DD` for an explicit date range
-- Optional filters:
-  - `--category <name>` for a bioRxiv subject category
-  - `--author <name>` repeated for author substrings or name variants
-  - `--fields title,abstract,authors` to restrict local keyword matching
-  - `--phrase` to treat the whole query as one phrase instead of splitting on spaces
-  - explicit `OR` in the query for broader local matching
-  - `--scan-limit <N>` for how many API records to inspect locally
-  - `--all-versions` to keep multiple versions of the same DOI
+- Interval, category, author, field, and version flags are listed in Quick Reference; `--phrase` treats the whole query as one phrase.
 - If the user asks for very old or very broad searches, widen the date range deliberately and be explicit that recall depends on the chosen interval and `--scan-limit`.
 
 ## Search Semantics

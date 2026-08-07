@@ -44,6 +44,7 @@ Search arXiv through its official API for discovery, shortlisting, recent-prepri
 | Author search | Run full-name and abbreviated-first-name `au:` queries separately, e.g. `au:"Peter Nugent"` and `au:"P. Nugent"` |
 | Exact phrase | Add `--phrase` |
 | Recent submissions | `--sort submittedDate --order descending` |
+| Sort and order | `--sort relevance\|lastUpdatedDate\|submittedDate`, `--order ascending\|descending` |
 | Relative date filter | `--days 30` with local post-filtering |
 | Category filter | `--category cs.LG` |
 | ID lookup | `--ids 2501.01234,2406.00001` |
@@ -63,19 +64,7 @@ Search arXiv through its official API for discovery, shortlisting, recent-prepri
   - one or more arXiv IDs
   - optional `--output-dir` (default: `arxiv-summaries`)
   - optional `--force` to overwrite existing files
-- Optional search modifiers:
-  - `--phrase` to treat the full plain-text query as one phrase
-  - `--category <cat>` to constrain by arXiv category
-  - `--days <N>` for a recent-submission window, applied locally to returned `published` timestamps
-  - `--sort relevance|lastUpdatedDate|submittedDate`
-  - `--order ascending|descending`
-  - `--start <N>` for paging
-  - `--timeout <seconds>` when the network is slow or partially blocked
-- Optional pacing/cache modifiers:
-  - `--min-interval <seconds>` to adjust the minimum interval between API calls across CLI invocations
-  - `--retries <N>` and `--retry-backoff <seconds>` to adjust retry behavior for `HTTP 429`
-  - `--cache-dir <path>` or `ARXIV_SEARCH_CACHE_DIR` to choose the local response cache and pacing-state directory
-  - `--no-cache` to disable response-cache reads/writes while retaining pacing
+- Search, sort, paging, timeout, and pacing/cache modifiers are listed in Quick Reference; `--start <N>` pages results, `--cache-dir <path>` or `ARXIV_SEARCH_CACHE_DIR` relocates the cache, and `--no-cache` disables response caching while retaining pacing.
 - When writing raw queries, use official arXiv field prefixes and operators:
   - `ti`, `au`, `abs`, `co`, `jr`, `cat`, `rn`, `all`
   - `AND`, `OR`, `ANDNOT`

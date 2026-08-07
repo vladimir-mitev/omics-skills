@@ -1,6 +1,8 @@
 # AGENTS.md
 
-Guidance for AI coding agents (Claude Code, Cursor, Copilot) working in this repository.
+Guidance for AI coding agents (Claude Code, Codex CLI, Cursor, Copilot) working in this repository.
+
+Related docs: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) (contributor workflow), [docs/development.md](docs/development.md) (validation commands), [docs/INSTALL.md](docs/INSTALL.md) (installation).
 
 ---
 
@@ -14,7 +16,7 @@ Layout:
 - `scripts/` — router, catalog builder, hook, installer, benchmark
 - `tests/` — unit tests + routing benchmark
 - `catalog/` — generated routing artifact (`catalog.json`)
-- `docs/` — routing model, benchmark baseline
+- `docs/` — MkDocs site sources, routing model, benchmark baseline
 - `Makefile` — install, catalog, hook, benchmark, uninstall targets
 
 Install: `make install` symlinks agents and skills into `~/.claude/` and `~/.codex/`.
@@ -78,42 +80,29 @@ When close relatives or a literature-supported reference set are available, agen
 2. **Marker-gene census**: for the inferred group, enumerate the marker and machinery categories the literature treats as diagnostic (e.g., for nucleocytoplasmic large DNA viruses: replication, transcription, translation-related, packaging, capsid, chromatin/structural; for prokaryotes: ribosomal proteins, RNA polymerase, single-copy core). For each query and each relative, report presence/absence and copy number per category in a side-by-side table. Negative findings (expected marker absent) are first-class results.
 3. **Per-family copy-number (expansion / contraction)**: build a Pfam/InterPro/orthogroup × genome matrix covering queries and relatives. Flag query-specific families, missing-expected families, expansions (query copies >> relative median), and contractions. Rank by absolute and fold differences.
 4. **Synteny and conserved neighborhoods**: identify conserved gene neighborhoods (≥2 collinear orthologs in ≥2 relatives) and compare intergenic spacing, gene order, and local copy number between query and relatives. Flag conserved pairs, broken synteny, and unusual spacing or expansions.
-5. **Non-coding RNA census**: explicitly screen each assembly for tRNA, rRNA, and other ncRNA classes appropriate to the inferred group, using `tRNAscan-SE` for tRNAs and Infernal `cmsearch` against domain-appropriate Rfam covariance models for rRNAs (bacterial RF00177/RF02541/RF00001; archaeal RF01959/RF02540/RF00001; eukaryotic RF01960/RF02543/RF00002/RF00001). Report counts per class per genome and per relative. A credible negative (e.g., "Infernal `cmsearch --cut_ga` finds no rRNA at default thresholds; relaxed thresholds also fail") is a required result when nothing is found — silence is not acceptable.
+5. **Non-coding RNA census**: explicitly screen each assembly for tRNA, rRNA, and other ncRNA classes appropriate to the inferred group, using `tRNAscan-SE` for tRNAs and Infernal `cmsearch` against domain-appropriate Rfam covariance models (bacterial RF00177/RF02541/RF00001; archaeal RF01959/RF02540/RF00001; eukaryotic RF01960/RF02543/RF00002/RF00001). Report counts per class per genome and per relative. A credible negative (e.g., "Infernal `cmsearch --cut_ga` finds no rRNA at default thresholds; relaxed thresholds also fail") is a required result when nothing is found — silence is not acceptable.
 
 Each axis must yield (a) a persisted comparison artifact (TSV/parquet) and (b) a short interpretation linking the result to the hypothesis register and the literature-derived playbook. The interesting-findings table must roll up signals across these axes and identify the comparison baseline used.
 
 ---
 
-## Working with Skills
+## Skill Conventions
 
-### Skill Directory Structure
+### Directory structure
 
 ```
 skills/
   {skill-name}/           # kebab-case directory name
     SKILL.md              # Required: skill definition with YAML frontmatter
     docs/                 # Optional: tool documentation
-      {tool-name}.md
-    summaries/            # Optional: literature summaries (bio-* skills)
-      README.md
-      YYYY-paper-title.md
+    summaries/            # Optional: literature summaries (bio-* skills), named YYYY-title.md
     examples/             # Optional: usage examples
     references/           # Optional: reference materials
+    scripts/              # Optional: helper scripts
     requirements.txt      # Optional: Python dependencies
 ```
 
-### Naming Conventions
-
-- **Skill directory**: kebab-case with prefix (e.g., `bio-reads-qc-mapping`, `scientific-writing`)
-- **Skill prefixes**:
-  - `bio-*` - Bioinformatics workflows
-  - `scientific-writing`, `polars-dovmed`, `agent-browser` - Writing/research
-- `beautiful-data-viz`, `plotly-dashboard-skill`, `notebooks` - Visualization (marimo-first notebooks; Jupyter supported)
-- **SKILL.md**: Always uppercase, always this exact filename
-- **SKILL frontmatter `name`**: lowercase letters/numbers and hyphens only, no consecutive hyphens, <=64 chars, and must match the directory name
-- **Documentation**: markdown files in `docs/`; prefer lowercase with hyphens, `README.md` acceptable for overviews
-
-### SKILL.md Format
+### SKILL.md format
 
 ```markdown
 ---
@@ -126,495 +115,56 @@ description: One sentence describing what this skill does. Include when to use i
 Brief overview of what the skill does.
 
 ## Instructions
-
-Clear, step-by-step instructions for Claude to follow.
-
 ## Quick Reference
-
-| Task | Action |
-|------|--------|
-| Task 1 | How to do it |
-
 ## Input Requirements
-
-- What files/data are needed
-- Format requirements
-
 ## Output
-
-- What gets produced
-- Where it's saved
-
 ## Quality Gates
-
-- [ ] Validation check 1
-- [ ] Validation check 2
-
 ## Examples
-
-### Example 1: Common Use Case
-
-\```bash
-command --option input.txt > output.txt
-\```
-
 ## Troubleshooting
-
-**Issue**: Common problem
-**Solution**: How to fix it
 ```
 
-### Best Practices for Context Efficiency
+`scripts/validate-skills.py` enforces: the frontmatter `name` matches the directory name and is a valid kebab-case slug (≤64 chars); the description exists, stays ≤400 characters, contains an explicit "use when" / "use for" / "trigger when" phrase, and fits the 6500-character repository-wide description budget; the seven `##` sections above are present; the file stays ≤500 lines; and every relative Markdown link resolves on disk.
 
-Skills are loaded on-demand. To minimize context usage:
+### Context efficiency
 
-- **Keep SKILL.md under 500 lines** - put detailed docs in `docs/` directory
-- **Write specific descriptions** - helps agents know when to activate the skill
-- **Use progressive disclosure** - reference `docs/`, `summaries/`, `references/` files
-- **Separate concerns** - tool docs in `docs/`, literature in `summaries/`, examples in `examples/`
-- **Link explicitly** - include full relative paths (e.g., `[Tool Docs](docs/tool-name.md)`)
+Skills are loaded on demand. To minimize context usage:
 
-### Documentation Structure
-
-**docs/** - Tool-specific documentation
-```markdown
-# Tool Name
-
-## Installation
-## Usage
-## Parameters
-## Examples
-```
-
-**summaries/** - Literature summaries (bio-* skills only)
-```markdown
-# Paper Title (Year)
-
-**Journal**: Journal Name
-**DOI**: 10.xxxx/xxxxx
-
-## Key Points
-## Methods
-## Relevance
-```
-
-**examples/** - Usage examples
-```markdown
-# Example: Use Case Name
-
-## Scenario
-## Commands
-## Expected Output
-```
+- **Keep SKILL.md under 500 lines** — put detailed docs in subdirectories
+- **Write specific descriptions** — the router scores them for skill activation
+- **Use progressive disclosure** — reference `docs/`, `summaries/`, `references/` files
+- **Link explicitly** — include full relative paths (e.g., `[Tool Docs](docs/tool-name.md)`); the validator flags broken links, and unlinked files are invisible to agents
+- For supplementary tool/source guides, include the `Last verified`, `Tool version/release checked`, `Official docs/manual`, and `Release/source` provenance lines near the top; `scripts/validate-supplementary-docs.py` enforces them.
 
 ---
 
-## Working with Agents
+## Agent Conventions
 
-### Agent Structure
+Agents are markdown files in `agents/` (kebab-case names): `omics-scientist.md`, `literature-expert.md`, `science-writer.md`, `dataviz-artist.md`.
 
-Agents are markdown files that define:
-1. **Persona** - Expert role and domain
-2. **Core Principles** - Guiding philosophy
-3. **Skill Lookup** - Short catalog-first lookup step before manual skill selection
-4. **Mandatory Skill Usage** - When to use which skills
-5. **Workflow Decision Tree** - Skill orchestration logic
-6. **Task Recognition Patterns** - Keyword → skill mappings
-7. **Communication Style** - How to interact with users
+The router parses three sections of each agent file, so preserve their exact headings and formats:
 
-### Agent File Structure
+- **`## Mandatory Skill Usage`** — `### Category` subsections whose `/skill-name` references assign skills to the agent
+- **`## Workflow Decision Tree`** — the first fenced code block; `├─`/`└─` branches with `/skill-name` references become workflow edges
+- **`## Task Recognition Patterns`** — `- **"phrase", "phrase"** → \`/skill-name\`` lines become routing trigger phrases
 
-```markdown
-# Agent Name
+Agents also carry a `## Skill Lookup` section pointing at the installed router (pinned by `tests/test_skill_index.py`), plus persona, core principles, communication style, and quality gates that are not parsed.
 
-## Persona
+### Adding or modifying a skill or agent
 
-You are an expert [domain] specializing in [specific areas]...
-
-## Core Principles
-
-1. Principle 1
-2. Principle 2
-
-## Skill Lookup
-
-Run the shared catalog first:
-`python3 ~/.agents/omics-skills/skill_index.py route "<task>" --agent <agent-name>`
-
-## Mandatory Skill Usage
-
-### Category 1
-
-**When working with X, use:**
-- `/skill-name` - Description
-  - Use for: Specific scenarios
-  - Outputs: What it produces
-
-### Category 2
-
-...
-
-## Workflow Decision Tree
-
-\```
-START
-  │
-  ├─ Condition?
-  │   └─> /skill-name
-  │       └─> /next-skill
-\```
-
-## Task Recognition Patterns
-
-- **"keyword1", "keyword2"** → `/skill-name`
-
-## Communication Style
-
-Guidelines for how to communicate with users
-
-## Example Interactions
-
-**User**: Example request
-**Agent**: Example response with skill invocation
-```
-
-### Naming Conventions
-
-- **Agent files**: kebab-case (e.g., `omics-scientist.md`, `science-writer.md`)
-- **Four agents**:
-  - `omics-scientist.md` - Bioinformatics workflows (14 bio-* skills)
-  - `literature-expert.md` - Literature discovery, preprints, and citation lookup
-  - `science-writer.md` - Scientific writing, revision, and peer review
-  - `dataviz-artist.md` - Visualization (5 viz skills)
-
-### Agent Design Principles
-
-1. **Single Responsibility** - Each agent has a clear domain
-2. **Skill Orchestration** - Agents compose skills into workflows
-3. **Decision Logic** - Clear decision trees for skill selection
-4. **Keyword Mapping** - Natural language → skill activation
-5. **Quality Gates** - Validation at each workflow step
-6. **Example Driven** - Show concrete interaction patterns
-
----
-
-## Creating a New Skill
-
-### 1. Create Directory Structure
+1. Create or edit `skills/<name>/SKILL.md` (frontmatter `name` must match the directory) or `agents/<agent>.md`.
+2. For new skills, add the skill to the owning agent's `Mandatory Skill Usage`, `Workflow Decision Tree`, and `Task Recognition Patterns`.
+3. Rebuild the catalog and run the gates ([docs/development.md](docs/development.md) has the full list):
 
 ```bash
-mkdir -p skills/your-skill-name/{docs,summaries,examples,references}
-touch skills/your-skill-name/SKILL.md
+python3 scripts/skill_index.py build
+python3 scripts/validate-skills.py
+uv run --no-project --with pytest --with requests pytest -q
+make benchmark
 ```
 
-### 2. Write SKILL.md
+4. Add a routing benchmark row in `tests/routing_benchmark.yaml` when the skill should be discoverable from natural language.
 
-Use the template above. Key sections:
-- YAML frontmatter with `name` and `description`
-- Clear instructions for Claude
-- Input/output specifications
-- Quality gates for validation
-- Examples and troubleshooting
-
-### 3. Add Documentation (Optional)
-
-- `docs/` - Tool-specific documentation
-- `summaries/` - Literature summaries (for bio-* skills)
-- `examples/` - Usage examples
-- `references/` - Reference materials
-
-### 4. Update Agent Mappings
-
-Edit relevant agent file(s) in `agents/`:
-- Add skill to "Mandatory Skill Usage" section
-- Add to workflow decision tree
-- Add keyword triggers in "Task Recognition Patterns"
-
-### 5. Update README.md
-
-Add skill to the agent → skills mapping section.
-
-### 6. Test
-
-```bash
-# Test repository structure
-make test
-
-# Test installation
-make install
-make status
-
-# Test agent invocation
-claude --agent omics-scientist
-# Try triggering your new skill
-```
-
----
-
-## Modifying an Existing Skill
-
-### 1. Read Current Implementation
-
-```bash
-cat skills/{skill-name}/SKILL.md
-ls -la skills/{skill-name}/
-```
-
-### 2. Make Changes
-
-- **SKILL.md** - Update instructions, add examples
-- **docs/** - Add/update tool documentation
-- **summaries/** - Add literature references (bio-* skills)
-
-### 3. Maintain Structure
-
-- Keep YAML frontmatter intact
-- Preserve section headers
-- Update quality gates if logic changes
-- Add troubleshooting for new edge cases
-
-### 4. Test Changes
-
-```bash
-# Symlinks auto-update (default install method)
-# Test by invoking agent and using the skill
-
-# If installed via copies:
-make install INSTALL_METHOD=copy
-```
-
----
-
-## Modifying an Agent
-
-### 1. Identify Which Agent
-
-- `omics-scientist.md` - Bioinformatics workflows
-- `literature-expert.md` - Literature discovery, preprints, and DOI lookup
-- `science-writer.md` - Manuscript writing, revision, and review
-- `dataviz-artist.md` - Visualization, notebooks, dashboards
-
-### 2. Edit Agent File
-
-```bash
-vim agents/{agent-name}.md
-```
-
-### 3. Key Sections to Update
-
-- **Mandatory Skill Usage** - When adding/removing skills
-- **Workflow Decision Tree** - When changing orchestration logic
-- **Task Recognition Patterns** - When adding new keywords
-- **Example Interactions** - When adding new workflows
-
-### 4. Test Changes
-
-```bash
-# Symlinks auto-update
-claude --agent {agent-name}
-
-# Try various triggers to test keyword mappings
-```
-
----
-
-## Installation for End Users
-
-Document these methods in README.md:
-
-### Method 1: Makefile (Recommended)
-
-```bash
-git clone https://github.com/user/omics-skills.git
-cd omics-skills
-make install        # Installs to ~/.claude/ and ~/.codex/
-make status         # Verify installation
-```
-
-### Method 2: Shell Scripts
-
-```bash
-scripts/install.sh  # Alternative to Makefile
-```
-
-### What Gets Installed
-
-- **Agents** → `~/.claude/agents/` and `~/.codex/agents/` (4 files)
-- **Skills** → `~/.agents/skills/` (34 directories)
-- **Claude skills link** → `~/.claude/skills` → `~/.agents/skills`
-- **Codex skills link** → `~/.codex/skills` → `~/.agents/skills`
-- **Symlinks** by default (auto-updates with `git pull`)
-
----
-
-## Testing Procedures
-
-### Repository Structure Test
-
-```bash
-make test
-# Or: scripts/test-install.sh
-```
-
-**Validates:**
-- Repository directory structure
-- All agents present
-- Critical skills present
-- Installation scripts executable
-- Installation status
-
-### Installation Test
-
-```bash
-make install
-make status
-make validate
-```
-
-### Agent Invocation Test
-
-```bash
-claude --agent omics-scientist
-# Test skill triggering
-# Verify workflow orchestration
-```
-
----
-
-## Code Quality Standards
-
-### Skill Requirements
-
-- [ ] SKILL.md has valid YAML frontmatter
-- [ ] Description includes "when to use" guidance
-- [ ] Instructions are clear and step-by-step
-- [ ] Quality gates defined
-- [ ] Examples provided
-- [ ] Troubleshooting section present
-- [ ] Documentation links work (if using docs/)
-
-### Agent Requirements
-
-- [ ] Persona clearly defined
-- [ ] All used skills documented in "Mandatory Skill Usage"
-- [ ] Decision tree covers all skill paths
-- [ ] Keyword mappings cover the skill's expected triggers
-- [ ] Example interactions show real workflows
-- [ ] Quality gates specified for workflows
-
-### Documentation Standards
-
-- Use markdown format
-- Include code examples with language tags
-- Provide both simple and complex examples
-- Document edge cases
-- Link to external resources with full URLs
-
----
-
-## Common Patterns
-
-### Pattern 1: Bio-* Workflow Skills
-
-Bio-* skills form sequential workflows:
-
-```
-bio-reads-qc-mapping → bio-assembly-qc → bio-gene-calling → bio-annotation
-```
-
-**Structure:**
-- Input: Previous step's output
-- Process: Single bioinformatics tool/workflow
-- Output: Files + QC reports
-- Quality gates: Validation thresholds
-
-### Pattern 2: Universal Skills
-
-Some skills are used across all agents:
-
-- `bio-logic` - Scientific reasoning (used by the science agents)
-
-### Pattern 3: Terminal Skills
-
-Skills that produce final deliverables:
-
-- `bio-stats-ml-reporting` - Generate final reports
-- `scientific-writing` - Produce manuscripts
-- `beautiful-data-viz` - Create publication figures
-
----
-
-## Troubleshooting
-
-### Skill Not Loading
-
-**Issue**: Claude doesn't recognize the skill
-**Check:**
-1. SKILL.md has valid YAML frontmatter
-2. `name` in frontmatter matches directory name
-3. Skill installed via `make install`
-4. Agent mapping includes the skill
-
-### Agent Not Using Skill
-
-**Issue**: Agent doesn't invoke skill when expected
-**Check:**
-1. Keywords in "Task Recognition Patterns"
-2. Skill in "Mandatory Skill Usage" section
-3. Skill in workflow decision tree
-4. Test with explicit skill name mention
-
-### Symlinks Broken
-
-**Issue**: Symlinks don't point to correct location
-**Fix:**
-```bash
-make uninstall
-cd /correct/path/to/omics-skills
-make install
-```
-
----
-
-## File Naming Reference
-
-| Type | Convention | Example |
-|------|-----------|---------|
-| Skill directory | kebab-case with prefix | `bio-reads-qc-mapping` |
-| Agent file | kebab-case | `omics-scientist.md` |
-| SKILL.md | UPPERCASE | `SKILL.md` |
-| Documentation | lowercase-hyphen .md preferred; `README.md` allowed | `docs/tool-name.md` |
-| Summaries | YYYY-title.md | `summaries/2024-paper-name.md` |
-| Scripts | kebab-case.sh | `scripts/install.sh` |
-| Root docs | UPPERCASE | `README.md`, `LICENSE`, `AGENTS.md`; long-form guides live in `docs/` |
-
----
-
-## Quick Reference
-
-### Adding a Skill
-1. Create `skills/skill-name/SKILL.md`
-2. Add docs/ and examples/ if needed
-3. Update agent mapping in `agents/`
-4. Run `make test`
-
-### Modifying an Agent
-1. Edit `agents/agent-name.md`
-2. Update skill mappings, decision tree, keywords
-3. Test with `claude --agent agent-name`
-
-### Testing Changes
-```bash
-make test      # Validate structure
-make install   # Install/update
-make status    # Check installation
-```
-
-### Installation for Users
-```bash
-make install   # Primary method
-make status    # Verify
-```
+CI fails when `catalog/catalog.json` is stale, so commit the rebuilt catalog with any agent or skill text change.
 
 ---
 

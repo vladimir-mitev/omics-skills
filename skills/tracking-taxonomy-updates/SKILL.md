@@ -36,6 +36,7 @@ Use authoritative sources to report taxonomy changes with explicit versions, dat
 | IDs/ranks | See `reference/ranks-and-identifiers.md` |
 | Report template | See `reference/report-template.md` |
 | QA checklist | See `reference/qa-checklist.md` |
+| Release snapshots at authoring time | See `reference/last-verified-snapshots.md` (examples only — re-check sources for "latest") |
 | Environment | Use the project's pinned Pixi environment and record its lockfile |
 | Normalize QuickClade | `uv run --no-project python scripts/quickclade_to_routing.py quickclade.tsv --sample-id S1 --output domain_routing.tsv` |
 | Submit downstream classification | `SLURM_ACCOUNT=... scripts/submit_taxonomy.sh gtdbtk bins results/taxonomy/gtdbtk` |

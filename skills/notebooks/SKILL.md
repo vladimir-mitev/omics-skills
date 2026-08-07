@@ -95,8 +95,11 @@ A notebook is not "done" until it has been executed end-to-end on a fresh kernel
 | Conversion references | `references/widgets.md`, `references/latex.md` |
 | Pixi + Jupyter | `references/pixi_jupyter.md` |
 | Plot style | `references/plot_style.md` |
+| Data loading (DuckDB/TSV/Parquet) | `references/data_loading_duckdb.md` |
+| Definition-of-done checklist | `references/verification.md` |
 | Templates | `templates/marimo_notebook_template.py`, `templates/jupyter_kiss_template.py` |
 | Headless executor | `scripts/execute_notebook.py` |
+| Jupyter structure linter | `uv run --script "$NOTEBOOKS_SKILL/scripts/lint_notebook_structure.py" <notebook.ipynb>` |
 | Pinned converter | `uv run --script "$NOTEBOOKS_SKILL/scripts/convert_notebook.py" --help` |
 
 ## Input Requirements

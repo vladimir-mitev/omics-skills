@@ -349,43 +349,6 @@ Notes:
 
 ---
 
-## Query Best Practices
-
-When building queries, distinguish between **exploration** and **complete analysis**:
-
-### Exploration Queries
-Use `LIMIT` for quick validation during development:
-```sql
--- For testing query structure and results
-SELECT gold_id, project_name
-FROM "gold-db-2 postgresql".gold.project
-WHERE is_public = 'Yes'
-LIMIT 10;  -- Appropriate for testing
-```
-
-### Complete Queries
-**Remove `LIMIT` and other result-limiting clauses** when answering actual questions:
-```sql
--- For getting actual dataset counts/results
-SELECT COUNT(DISTINCT taxon_oid)
-FROM "img-db-2 postgresql".img_core_v400.taxon
-WHERE genome_type = 'metagenome'
-  AND is_public = 'Yes';
--- No LIMIT: returns the full count
-```
-
-**Common pitfalls:**
-- `LIMIT 100` on initial exploration can be mistaken for the complete result.
-- `LIMIT 50` on a "find all" query omits all rows after the first 50.
-- `FETCH FIRST N ROWS` has the same limitation as `LIMIT`.
-
-**Best practice:**
-1. Use `LIMIT` with COUNT(*) or small `LIMIT` during development
-2. Once query logic is correct, **remove LIMIT** to get true results
-3. For very large result sets, use aggregation (COUNT, GROUP BY) to summarize instead
-
----
-
 ## Common Queries
 
 ### Find Bacterial Isolate Genomes
@@ -485,6 +448,13 @@ Full guide: [docs/arrow-flight-python.md](docs/arrow-flight-python.md)
 - [docs/data-catalog.md](docs/data-catalog.md) - All data sources and key tables (GOLD, IMG, Portal, Mycocosm, Phytozome, NUMG)
 - [docs/phytozome.md](docs/phytozome.md) - Phytozome plant genomics: proteomes, genes, families, PFAM/PANTHER/GO, expression, synteny, homologs
 - [docs/sql-quick-reference.md](docs/sql-quick-reference.md) - Dremio SQL syntax
+- [docs/explore_gold.md](docs/explore_gold.md) - GOLD exploration guide
+
+### Metagenome Workflows
+- [docs/metagenome_metadata.md](docs/metagenome_metadata.md) - Metagenome metadata retrieval patterns
+- [docs/metagenome_comparability.md](docs/metagenome_comparability.md) - Comparing metagenome datasets across snapshots
+- [docs/numg_metagenome_sequences.md](docs/numg_metagenome_sequences.md) - NUMG protein sequence retrieval
+- [docs/large_metagenome_queries.md](docs/large_metagenome_queries.md) - Patterns and pitfalls for corpus-scale NUMG queries (partition pruning, Arrow Flight, chunked joins)
 
 ### Access & Downloads
 - [docs/arrow-flight-python.md](docs/arrow-flight-python.md) - Arrow Flight Python setup and test

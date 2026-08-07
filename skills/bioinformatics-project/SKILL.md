@@ -13,7 +13,7 @@ Two assumptions drive every rule below (Noble 2009): a stranger must be able to 
 
 ## Instructions
 
-## New project startup workflow
+### New project startup workflow
 
 Before creating directories or running the first command, turn the project into
 a small written contract:
@@ -44,7 +44,7 @@ a small written contract:
     generated batch outputs, publication figures, logs, and scratch files become
     peers at the project root.
 
-## Canonical project layout
+### Canonical project layout
 
 Logical at the root, chronological at the experiment level, logical again inside each experiment (Noble 2009). Cleaned and generated files go in `results/`, never back into `data/` (Wilson 2017). For a simple single-track project, start here:
 
@@ -69,7 +69,7 @@ project_name/              # one self-contained, meaningfully named dir
 
 Date every experiment dir `YYYY-MM-DD` (optionally `_topic`) so they sort in time order — never `final/` or `binning_v2_really_final/`. Full annotated tree, script categories, and the lab-notebook practice: `references/project-layout.md` (read when laying out or auditing a project). Concrete worked example: `examples/project-tree.txt`.
 
-## Numbered layout for multi-track projects
+### Numbered layout for multi-track projects
 
 When one repository contains shared data plus multiple analyses, manuscripts,
 or reusable preprocessing stages, prefer a numbered root layout. This keeps
@@ -132,11 +132,11 @@ scaffold and README files, move data with temporary compatibility symlinks,
 update scripts, then validate DuckDB builders, notebooks, and driver scripts
 before removing old paths.
 
-## Reproducibility rules (non-negotiable)
+### Reproducibility rules (non-negotiable)
 
 Harden every analysis against Sandve 2013's ten rules: record provenance, script all steps (no manual edits), pin and archive exact tool versions, version-control all custom code, persist standard-format intermediates per stage, fix and record random seeds, store the raw data behind every plot, emit hierarchical drill-down output, tie every claim to its result in a literate document, and provide public access (deposit reads, assemblies, derived tables; push the repo with its lockfile). Each rule has a bioinformatics how-to with concrete commands in `references/reproducibility-checklist.md` — read it when hardening an analysis for reproducibility.
 
-## Driver-script discipline
+### Driver-script discipline
 
 Capture each experiment as one executable driver script, conventionally `runall`, so the whole analysis reproduces with one command (Noble 2009). Follow all six rules of thumb:
 
@@ -149,7 +149,7 @@ Capture each experiment as one executable driver script, conventionally `runall`
 
 Pair `runall` with a `summarize` script (its final step) that produces a plot/table/HTML and can interpret a partially completed experiment. Abort on error (`set -euo pipefail`, check return codes, message to stderr, non-zero exit) and give every script a usage statement (Noble 2009). Runnable, idempotent template with version capture, fixed seed, and temp-then-rename: `examples/runall.sh` (copy and adapt when writing a pipeline).
 
-## Environment pinning
+### Environment pinning
 
 House rule for this repo: bioinformatics tool stacks use **pixi** (conda-forge + bioconda); Python-only deps use **uv**; never use system Python or conda directly.
 
@@ -159,7 +159,7 @@ House rule for this repo: bioinformatics tool stacks use **pixi** (conda-forge +
 
 Manifest example with lock-capture comment: `examples/environment.pixi.toml`. Full guidance on pixi, uv, conda export, and containers: `references/environments.md` (read when setting up or capturing an environment).
 
-## Version control
+### Version control
 
 - Put the project under Git for backup, history, and collaboration (Noble 2009); commit at least daily, keep changes small and focused (Wilson 2017).
 - Track only hand-edited files — code, configs, `runall`, notebook, sample sheets. **Never** commit generated outputs or binaries (`*.bam`, `*.bai`, `*.fastq.gz`, `results/**` tables); regenerate them via `runall`.
@@ -167,7 +167,7 @@ Manifest example with lock-capture comment: `examples/environment.pixi.toml`. Fu
 - Branch for experimental work (`git checkout -b try-metabat2`); merge to main only when it works.
 - Tag the commit behind each published figure or release; archive the release for a DOI (Zenodo) (Sandve 2013, Wilson 2017).
 
-## Sharing & collaboration
+### Sharing & collaboration
 
 Every project carries a `README.md` (study description, setup, how to reproduce), an explicit `LICENSE`, and a `CITATION.cff`; use tidy data (one variable per column, one observation per row) keyed by a stable unique ID (Wilson 2017). Detail: `references/good-enough-practices.md` (read for data management, software, collaboration, and manuscript practices).
 
@@ -242,12 +242,7 @@ uv run --no-project python ~/.agents/skills/bioinformatics-project/scripts/scaff
   --first-experiment 2026-07-11_read-qc
 ```
 
-- `examples/project-tree.txt` for a concrete project tree.
-- `examples/runall.sh` for a restartable driver.
-- `examples/environment.pixi.toml` for the software environment.
-- `examples/lab-notebook-entry.md` for decision and result logging.
-- `examples/gitignore.example` for separating hand-edited files from generated outputs.
-- `examples/samples.tsv` for stable sample identifiers.
+The bundled templates are annotated under "Example artifacts" below.
 
 ## Troubleshooting
 

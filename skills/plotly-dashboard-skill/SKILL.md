@@ -25,6 +25,7 @@ Create interactive dashboards with a single source of truth for UI and figure st
 | Palettes | See `PALETTES.md` |
 | App architecture | See `DASH_ARCHITECTURE.md` |
 | Performance | See `PERFORMANCE.md` |
+| Copyable app patterns | See [EXAMPLES.md](EXAMPLES.md) |
 | Runnable smoke app | [Runnable app](examples/app.py) |
 | Definition of done | [QA checklist](QA_CHECKLIST.md) |
 

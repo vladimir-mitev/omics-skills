@@ -26,7 +26,9 @@ METHODS_SKILL="${METHODS_SKILL:-$HOME/.agents/skills/bio-workflow-methods-docwri
 | Task | Action |
 |------|--------|
 | Evidence checklist | See `reference/evidence-checklist.md` |
-| Manifest schema | `schemas/run-manifest.schema.json` |
+| Standards to align with | See [reference/standards.md](reference/standards.md) |
+| Manifest schema | `schemas/run-manifest.schema.json` (LinkML source: [schemas/workflow-run-schema.yaml](schemas/workflow-run-schema.yaml)) |
+| Drafting templates | [METHODS.md template](templates/methods_report.md), [paper-summary YAML](templates/paper_summary.yaml) |
 | Extract a Nextflow draft | `uv run "$METHODS_SKILL/scripts/extract_nextflow_run.py" --help` |
 | Extract Snakemake evidence | `uv run --script "$METHODS_SKILL/scripts/extract_snakemake_run.py" --help` |
 | Extract CWL evidence | `uv run --script "$METHODS_SKILL/scripts/extract_cwl_run.py" --help` |

@@ -81,6 +81,7 @@ than a research generator. Evaluate completed outputs, not just plans.
 | Task | Action |
 |------|--------|
 | General scientific audit | Use profile `scientific-analysis` |
+| Worked profile-selection examples | Read [`examples/bio_task_mappings.md`](examples/bio_task_mappings.md) |
 | Phylogenomics or comparative genomics review | Use profile `phylogenomics-comparative-genomics` |
 | Viral functional genomics review | Use profile `viral-functional-genomics` |
 | Methods or software benchmark review | Use profile `methods-software` |
